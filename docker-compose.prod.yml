@@ -27,7 +27,7 @@ services:
     container_name: flowsint-redis-prod
     restart: always
     ports:
-      - "127.0.0.1:6379:6379"
+      - "127.0.0.1:6380:6379"
     networks:
       - flowsint_network
     healthcheck:
@@ -73,6 +73,8 @@ services:
       - "127.0.0.1:5001:5001"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Community enricher (ozeliurs/flowsint-enrichers), reviewed before mounting
+      - ./community-enrichers/ozeliurs/ip/to_asn_cymru.py:/app/flowsint-enrichers/src/flowsint_enrichers/ip/to_asn_cymru.py:ro
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-flowsint}:${POSTGRES_PASSWORD:-flowsint}@postgres:5432/${POSTGRES_DB:-flowsint}
       - NEO4J_URI_BOLT=bolt://neo4j:7687
@@ -110,8 +112,13 @@ services:
         "--pool=threads",
         "--concurrency=10",
       ]
+    # Docker Desktop (macOS) exposes docker.sock as root:root 0660
+    group_add:
+      - "0"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Community enricher (ozeliurs/flowsint-enrichers), reviewed before mounting
+      - ./community-enrichers/ozeliurs/ip/to_asn_cymru.py:/app/flowsint-enrichers/src/flowsint_enrichers/ip/to_asn_cymru.py:ro
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-flowsint}:${POSTGRES_PASSWORD:-flowsint}@postgres:5432/${POSTGRES_DB:-flowsint}
       - NEO4J_URI_BOLT=bolt://neo4j:7687
