@@ -1,0 +1,6826 @@
+{
+ "name": "Ficha de empresa (España)",
+ "description": "Nombre de empresa → identidad (NIF/LEI/web), registro mercantil y administradores (BORME), subvenciones (BDNS), CNMV, edictos BOE, sentencias CENDOJ, contratos PLACSP/TED y sanciones UE.",
+ "category": [
+  "Organization"
+ ],
+ "flow_schema": {
+  "nodes": [
+   {
+    "id": "Organization-1",
+    "type": "type",
+    "position": {
+     "x": 0,
+     "y": 0
+    },
+    "data": {
+     "id": null,
+     "class_name": "Organization",
+     "module": "flowsint_types.organization",
+     "name": "Organization",
+     "category": "Organization",
+     "type": "type",
+     "inputs": {
+      "type": "",
+      "properties": []
+     },
+     "outputs": {
+      "type": "Organization",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "name",
+        "type": "any"
+       },
+       {
+        "name": "siren",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_complet",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_raison_sociale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "sigle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nombre_etablissements",
+        "type": "integer | null"
+       },
+       {
+        "name": "nombre_etablissements_ouverts",
+        "type": "integer | null"
+       },
+       {
+        "name": "activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "section_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_rne",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nature_juridique",
+        "type": "unknown | null"
+       },
+       {
+        "name": "etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "statut_diffusion",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale_registre_metier",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_postal",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_complement_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_coordonnees",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_debut_activite",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_departement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_diAnyibution_speciale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_epci",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_est_siege",
+        "type": "boolean | null"
+       },
+       {
+        "name": "siege_etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_geo_adresse",
+        "type": "Location | null"
+       },
+       {
+        "name": "siege_geo_id",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_indice_repetition",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_latitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_liste_enseignes",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_finess",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_bio",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_rge",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_uai",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_longitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_nom_commercial",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_numero_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_region",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_siret",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_statut_diffusion_etablissement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_type_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "dirigeants",
+        "type": "Individual[] | null"
+       },
+       {
+        "name": "matching_etablissements",
+        "type": "object[] | null"
+       },
+       {
+        "name": "finances",
+        "type": "object | null"
+       },
+       {
+        "name": "complements_collectivite_territoriale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_convention_collective_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_egapro_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_achats_responsables",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_alim_confiance",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_association",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_bio",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_individuel",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_spectacle",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_ess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_finess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_organisme_formation",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_qualiopi",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_est_rge",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_service_public",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_l100_3",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_siae",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_societe_mission",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_uai",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_patrimoine_vivant",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_bilan_ges_renseigne",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_identifiant_association",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_statut_entrepreneur_spectacle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_type_siae",
+        "type": "unknown | null"
+       }
+      ]
+     },
+     "documentation": null,
+     "description": "Represents an organization with detailed business and administrative information.",
+     "required_params": null,
+     "params": {},
+     "params_schema": null,
+     "icon": null,
+     "key": "Organization",
+     "color": "#94a3b8"
+    }
+   },
+   {
+    "id": "es_org_resolver_identidad-1",
+    "type": "enricher",
+    "position": {
+     "x": 380,
+     "y": 0
+    },
+    "data": {
+     "id": null,
+     "class_name": "OrgToIdentidadEs",
+     "module": "flowsint_enrichers.es.organization_to_organization_resolver",
+     "name": "es_org_resolver_identidad",
+     "category": "Organization",
+     "type": "enricher",
+     "inputs": {
+      "type": "Organization",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "name",
+        "type": "any"
+       },
+       {
+        "name": "siren",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_complet",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_raison_sociale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "sigle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nombre_etablissements",
+        "type": "integer | null"
+       },
+       {
+        "name": "nombre_etablissements_ouverts",
+        "type": "integer | null"
+       },
+       {
+        "name": "activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "section_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_rne",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nature_juridique",
+        "type": "unknown | null"
+       },
+       {
+        "name": "etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "statut_diffusion",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale_registre_metier",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_postal",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_complement_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_coordonnees",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_debut_activite",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_departement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_diAnyibution_speciale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_epci",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_est_siege",
+        "type": "boolean | null"
+       },
+       {
+        "name": "siege_etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_geo_adresse",
+        "type": "Location | null"
+       },
+       {
+        "name": "siege_geo_id",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_indice_repetition",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_latitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_liste_enseignes",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_finess",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_bio",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_rge",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_uai",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_longitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_nom_commercial",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_numero_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_region",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_siret",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_statut_diffusion_etablissement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_type_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "dirigeants",
+        "type": "Individual[] | null"
+       },
+       {
+        "name": "matching_etablissements",
+        "type": "object[] | null"
+       },
+       {
+        "name": "finances",
+        "type": "object | null"
+       },
+       {
+        "name": "complements_collectivite_territoriale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_convention_collective_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_egapro_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_achats_responsables",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_alim_confiance",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_association",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_bio",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_individuel",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_spectacle",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_ess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_finess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_organisme_formation",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_qualiopi",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_est_rge",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_service_public",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_l100_3",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_siae",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_societe_mission",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_uai",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_patrimoine_vivant",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_bilan_ges_renseigne",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_identifiant_association",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_statut_entrepreneur_spectacle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_type_siae",
+        "type": "unknown | null"
+       }
+      ]
+     },
+     "outputs": {
+      "type": "Organization",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "name",
+        "type": "any"
+       },
+       {
+        "name": "siren",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_complet",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_raison_sociale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "sigle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nombre_etablissements",
+        "type": "integer | null"
+       },
+       {
+        "name": "nombre_etablissements_ouverts",
+        "type": "integer | null"
+       },
+       {
+        "name": "activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "section_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_rne",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nature_juridique",
+        "type": "unknown | null"
+       },
+       {
+        "name": "etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "statut_diffusion",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale_registre_metier",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_postal",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_complement_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_coordonnees",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_debut_activite",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_departement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_diAnyibution_speciale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_epci",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_est_siege",
+        "type": "boolean | null"
+       },
+       {
+        "name": "siege_etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_geo_adresse",
+        "type": "Location | null"
+       },
+       {
+        "name": "siege_geo_id",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_indice_repetition",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_latitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_liste_enseignes",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_finess",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_bio",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_rge",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_uai",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_longitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_nom_commercial",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_numero_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_region",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_siret",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_statut_diffusion_etablissement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_type_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "dirigeants",
+        "type": "Individual[] | null"
+       },
+       {
+        "name": "matching_etablissements",
+        "type": "object[] | null"
+       },
+       {
+        "name": "finances",
+        "type": "object | null"
+       },
+       {
+        "name": "complements_collectivite_territoriale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_convention_collective_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_egapro_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_achats_responsables",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_alim_confiance",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_association",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_bio",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_individuel",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_spectacle",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_ess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_finess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_organisme_formation",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_qualiopi",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_est_rge",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_service_public",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_l100_3",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_siae",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_societe_mission",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_uai",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_patrimoine_vivant",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_bilan_ges_renseigne",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_identifiant_association",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_statut_entrepreneur_spectacle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_type_siae",
+        "type": "unknown | null"
+       }
+      ]
+     },
+     "documentation": "Ejecuta osint-es-scripts/resolver_empresa.py sobre la denominación (o el NIF) del nodo.\nSi hay UN único candidato con denominación exacta (o el nodo ya tenía NIF), completa el\npropio nodo con nif, nif_valido, tipo_entidad, lei, denominacion_normalizada,\ndenominaciones y web; si hay homonimia NO rellena el NIF y crea cada candidato como\nOrganization aparte («DENOMINACIÓN (NIF)») con la relación POSIBLE_IDENTIDAD, para que\nel analista elija. Los dominios que resuelven se crean como Domain con WEB_PROBABLE\n(propiedad confianza: alta si la portada muestra el NIF). `max_resultados` = máximo de\ncandidatos creados.",
+     "description": "[ES IDENTIDAD] Resuelve NIF/CIF, LEI y web probable de una empresa española (BDNS, GLEIF, TED, CNMV).",
+     "required_params": false,
+     "params": {},
+     "params_schema": [
+      {
+       "name": "max_resultados",
+       "type": "string",
+       "required": false,
+       "default": "5",
+       "description": "Máximo de nodos por organización (tope 100)."
+      },
+      {
+       "name": "buscar_web",
+       "type": "select",
+       "default": "true",
+       "required": false,
+       "description": "Probar <nombre>.es/.com/... y crear Domain (WEB_PROBABLE).",
+       "options": [
+        {
+         "label": "Sí",
+         "value": "true"
+        },
+        {
+         "label": "No",
+         "value": "false"
+        }
+       ]
+      },
+      {
+       "name": "fuentes",
+       "type": "string",
+       "default": "bdns,gleif,ted,cnmv",
+       "required": false,
+       "description": "Fuentes de candidatos, separadas por comas."
+      }
+     ],
+     "icon": null,
+     "key": "es_org_resolver_identidad",
+     "color": "#94a3b8"
+    }
+   },
+   {
+    "id": "es_org_to_registry_borme-2",
+    "type": "enricher",
+    "position": {
+     "x": 760,
+     "y": 0
+    },
+    "data": {
+     "id": null,
+     "class_name": "EsOrgToOrgBormeEnricher",
+     "module": "flowsint_enrichers.es.organization_to_organization_borme",
+     "name": "es_org_to_registry_borme",
+     "category": "Organization",
+     "type": "enricher",
+     "inputs": {
+      "type": "Organization",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "name",
+        "type": "any"
+       },
+       {
+        "name": "siren",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_complet",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_raison_sociale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "sigle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nombre_etablissements",
+        "type": "integer | null"
+       },
+       {
+        "name": "nombre_etablissements_ouverts",
+        "type": "integer | null"
+       },
+       {
+        "name": "activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "section_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_rne",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nature_juridique",
+        "type": "unknown | null"
+       },
+       {
+        "name": "etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "statut_diffusion",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale_registre_metier",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_postal",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_complement_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_coordonnees",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_debut_activite",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_departement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_diAnyibution_speciale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_epci",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_est_siege",
+        "type": "boolean | null"
+       },
+       {
+        "name": "siege_etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_geo_adresse",
+        "type": "Location | null"
+       },
+       {
+        "name": "siege_geo_id",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_indice_repetition",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_latitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_liste_enseignes",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_finess",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_bio",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_rge",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_uai",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_longitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_nom_commercial",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_numero_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_region",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_siret",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_statut_diffusion_etablissement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_type_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "dirigeants",
+        "type": "Individual[] | null"
+       },
+       {
+        "name": "matching_etablissements",
+        "type": "object[] | null"
+       },
+       {
+        "name": "finances",
+        "type": "object | null"
+       },
+       {
+        "name": "complements_collectivite_territoriale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_convention_collective_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_egapro_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_achats_responsables",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_alim_confiance",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_association",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_bio",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_individuel",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_spectacle",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_ess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_finess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_organisme_formation",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_qualiopi",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_est_rge",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_service_public",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_l100_3",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_siae",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_societe_mission",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_uai",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_patrimoine_vivant",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_bilan_ges_renseigne",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_identifiant_association",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_statut_entrepreneur_spectacle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_type_siae",
+        "type": "unknown | null"
+       }
+      ]
+     },
+     "outputs": {
+      "type": "Organization",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "name",
+        "type": "any"
+       },
+       {
+        "name": "siren",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_complet",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_raison_sociale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "sigle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nombre_etablissements",
+        "type": "integer | null"
+       },
+       {
+        "name": "nombre_etablissements_ouverts",
+        "type": "integer | null"
+       },
+       {
+        "name": "activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "section_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_rne",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nature_juridique",
+        "type": "unknown | null"
+       },
+       {
+        "name": "etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "statut_diffusion",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale_registre_metier",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_postal",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_complement_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_coordonnees",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_debut_activite",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_departement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_diAnyibution_speciale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_epci",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_est_siege",
+        "type": "boolean | null"
+       },
+       {
+        "name": "siege_etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_geo_adresse",
+        "type": "Location | null"
+       },
+       {
+        "name": "siege_geo_id",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_indice_repetition",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_latitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_liste_enseignes",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_finess",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_bio",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_rge",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_uai",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_longitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_nom_commercial",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_numero_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_region",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_siret",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_statut_diffusion_etablissement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_type_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "dirigeants",
+        "type": "Individual[] | null"
+       },
+       {
+        "name": "matching_etablissements",
+        "type": "object[] | null"
+       },
+       {
+        "name": "finances",
+        "type": "object | null"
+       },
+       {
+        "name": "complements_collectivite_territoriale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_convention_collective_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_egapro_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_achats_responsables",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_alim_confiance",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_association",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_bio",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_individuel",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_spectacle",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_ess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_finess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_organisme_formation",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_qualiopi",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_est_rge",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_service_public",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_l100_3",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_siae",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_societe_mission",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_uai",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_patrimoine_vivant",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_bilan_ges_renseigne",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_identifiant_association",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_statut_entrepreneur_spectacle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_type_siae",
+        "type": "unknown | null"
+       }
+      ]
+     },
+     "documentation": "Ficha mercantil a partir de los actos del BORME Sección Primera en el rango\n(DIAS, por defecto 90): domicilio (último cambio o constitución), objeto social,\ncapital (constitución o 'Resultante Suscrito' de ampliaciones/reducciones),\nfecha de constitución, estado inferido (activa / disuelta / extinguida / concurso),\nforma jurídica, hoja registral, socio único y web corporativa. El NIF no se publica\nen el BORME: solo se rellena con el backend apispain (APISPAIN_API_KEY).",
+     "description": "[BORME] Company registry record (address, purpose, capital, status) from BORME.",
+     "required_params": false,
+     "params": {},
+     "params_schema": [
+      {
+       "name": "DIAS",
+       "type": "string",
+       "default": "90",
+       "required": false,
+       "description": "Días hacia atrás a revisar en el BORME si no se da DESDE (coste: ~2 peticiones/día hábil en modo índice, ~30/día en modo completo)."
+      },
+      {
+       "name": "DESDE",
+       "type": "string",
+       "required": false,
+       "description": "Fecha inicial AAAA-MM-DD."
+      },
+      {
+       "name": "HASTA",
+       "type": "string",
+       "required": false,
+       "description": "Fecha final AAAA-MM-DD (hoy)."
+      },
+      {
+       "name": "PROVINCIA",
+       "type": "string",
+       "required": false,
+       "description": "Provincias del Registro Mercantil separadas por comas (nombre o código INE). Reduce mucho el coste si se conoce."
+      },
+      {
+       "name": "EXACTA",
+       "type": "string",
+       "default": "false",
+       "required": false,
+       "description": "true = solo denominación exacta (normalizada, sin forma jurídica)."
+      },
+      {
+       "name": "BACKEND",
+       "type": "string",
+       "default": "auto",
+       "required": false,
+       "description": "auto | boe | apispain (auto usa apispain si hay APISPAIN_API_KEY)."
+      },
+      {
+       "name": "APISPAIN_API_KEY",
+       "type": "vaultSecret",
+       "required": false,
+       "description": "Clave opcional de apispain.es (plan Free: 100 peticiones/mes)."
+      },
+      {
+       "name": "COMPLETO",
+       "type": "string",
+       "default": "false",
+       "required": false,
+       "description": "true = descargar todos los documentos provinciales (lento; llena la caché)."
+      },
+      {
+       "name": "MAX_PETICIONES",
+       "type": "string",
+       "default": "3000",
+       "required": false,
+       "description": "Tope de peticiones a boe.es por ejecución."
+      }
+     ],
+     "icon": null,
+     "key": "es_org_to_registry_borme",
+     "color": "#94a3b8"
+    }
+   },
+   {
+    "id": "es_org_to_officers_borme-3",
+    "type": "enricher",
+    "position": {
+     "x": 760,
+     "y": 110
+    },
+    "data": {
+     "id": null,
+     "class_name": "EsOrgToIndividualsBormeEnricher",
+     "module": "flowsint_enrichers.es.organization_to_individuals_borme",
+     "name": "es_org_to_officers_borme",
+     "category": "Organization",
+     "type": "enricher",
+     "inputs": {
+      "type": "Organization",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "name",
+        "type": "any"
+       },
+       {
+        "name": "siren",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_complet",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_raison_sociale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "sigle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nombre_etablissements",
+        "type": "integer | null"
+       },
+       {
+        "name": "nombre_etablissements_ouverts",
+        "type": "integer | null"
+       },
+       {
+        "name": "activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "section_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_rne",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nature_juridique",
+        "type": "unknown | null"
+       },
+       {
+        "name": "etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "statut_diffusion",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale_registre_metier",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_postal",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_complement_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_coordonnees",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_debut_activite",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_departement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_diAnyibution_speciale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_epci",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_est_siege",
+        "type": "boolean | null"
+       },
+       {
+        "name": "siege_etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_geo_adresse",
+        "type": "Location | null"
+       },
+       {
+        "name": "siege_geo_id",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_indice_repetition",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_latitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_liste_enseignes",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_finess",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_bio",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_rge",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_uai",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_longitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_nom_commercial",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_numero_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_region",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_siret",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_statut_diffusion_etablissement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_type_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "dirigeants",
+        "type": "Individual[] | null"
+       },
+       {
+        "name": "matching_etablissements",
+        "type": "object[] | null"
+       },
+       {
+        "name": "finances",
+        "type": "object | null"
+       },
+       {
+        "name": "complements_collectivite_territoriale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_convention_collective_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_egapro_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_achats_responsables",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_alim_confiance",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_association",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_bio",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_individuel",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_spectacle",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_ess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_finess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_organisme_formation",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_qualiopi",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_est_rge",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_service_public",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_l100_3",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_siae",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_societe_mission",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_uai",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_patrimoine_vivant",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_bilan_ges_renseigne",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_identifiant_association",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_statut_entrepreneur_spectacle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_type_siae",
+        "type": "unknown | null"
+       }
+      ]
+     },
+     "outputs": {
+      "type": "Individual",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "first_name",
+        "type": "string | null"
+       },
+       {
+        "name": "last_name",
+        "type": "string | null"
+       },
+       {
+        "name": "full_name",
+        "type": "string | null"
+       },
+       {
+        "name": "middle_name",
+        "type": "string | null"
+       },
+       {
+        "name": "maiden_name",
+        "type": "string | null"
+       },
+       {
+        "name": "aliases",
+        "type": "string[] | null"
+       },
+       {
+        "name": "birth_date",
+        "type": "string | null"
+       },
+       {
+        "name": "birth_place",
+        "type": "Location | null"
+       },
+       {
+        "name": "age",
+        "type": "integer | null"
+       },
+       {
+        "name": "gender",
+        "type": "string | null"
+       },
+       {
+        "name": "height",
+        "type": "string | null"
+       },
+       {
+        "name": "weight",
+        "type": "string | null"
+       },
+       {
+        "name": "eye_color",
+        "type": "string | null"
+       },
+       {
+        "name": "hair_color",
+        "type": "string | null"
+       },
+       {
+        "name": "skin_tone",
+        "type": "string | null"
+       },
+       {
+        "name": "ethnicity",
+        "type": "string | null"
+       },
+       {
+        "name": "blood_type",
+        "type": "string | null"
+       },
+       {
+        "name": "distinguishing_marks",
+        "type": "string[] | null"
+       },
+       {
+        "name": "disabilities",
+        "type": "string[] | null"
+       },
+       {
+        "name": "is_smoker",
+        "type": "boolean | null"
+       },
+       {
+        "name": "is_deceased",
+        "type": "boolean | null"
+       },
+       {
+        "name": "death_date",
+        "type": "string | null"
+       },
+       {
+        "name": "death_place",
+        "type": "Location | null"
+       },
+       {
+        "name": "cause_of_death",
+        "type": "string | null"
+       },
+       {
+        "name": "phone_numbers",
+        "type": "Phone[] | null"
+       },
+       {
+        "name": "email_addresses",
+        "type": "Email[] | null"
+       },
+       {
+        "name": "social_media_profiles",
+        "type": "string[] | null"
+       },
+       {
+        "name": "current_address",
+        "type": "Location | null"
+       },
+       {
+        "name": "previous_addresses",
+        "type": "Location[] | null"
+       },
+       {
+        "name": "nationality",
+        "type": "string | null"
+       },
+       {
+        "name": "citizenship",
+        "type": "string[] | null"
+       },
+       {
+        "name": "place_of_residence",
+        "type": "string | null"
+       },
+       {
+        "name": "passport_number",
+        "type": "string | null"
+       },
+       {
+        "name": "drivers_license",
+        "type": "string | null"
+       },
+       {
+        "name": "social_security_number",
+        "type": "string | null"
+       },
+       {
+        "name": "national_id",
+        "type": "string | null"
+       },
+       {
+        "name": "voter_id",
+        "type": "string | null"
+       },
+       {
+        "name": "tax_id",
+        "type": "string | null"
+       },
+       {
+        "name": "marital_status",
+        "type": "string | null"
+       },
+       {
+        "name": "spouse_name",
+        "type": "string | null"
+       },
+       {
+        "name": "children_count",
+        "type": "integer | null"
+       },
+       {
+        "name": "children_names",
+        "type": "string[] | null"
+       },
+       {
+        "name": "parents_names",
+        "type": "string[] | null"
+       },
+       {
+        "name": "emergency_contact",
+        "type": "string | null"
+       },
+       {
+        "name": "occupation",
+        "type": "string | null"
+       },
+       {
+        "name": "employer",
+        "type": "string | null"
+       },
+       {
+        "name": "employer_address",
+        "type": "Location | null"
+       },
+       {
+        "name": "job_title",
+        "type": "string | null"
+       },
+       {
+        "name": "annual_income",
+        "type": "number | null"
+       },
+       {
+        "name": "employment_history",
+        "type": "string[] | null"
+       },
+       {
+        "name": "education_level",
+        "type": "string | null"
+       },
+       {
+        "name": "schools_attended",
+        "type": "string[] | null"
+       },
+       {
+        "name": "degrees",
+        "type": "string[] | null"
+       },
+       {
+        "name": "languages_spoken",
+        "type": "string[] | null"
+       },
+       {
+        "name": "religion",
+        "type": "string | null"
+       },
+       {
+        "name": "political_affiliation",
+        "type": "string | null"
+       },
+       {
+        "name": "hobbies",
+        "type": "string[] | null"
+       },
+       {
+        "name": "personality_traits",
+        "type": "string[] | null"
+       },
+       {
+        "name": "fingerprints",
+        "type": "string | null"
+       },
+       {
+        "name": "dna_profile",
+        "type": "string | null"
+       },
+       {
+        "name": "facial_recognition_id",
+        "type": "string | null"
+       },
+       {
+        "name": "iris_scan",
+        "type": "string | null"
+       },
+       {
+        "name": "voice_print",
+        "type": "string | null"
+       },
+       {
+        "name": "bank_accounts",
+        "type": "string[] | null"
+       },
+       {
+        "name": "credit_score",
+        "type": "integer | null"
+       },
+       {
+        "name": "net_worth",
+        "type": "number | null"
+       },
+       {
+        "name": "assets",
+        "type": "string[] | null"
+       },
+       {
+        "name": "criminal_record",
+        "type": "boolean | null"
+       },
+       {
+        "name": "arrest_history",
+        "type": "string[] | null"
+       },
+       {
+        "name": "convictions",
+        "type": "string[] | null"
+       },
+       {
+        "name": "civil_cases",
+        "type": "string[] | null"
+       },
+       {
+        "name": "security_clearance",
+        "type": "string | null"
+       },
+       {
+        "name": "ip_addresses",
+        "type": "Ip[] | null"
+       },
+       {
+        "name": "usernames",
+        "type": "string[] | null"
+       },
+       {
+        "name": "device_ids",
+        "type": "string[] | null"
+       },
+       {
+        "name": "first_seen",
+        "type": "string | null"
+       },
+       {
+        "name": "last_seen",
+        "type": "string | null"
+       },
+       {
+        "name": "source",
+        "type": "string | null"
+       },
+       {
+        "name": "confidence",
+        "type": "number | null"
+       },
+       {
+        "name": "notes",
+        "type": "string | null"
+       },
+       {
+        "name": "src",
+        "type": "string | null"
+       },
+       {
+        "name": "last_updated",
+        "type": "string | null"
+       }
+      ]
+     },
+     "documentation": "Busca la denominación en la Sección Primera del BORME (actos inscritos) usando la\nAPI de datos abiertos del BOE (sumario diario + índice alfabético + texto de cada\nprovincia; caché SQLite en ~/.cache/osint-es/borme.sqlite) o apispain.es si hay\nAPISPAIN_API_KEY. Crea un Individual por persona con cargo y la relación\nIndividual -[ADM_UNICO|CONSEJERO|APODERADO|...]-> Organization (EX_<CARGO> si\nconsta cese/revocación). Los cargos 'vigentes' son una inferencia parcial sobre el\nrango consultado (por defecto 90 días). El BORME no publica DNI: posibles homónimos.",
+     "description": "[BORME] Company officers (administrators, directors, attorneys, sole shareholder) from BORME.",
+     "required_params": false,
+     "params": {},
+     "params_schema": [
+      {
+       "name": "DIAS",
+       "type": "string",
+       "default": "90",
+       "required": false,
+       "description": "Días hacia atrás a revisar en el BORME si no se da DESDE (coste: ~2 peticiones/día hábil en modo índice, ~30/día en modo completo)."
+      },
+      {
+       "name": "DESDE",
+       "type": "string",
+       "required": false,
+       "description": "Fecha inicial AAAA-MM-DD."
+      },
+      {
+       "name": "HASTA",
+       "type": "string",
+       "required": false,
+       "description": "Fecha final AAAA-MM-DD (hoy)."
+      },
+      {
+       "name": "PROVINCIA",
+       "type": "string",
+       "required": false,
+       "description": "Provincias del Registro Mercantil separadas por comas (nombre o código INE). Reduce mucho el coste si se conoce."
+      },
+      {
+       "name": "EXACTA",
+       "type": "string",
+       "default": "false",
+       "required": false,
+       "description": "true = solo denominación exacta (normalizada, sin forma jurídica)."
+      },
+      {
+       "name": "BACKEND",
+       "type": "string",
+       "default": "auto",
+       "required": false,
+       "description": "auto | boe | apispain (auto usa apispain si hay APISPAIN_API_KEY)."
+      },
+      {
+       "name": "APISPAIN_API_KEY",
+       "type": "vaultSecret",
+       "required": false,
+       "description": "Clave opcional de apispain.es (plan Free: 100 peticiones/mes)."
+      },
+      {
+       "name": "SOLO_VIGENTES",
+       "type": "string",
+       "default": "false",
+       "required": false,
+       "description": "true = solo cargos sin cese posterior observado; false = también EX_ cargos."
+      },
+      {
+       "name": "COMPLETO",
+       "type": "string",
+       "default": "false",
+       "required": false,
+       "description": "true = descargar todos los documentos provinciales (lento; llena la caché)."
+      },
+      {
+       "name": "MAX_PETICIONES",
+       "type": "string",
+       "default": "3000",
+       "required": false,
+       "description": "Tope de peticiones a boe.es por ejecución."
+      }
+     ],
+     "icon": null,
+     "key": "es_org_to_officers_borme",
+     "color": "#94a3b8"
+    }
+   },
+   {
+    "id": "es_org_to_subvenciones_bdns-4",
+    "type": "enricher",
+    "position": {
+     "x": 760,
+     "y": 220
+    },
+    "data": {
+     "id": null,
+     "class_name": "OrgToSubvencionesBdns",
+     "module": "flowsint_enrichers.es.organization_to_document_bdns",
+     "name": "es_org_to_subvenciones_bdns",
+     "category": "Organization",
+     "type": "enricher",
+     "inputs": {
+      "type": "Organization",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "name",
+        "type": "any"
+       },
+       {
+        "name": "siren",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_complet",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_raison_sociale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "sigle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nombre_etablissements",
+        "type": "integer | null"
+       },
+       {
+        "name": "nombre_etablissements_ouverts",
+        "type": "integer | null"
+       },
+       {
+        "name": "activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "section_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_rne",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nature_juridique",
+        "type": "unknown | null"
+       },
+       {
+        "name": "etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "statut_diffusion",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale_registre_metier",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_postal",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_complement_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_coordonnees",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_debut_activite",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_departement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_diAnyibution_speciale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_epci",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_est_siege",
+        "type": "boolean | null"
+       },
+       {
+        "name": "siege_etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_geo_adresse",
+        "type": "Location | null"
+       },
+       {
+        "name": "siege_geo_id",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_indice_repetition",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_latitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_liste_enseignes",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_finess",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_bio",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_rge",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_uai",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_longitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_nom_commercial",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_numero_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_region",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_siret",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_statut_diffusion_etablissement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_type_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "dirigeants",
+        "type": "Individual[] | null"
+       },
+       {
+        "name": "matching_etablissements",
+        "type": "object[] | null"
+       },
+       {
+        "name": "finances",
+        "type": "object | null"
+       },
+       {
+        "name": "complements_collectivite_territoriale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_convention_collective_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_egapro_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_achats_responsables",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_alim_confiance",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_association",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_bio",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_individuel",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_spectacle",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_ess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_finess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_organisme_formation",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_qualiopi",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_est_rge",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_service_public",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_l100_3",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_siae",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_societe_mission",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_uai",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_patrimoine_vivant",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_bilan_ges_renseigne",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_identifiant_association",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_statut_entrepreneur_spectacle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_type_siae",
+        "type": "unknown | null"
+       }
+      ]
+     },
+     "outputs": {
+      "type": "Document",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "title",
+        "type": "string"
+       },
+       {
+        "name": "doc_type",
+        "type": "string | null"
+       },
+       {
+        "name": "file_size",
+        "type": "integer | null"
+       },
+       {
+        "name": "created_date",
+        "type": "string | null"
+       },
+       {
+        "name": "modified_date",
+        "type": "string | null"
+       },
+       {
+        "name": "author",
+        "type": "string | null"
+       },
+       {
+        "name": "subject",
+        "type": "string | null"
+       },
+       {
+        "name": "keywords",
+        "type": "string[] | null"
+       },
+       {
+        "name": "language",
+        "type": "string | null"
+       },
+       {
+        "name": "page_count",
+        "type": "integer | null"
+       },
+       {
+        "name": "hash_md5",
+        "type": "string | null"
+       },
+       {
+        "name": "hash_sha1",
+        "type": "string | null"
+       },
+       {
+        "name": "hash_sha256",
+        "type": "string | null"
+       },
+       {
+        "name": "source_url",
+        "type": "string | null"
+       },
+       {
+        "name": "location",
+        "type": "string | null"
+       },
+       {
+        "name": "is_encrypted",
+        "type": "boolean | null"
+       },
+       {
+        "name": "is_password_protected",
+        "type": "boolean | null"
+       },
+       {
+        "name": "description",
+        "type": "string | null"
+       },
+       {
+        "name": "source",
+        "type": "string | null"
+       }
+      ]
+     },
+     "documentation": "Busca la organización en la Base de Datos Nacional de Subvenciones por NIF (propiedad\n`nif` del nodo) o, si no lo tiene, por denominación, y crea un Document por concesión\n(fecha, importe, convocatoria, enlace a la base reguladora) con la relación\nRECIBE_SUBVENCION. Opcionalmente enlaza el organismo concedente (CONCEDIDA_POR).\nPor nombre solo acepta beneficiarios cuya denominación coincide (no los que empiezan igual).\nAPI pública sin clave; script osint-es-scripts/bdns.py.",
+     "description": "[BDNS] Subvenciones y ayudas concedidas a una empresa (infosubvenciones.es).",
+     "required_params": false,
+     "params": {},
+     "params_schema": [
+      {
+       "name": "max_resultados",
+       "type": "string",
+       "required": false,
+       "default": "25",
+       "description": "Máximo de nodos por organización (tope 100)."
+      },
+      {
+       "name": "incluir_organismos",
+       "type": "select",
+       "default": "true",
+       "required": false,
+       "description": "Crear el organismo concedente como Organization.",
+       "options": [
+        {
+         "label": "Sí",
+         "value": "true"
+        },
+        {
+         "label": "No",
+         "value": "false"
+        }
+       ]
+      }
+     ],
+     "icon": null,
+     "key": "es_org_to_subvenciones_bdns",
+     "color": "#94a3b8"
+    }
+   },
+   {
+    "id": "es_org_to_registros_cnmv-5",
+    "type": "enricher",
+    "position": {
+     "x": 760,
+     "y": 330
+    },
+    "data": {
+     "id": null,
+     "class_name": "OrgToRegistrosCnmv",
+     "module": "flowsint_enrichers.es.organization_to_document_cnmv",
+     "name": "es_org_to_registros_cnmv",
+     "category": "Organization",
+     "type": "enricher",
+     "inputs": {
+      "type": "Organization",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "name",
+        "type": "any"
+       },
+       {
+        "name": "siren",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_complet",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_raison_sociale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "sigle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nombre_etablissements",
+        "type": "integer | null"
+       },
+       {
+        "name": "nombre_etablissements_ouverts",
+        "type": "integer | null"
+       },
+       {
+        "name": "activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "section_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_rne",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nature_juridique",
+        "type": "unknown | null"
+       },
+       {
+        "name": "etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "statut_diffusion",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale_registre_metier",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_postal",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_complement_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_coordonnees",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_debut_activite",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_departement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_diAnyibution_speciale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_epci",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_est_siege",
+        "type": "boolean | null"
+       },
+       {
+        "name": "siege_etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_geo_adresse",
+        "type": "Location | null"
+       },
+       {
+        "name": "siege_geo_id",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_indice_repetition",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_latitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_liste_enseignes",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_finess",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_bio",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_rge",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_uai",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_longitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_nom_commercial",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_numero_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_region",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_siret",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_statut_diffusion_etablissement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_type_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "dirigeants",
+        "type": "Individual[] | null"
+       },
+       {
+        "name": "matching_etablissements",
+        "type": "object[] | null"
+       },
+       {
+        "name": "finances",
+        "type": "object | null"
+       },
+       {
+        "name": "complements_collectivite_territoriale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_convention_collective_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_egapro_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_achats_responsables",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_alim_confiance",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_association",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_bio",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_individuel",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_spectacle",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_ess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_finess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_organisme_formation",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_qualiopi",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_est_rge",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_service_public",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_l100_3",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_siae",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_societe_mission",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_uai",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_patrimoine_vivant",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_bilan_ges_renseigne",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_identifiant_association",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_statut_entrepreneur_spectacle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_type_siae",
+        "type": "unknown | null"
+       }
+      ]
+     },
+     "outputs": {
+      "type": "Document",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "title",
+        "type": "string"
+       },
+       {
+        "name": "doc_type",
+        "type": "string | null"
+       },
+       {
+        "name": "file_size",
+        "type": "integer | null"
+       },
+       {
+        "name": "created_date",
+        "type": "string | null"
+       },
+       {
+        "name": "modified_date",
+        "type": "string | null"
+       },
+       {
+        "name": "author",
+        "type": "string | null"
+       },
+       {
+        "name": "subject",
+        "type": "string | null"
+       },
+       {
+        "name": "keywords",
+        "type": "string[] | null"
+       },
+       {
+        "name": "language",
+        "type": "string | null"
+       },
+       {
+        "name": "page_count",
+        "type": "integer | null"
+       },
+       {
+        "name": "hash_md5",
+        "type": "string | null"
+       },
+       {
+        "name": "hash_sha1",
+        "type": "string | null"
+       },
+       {
+        "name": "hash_sha256",
+        "type": "string | null"
+       },
+       {
+        "name": "source_url",
+        "type": "string | null"
+       },
+       {
+        "name": "location",
+        "type": "string | null"
+       },
+       {
+        "name": "is_encrypted",
+        "type": "boolean | null"
+       },
+       {
+        "name": "is_password_protected",
+        "type": "boolean | null"
+       },
+       {
+        "name": "description",
+        "type": "string | null"
+       },
+       {
+        "name": "source",
+        "type": "string | null"
+       }
+      ]
+     },
+     "documentation": "Abre la ficha de la entidad en la CNMV (DatosEntidad?nif=A-48010615) y crea un Document\npor sección del registro con información (folletos, hechos relevantes, participaciones\nsignificativas, cuentas anuales...), con la relación REGISTRO_CNMV. Sin NIF, busca por\ndenominación y solo usa entidades cuya denominación coincide. Solo cubre emisores,\ncotizadas y entidades supervisadas. Script osint-es-scripts/cnmv.py.",
+     "description": "[CNMV] Secciones de los Registros Oficiales de la CNMV con información de la entidad.",
+     "required_params": false,
+     "params": {},
+     "params_schema": [
+      {
+       "name": "max_resultados",
+       "type": "string",
+       "required": false,
+       "default": "25",
+       "description": "Máximo de nodos por organización (tope 100)."
+      }
+     ],
+     "icon": null,
+     "key": "es_org_to_registros_cnmv",
+     "color": "#94a3b8"
+    }
+   },
+   {
+    "id": "es_org_to_edictos_boe-6",
+    "type": "enricher",
+    "position": {
+     "x": 760,
+     "y": 440
+    },
+    "data": {
+     "id": null,
+     "class_name": "OrgToEdictosBoe",
+     "module": "flowsint_enrichers.es.organization_to_document_boe_edictos",
+     "name": "es_org_to_edictos_boe",
+     "category": "Organization",
+     "type": "enricher",
+     "inputs": {
+      "type": "Organization",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "name",
+        "type": "any"
+       },
+       {
+        "name": "siren",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_complet",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_raison_sociale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "sigle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nombre_etablissements",
+        "type": "integer | null"
+       },
+       {
+        "name": "nombre_etablissements_ouverts",
+        "type": "integer | null"
+       },
+       {
+        "name": "activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "section_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_rne",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nature_juridique",
+        "type": "unknown | null"
+       },
+       {
+        "name": "etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "statut_diffusion",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale_registre_metier",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_postal",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_complement_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_coordonnees",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_debut_activite",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_departement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_diAnyibution_speciale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_epci",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_est_siege",
+        "type": "boolean | null"
+       },
+       {
+        "name": "siege_etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_geo_adresse",
+        "type": "Location | null"
+       },
+       {
+        "name": "siege_geo_id",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_indice_repetition",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_latitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_liste_enseignes",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_finess",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_bio",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_rge",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_uai",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_longitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_nom_commercial",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_numero_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_region",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_siret",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_statut_diffusion_etablissement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_type_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "dirigeants",
+        "type": "Individual[] | null"
+       },
+       {
+        "name": "matching_etablissements",
+        "type": "object[] | null"
+       },
+       {
+        "name": "finances",
+        "type": "object | null"
+       },
+       {
+        "name": "complements_collectivite_territoriale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_convention_collective_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_egapro_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_achats_responsables",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_alim_confiance",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_association",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_bio",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_individuel",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_spectacle",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_ess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_finess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_organisme_formation",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_qualiopi",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_est_rge",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_service_public",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_l100_3",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_siae",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_societe_mission",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_uai",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_patrimoine_vivant",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_bilan_ges_renseigne",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_identifiant_association",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_statut_entrepreneur_spectacle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_type_siae",
+        "type": "unknown | null"
+       }
+      ]
+     },
+     "outputs": {
+      "type": "Document",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "title",
+        "type": "string"
+       },
+       {
+        "name": "doc_type",
+        "type": "string | null"
+       },
+       {
+        "name": "file_size",
+        "type": "integer | null"
+       },
+       {
+        "name": "created_date",
+        "type": "string | null"
+       },
+       {
+        "name": "modified_date",
+        "type": "string | null"
+       },
+       {
+        "name": "author",
+        "type": "string | null"
+       },
+       {
+        "name": "subject",
+        "type": "string | null"
+       },
+       {
+        "name": "keywords",
+        "type": "string[] | null"
+       },
+       {
+        "name": "language",
+        "type": "string | null"
+       },
+       {
+        "name": "page_count",
+        "type": "integer | null"
+       },
+       {
+        "name": "hash_md5",
+        "type": "string | null"
+       },
+       {
+        "name": "hash_sha1",
+        "type": "string | null"
+       },
+       {
+        "name": "hash_sha256",
+        "type": "string | null"
+       },
+       {
+        "name": "source_url",
+        "type": "string | null"
+       },
+       {
+        "name": "location",
+        "type": "string | null"
+       },
+       {
+        "name": "is_encrypted",
+        "type": "boolean | null"
+       },
+       {
+        "name": "is_password_protected",
+        "type": "boolean | null"
+       },
+       {
+        "name": "description",
+        "type": "string | null"
+       },
+       {
+        "name": "source",
+        "type": "string | null"
+       }
+      ]
+     },
+     "documentation": "Busca el NIF (o, si no hay, la denominación sin forma jurídica) en el Tablón Edictal\nÚnico (TEU, notificaciones administrativas) y en el Tablón Edictal Judicial Único\n(TEJU) del BOE. Crea un Document por edicto (referencia BOE-N, asunto, PDF) con la\nrelación MENCIONADA_EN_EDICTO y, opcionalmente, el organismo emisor (PUBLICADO_POR).\nBuscar por NIF es mucho más preciso que por nombre. El texto íntegro solo es público\n3 meses. Script osint-es-scripts/boe_edictos.py.",
+     "description": "[BOE] Notificaciones (TEU) y edictos judiciales (TEJU) que mencionan a la empresa.",
+     "required_params": false,
+     "params": {},
+     "params_schema": [
+      {
+       "name": "max_resultados",
+       "type": "string",
+       "required": false,
+       "default": "20",
+       "description": "Máximo de nodos por organización (tope 100)."
+      },
+      {
+       "name": "tablones",
+       "type": "select",
+       "default": "ambos",
+       "required": false,
+       "description": "TEU (administrativos), TEJU (judiciales) o ambos.",
+       "options": [
+        {
+         "label": "Ambos",
+         "value": "ambos"
+        },
+        {
+         "label": "TEU",
+         "value": "teu"
+        },
+        {
+         "label": "TEJU",
+         "value": "teju"
+        }
+       ]
+      },
+      {
+       "name": "desde",
+       "type": "string",
+       "required": false,
+       "description": "Fecha desde (dd/mm/aaaa)."
+      },
+      {
+       "name": "incluir_organismos",
+       "type": "select",
+       "default": "true",
+       "required": false,
+       "description": "Crear el organismo emisor como Organization.",
+       "options": [
+        {
+         "label": "Sí",
+         "value": "true"
+        },
+        {
+         "label": "No",
+         "value": "false"
+        }
+       ]
+      }
+     ],
+     "icon": null,
+     "key": "es_org_to_edictos_boe",
+     "color": "#94a3b8"
+    }
+   },
+   {
+    "id": "es_org_to_sentencias_cendoj-7",
+    "type": "enricher",
+    "position": {
+     "x": 760,
+     "y": 550
+    },
+    "data": {
+     "id": null,
+     "class_name": "OrgToSentenciasCendoj",
+     "module": "flowsint_enrichers.es.organization_to_document_cendoj",
+     "name": "es_org_to_sentencias_cendoj",
+     "category": "Organization",
+     "type": "enricher",
+     "inputs": {
+      "type": "Organization",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "name",
+        "type": "any"
+       },
+       {
+        "name": "siren",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_complet",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_raison_sociale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "sigle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nombre_etablissements",
+        "type": "integer | null"
+       },
+       {
+        "name": "nombre_etablissements_ouverts",
+        "type": "integer | null"
+       },
+       {
+        "name": "activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "section_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_rne",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nature_juridique",
+        "type": "unknown | null"
+       },
+       {
+        "name": "etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "statut_diffusion",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale_registre_metier",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_postal",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_complement_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_coordonnees",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_debut_activite",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_departement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_diAnyibution_speciale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_epci",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_est_siege",
+        "type": "boolean | null"
+       },
+       {
+        "name": "siege_etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_geo_adresse",
+        "type": "Location | null"
+       },
+       {
+        "name": "siege_geo_id",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_indice_repetition",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_latitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_liste_enseignes",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_finess",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_bio",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_rge",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_uai",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_longitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_nom_commercial",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_numero_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_region",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_siret",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_statut_diffusion_etablissement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_type_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "dirigeants",
+        "type": "Individual[] | null"
+       },
+       {
+        "name": "matching_etablissements",
+        "type": "object[] | null"
+       },
+       {
+        "name": "finances",
+        "type": "object | null"
+       },
+       {
+        "name": "complements_collectivite_territoriale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_convention_collective_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_egapro_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_achats_responsables",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_alim_confiance",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_association",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_bio",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_individuel",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_spectacle",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_ess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_finess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_organisme_formation",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_qualiopi",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_est_rge",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_service_public",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_l100_3",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_siae",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_societe_mission",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_uai",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_patrimoine_vivant",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_bilan_ges_renseigne",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_identifiant_association",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_statut_entrepreneur_spectacle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_type_siae",
+        "type": "unknown | null"
+       }
+      ]
+     },
+     "outputs": {
+      "type": "Document",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "title",
+        "type": "string"
+       },
+       {
+        "name": "doc_type",
+        "type": "string | null"
+       },
+       {
+        "name": "file_size",
+        "type": "integer | null"
+       },
+       {
+        "name": "created_date",
+        "type": "string | null"
+       },
+       {
+        "name": "modified_date",
+        "type": "string | null"
+       },
+       {
+        "name": "author",
+        "type": "string | null"
+       },
+       {
+        "name": "subject",
+        "type": "string | null"
+       },
+       {
+        "name": "keywords",
+        "type": "string[] | null"
+       },
+       {
+        "name": "language",
+        "type": "string | null"
+       },
+       {
+        "name": "page_count",
+        "type": "integer | null"
+       },
+       {
+        "name": "hash_md5",
+        "type": "string | null"
+       },
+       {
+        "name": "hash_sha1",
+        "type": "string | null"
+       },
+       {
+        "name": "hash_sha256",
+        "type": "string | null"
+       },
+       {
+        "name": "source_url",
+        "type": "string | null"
+       },
+       {
+        "name": "location",
+        "type": "string | null"
+       },
+       {
+        "name": "is_encrypted",
+        "type": "boolean | null"
+       },
+       {
+        "name": "is_password_protected",
+        "type": "boolean | null"
+       },
+       {
+        "name": "description",
+        "type": "string | null"
+       },
+       {
+        "name": "source",
+        "type": "string | null"
+       }
+      ]
+     },
+     "documentation": "Busca la denominación (sin forma jurídica, entre comillas si tiene varias palabras) en\nel texto de la jurisprudencia del CENDOJ y crea un Document por resolución (ROJ, ECLI,\nfecha, ponente, resumen automático) con la relación MENCIONADA_EN_SENTENCIA: el\nbuscador es de texto libre, así que una coincidencia indica mención, no que sea parte.\nAviso legal del CENDOJ: prohibidos el uso comercial y la descarga masiva; este enricher\nhace consultas puntuales con pausa y un tope de 50 resultados.\nScript osint-es-scripts/cendoj.py.",
+     "description": "[CENDOJ] Resoluciones judiciales que mencionan a la empresa (poderjudicial.es).",
+     "required_params": false,
+     "params": {},
+     "params_schema": [
+      {
+       "name": "max_resultados",
+       "type": "string",
+       "required": false,
+       "default": "10",
+       "description": "Máximo de nodos por organización (tope 100)."
+      }
+     ],
+     "icon": null,
+     "key": "es_org_to_sentencias_cendoj",
+     "color": "#94a3b8"
+    }
+   },
+   {
+    "id": "es_org_to_contratos_placsp-8",
+    "type": "enricher",
+    "position": {
+     "x": 760,
+     "y": 660
+    },
+    "data": {
+     "id": null,
+     "class_name": "OrgToContratosPlacsp",
+     "module": "flowsint_enrichers.es.organization_to_document_placsp",
+     "name": "es_org_to_contratos_placsp",
+     "category": "Organization",
+     "type": "enricher",
+     "inputs": {
+      "type": "Organization",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "name",
+        "type": "any"
+       },
+       {
+        "name": "siren",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_complet",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_raison_sociale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "sigle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nombre_etablissements",
+        "type": "integer | null"
+       },
+       {
+        "name": "nombre_etablissements_ouverts",
+        "type": "integer | null"
+       },
+       {
+        "name": "activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "section_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_rne",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nature_juridique",
+        "type": "unknown | null"
+       },
+       {
+        "name": "etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "statut_diffusion",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale_registre_metier",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_postal",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_complement_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_coordonnees",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_debut_activite",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_departement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_diAnyibution_speciale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_epci",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_est_siege",
+        "type": "boolean | null"
+       },
+       {
+        "name": "siege_etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_geo_adresse",
+        "type": "Location | null"
+       },
+       {
+        "name": "siege_geo_id",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_indice_repetition",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_latitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_liste_enseignes",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_finess",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_bio",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_rge",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_uai",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_longitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_nom_commercial",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_numero_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_region",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_siret",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_statut_diffusion_etablissement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_type_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "dirigeants",
+        "type": "Individual[] | null"
+       },
+       {
+        "name": "matching_etablissements",
+        "type": "object[] | null"
+       },
+       {
+        "name": "finances",
+        "type": "object | null"
+       },
+       {
+        "name": "complements_collectivite_territoriale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_convention_collective_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_egapro_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_achats_responsables",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_alim_confiance",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_association",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_bio",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_individuel",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_spectacle",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_ess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_finess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_organisme_formation",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_qualiopi",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_est_rge",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_service_public",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_l100_3",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_siae",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_societe_mission",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_uai",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_patrimoine_vivant",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_bilan_ges_renseigne",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_identifiant_association",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_statut_entrepreneur_spectacle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_type_siae",
+        "type": "unknown | null"
+       }
+      ]
+     },
+     "outputs": {
+      "type": "Document",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "title",
+        "type": "string"
+       },
+       {
+        "name": "doc_type",
+        "type": "string | null"
+       },
+       {
+        "name": "file_size",
+        "type": "integer | null"
+       },
+       {
+        "name": "created_date",
+        "type": "string | null"
+       },
+       {
+        "name": "modified_date",
+        "type": "string | null"
+       },
+       {
+        "name": "author",
+        "type": "string | null"
+       },
+       {
+        "name": "subject",
+        "type": "string | null"
+       },
+       {
+        "name": "keywords",
+        "type": "string[] | null"
+       },
+       {
+        "name": "language",
+        "type": "string | null"
+       },
+       {
+        "name": "page_count",
+        "type": "integer | null"
+       },
+       {
+        "name": "hash_md5",
+        "type": "string | null"
+       },
+       {
+        "name": "hash_sha1",
+        "type": "string | null"
+       },
+       {
+        "name": "hash_sha256",
+        "type": "string | null"
+       },
+       {
+        "name": "source_url",
+        "type": "string | null"
+       },
+       {
+        "name": "location",
+        "type": "string | null"
+       },
+       {
+        "name": "is_encrypted",
+        "type": "boolean | null"
+       },
+       {
+        "name": "is_password_protected",
+        "type": "boolean | null"
+       },
+       {
+        "name": "description",
+        "type": "string | null"
+       },
+       {
+        "name": "source",
+        "type": "string | null"
+       }
+      ]
+     },
+     "documentation": "Usa el campo «Adjudicatario» del buscador de licitaciones de contrataciondelestado.es\ncon la denominación sin forma jurídica (el buscador no admite NIF) y crea un Document por\nlicitación (expediente, objeto, estado, importe, enlace permanente) con la relación\nADJUDICATARIA y, opcionalmente, el órgano de contratación (LICITADO_POR).\nLa búsqueda es por palabras del nombre: con denominaciones genéricas revisa los\nresultados. Solo perfiles alojados en la Plataforma. Script osint-es-scripts/placsp.py.",
+     "description": "[PLACSP] Licitaciones de la Plataforma de Contratación del Sector Público adjudicadas a la empresa.",
+     "required_params": false,
+     "params": {},
+     "params_schema": [
+      {
+       "name": "max_resultados",
+       "type": "string",
+       "required": false,
+       "default": "20",
+       "description": "Máximo de nodos por organización (tope 100)."
+      },
+      {
+       "name": "incluir_organos",
+       "type": "select",
+       "default": "true",
+       "required": false,
+       "description": "Crear el órgano de contratación como Organization.",
+       "options": [
+        {
+         "label": "Sí",
+         "value": "true"
+        },
+        {
+         "label": "No",
+         "value": "false"
+        }
+       ]
+      }
+     ],
+     "icon": null,
+     "key": "es_org_to_contratos_placsp",
+     "color": "#94a3b8"
+    }
+   },
+   {
+    "id": "es_org_to_contratos_ted-9",
+    "type": "enricher",
+    "position": {
+     "x": 760,
+     "y": 770
+    },
+    "data": {
+     "id": null,
+     "class_name": "OrgToContratosTed",
+     "module": "flowsint_enrichers.es.organization_to_document_ted",
+     "name": "es_org_to_contratos_ted",
+     "category": "Organization",
+     "type": "enricher",
+     "inputs": {
+      "type": "Organization",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "name",
+        "type": "any"
+       },
+       {
+        "name": "siren",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_complet",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_raison_sociale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "sigle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nombre_etablissements",
+        "type": "integer | null"
+       },
+       {
+        "name": "nombre_etablissements_ouverts",
+        "type": "integer | null"
+       },
+       {
+        "name": "activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "section_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_rne",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nature_juridique",
+        "type": "unknown | null"
+       },
+       {
+        "name": "etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "statut_diffusion",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale_registre_metier",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_postal",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_complement_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_coordonnees",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_debut_activite",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_departement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_diAnyibution_speciale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_epci",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_est_siege",
+        "type": "boolean | null"
+       },
+       {
+        "name": "siege_etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_geo_adresse",
+        "type": "Location | null"
+       },
+       {
+        "name": "siege_geo_id",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_indice_repetition",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_latitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_liste_enseignes",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_finess",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_bio",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_rge",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_uai",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_longitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_nom_commercial",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_numero_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_region",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_siret",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_statut_diffusion_etablissement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_type_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "dirigeants",
+        "type": "Individual[] | null"
+       },
+       {
+        "name": "matching_etablissements",
+        "type": "object[] | null"
+       },
+       {
+        "name": "finances",
+        "type": "object | null"
+       },
+       {
+        "name": "complements_collectivite_territoriale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_convention_collective_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_egapro_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_achats_responsables",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_alim_confiance",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_association",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_bio",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_individuel",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_spectacle",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_ess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_finess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_organisme_formation",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_qualiopi",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_est_rge",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_service_public",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_l100_3",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_siae",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_societe_mission",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_uai",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_patrimoine_vivant",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_bilan_ges_renseigne",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_identifiant_association",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_statut_entrepreneur_spectacle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_type_siae",
+        "type": "unknown | null"
+       }
+      ]
+     },
+     "outputs": {
+      "type": "Document",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "title",
+        "type": "string"
+       },
+       {
+        "name": "doc_type",
+        "type": "string | null"
+       },
+       {
+        "name": "file_size",
+        "type": "integer | null"
+       },
+       {
+        "name": "created_date",
+        "type": "string | null"
+       },
+       {
+        "name": "modified_date",
+        "type": "string | null"
+       },
+       {
+        "name": "author",
+        "type": "string | null"
+       },
+       {
+        "name": "subject",
+        "type": "string | null"
+       },
+       {
+        "name": "keywords",
+        "type": "string[] | null"
+       },
+       {
+        "name": "language",
+        "type": "string | null"
+       },
+       {
+        "name": "page_count",
+        "type": "integer | null"
+       },
+       {
+        "name": "hash_md5",
+        "type": "string | null"
+       },
+       {
+        "name": "hash_sha1",
+        "type": "string | null"
+       },
+       {
+        "name": "hash_sha256",
+        "type": "string | null"
+       },
+       {
+        "name": "source_url",
+        "type": "string | null"
+       },
+       {
+        "name": "location",
+        "type": "string | null"
+       },
+       {
+        "name": "is_encrypted",
+        "type": "boolean | null"
+       },
+       {
+        "name": "is_password_protected",
+        "type": "boolean | null"
+       },
+       {
+        "name": "description",
+        "type": "string | null"
+       },
+       {
+        "name": "source",
+        "type": "string | null"
+       }
+      ]
+     },
+     "documentation": "Consulta la API pública v3 de TED (sin clave) por identificador del adjudicatario\n(winner-identifier, con y sin prefijo ES) si el nodo tiene NIF, o por nombre\n(winner-name ~) si no. Crea un Document por anuncio (nº de publicación, título, importe,\nCPV, enlace) con la relación ADJUDICATARIA y, opcionalmente, el comprador (LICITADO_POR).\nPor nombre descarta los anuncios cuyo adjudicatario no coincide con la denominación.\nSolo contratos por encima de umbrales UE. Script osint-es-scripts/ted.py.",
+     "description": "[TED] Anuncios de contratación pública europea (DOUE S) en los que la empresa es adjudicataria.",
+     "required_params": false,
+     "params": {},
+     "params_schema": [
+      {
+       "name": "max_resultados",
+       "type": "string",
+       "required": false,
+       "default": "25",
+       "description": "Máximo de nodos por organización (tope 100)."
+      },
+      {
+       "name": "solo_espana",
+       "type": "select",
+       "default": "true",
+       "required": false,
+       "description": "Solo compradores españoles.",
+       "options": [
+        {
+         "label": "Sí",
+         "value": "true"
+        },
+        {
+         "label": "No",
+         "value": "false"
+        }
+       ]
+      },
+      {
+       "name": "incluir_compradores",
+       "type": "select",
+       "default": "true",
+       "required": false,
+       "description": "Crear el poder adjudicador como Organization.",
+       "options": [
+        {
+         "label": "Sí",
+         "value": "true"
+        },
+        {
+         "label": "No",
+         "value": "false"
+        }
+       ]
+      }
+     ],
+     "icon": null,
+     "key": "es_org_to_contratos_ted",
+     "color": "#94a3b8"
+    }
+   },
+   {
+    "id": "es_org_to_sanciones_ue-10",
+    "type": "enricher",
+    "position": {
+     "x": 760,
+     "y": 880
+    },
+    "data": {
+     "id": null,
+     "class_name": "OrgToSancionesUe",
+     "module": "flowsint_enrichers.es.organization_to_document_sanciones_ue",
+     "name": "es_org_to_sanciones_ue",
+     "category": "Organization",
+     "type": "enricher",
+     "inputs": {
+      "type": "Organization",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "name",
+        "type": "any"
+       },
+       {
+        "name": "siren",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_complet",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_raison_sociale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "sigle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nombre_etablissements",
+        "type": "integer | null"
+       },
+       {
+        "name": "nombre_etablissements_ouverts",
+        "type": "integer | null"
+       },
+       {
+        "name": "activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "section_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_rne",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nature_juridique",
+        "type": "unknown | null"
+       },
+       {
+        "name": "etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "statut_diffusion",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale_registre_metier",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_postal",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_complement_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_coordonnees",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_debut_activite",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_departement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_diAnyibution_speciale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_epci",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_est_siege",
+        "type": "boolean | null"
+       },
+       {
+        "name": "siege_etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_geo_adresse",
+        "type": "Location | null"
+       },
+       {
+        "name": "siege_geo_id",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_indice_repetition",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_latitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_liste_enseignes",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_finess",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_bio",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_rge",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_uai",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_longitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_nom_commercial",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_numero_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_region",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_siret",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_statut_diffusion_etablissement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_type_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "dirigeants",
+        "type": "Individual[] | null"
+       },
+       {
+        "name": "matching_etablissements",
+        "type": "object[] | null"
+       },
+       {
+        "name": "finances",
+        "type": "object | null"
+       },
+       {
+        "name": "complements_collectivite_territoriale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_convention_collective_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_egapro_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_achats_responsables",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_alim_confiance",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_association",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_bio",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_individuel",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_spectacle",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_ess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_finess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_organisme_formation",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_qualiopi",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_est_rge",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_service_public",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_l100_3",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_siae",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_societe_mission",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_uai",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_patrimoine_vivant",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_bilan_ges_renseigne",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_identifiant_association",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_statut_entrepreneur_spectacle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_type_siae",
+        "type": "unknown | null"
+       }
+      ]
+     },
+     "outputs": {
+      "type": "Document",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "title",
+        "type": "string"
+       },
+       {
+        "name": "doc_type",
+        "type": "string | null"
+       },
+       {
+        "name": "file_size",
+        "type": "integer | null"
+       },
+       {
+        "name": "created_date",
+        "type": "string | null"
+       },
+       {
+        "name": "modified_date",
+        "type": "string | null"
+       },
+       {
+        "name": "author",
+        "type": "string | null"
+       },
+       {
+        "name": "subject",
+        "type": "string | null"
+       },
+       {
+        "name": "keywords",
+        "type": "string[] | null"
+       },
+       {
+        "name": "language",
+        "type": "string | null"
+       },
+       {
+        "name": "page_count",
+        "type": "integer | null"
+       },
+       {
+        "name": "hash_md5",
+        "type": "string | null"
+       },
+       {
+        "name": "hash_sha1",
+        "type": "string | null"
+       },
+       {
+        "name": "hash_sha256",
+        "type": "string | null"
+       },
+       {
+        "name": "source_url",
+        "type": "string | null"
+       },
+       {
+        "name": "location",
+        "type": "string | null"
+       },
+       {
+        "name": "is_encrypted",
+        "type": "boolean | null"
+       },
+       {
+        "name": "is_password_protected",
+        "type": "boolean | null"
+       },
+       {
+        "name": "description",
+        "type": "string | null"
+       },
+       {
+        "name": "source",
+        "type": "string | null"
+       }
+      ]
+     },
+     "documentation": "Busca la organización en la lista consolidada de personas y entidades sujetas a\nsanciones financieras de la UE (Comisión Europea, Financial Sanctions Files; descarga\npública diaria en caché local). Por NIF/identificador o por denominación normalizada.\nCoincidencia por identificador o denominación exacta -> SANCIONADA; coincidencia parcial\n(si se activa) -> POSIBLE_COINCIDENCIA_SANCIONES. Una coincidencia de nombre no prueba\nidentidad: revisa país, dirección e identificadores del Document.\nScript osint-es-scripts/sanciones_ue.py.",
+     "description": "[SANCIONES UE] Coincidencias en la lista consolidada de sanciones financieras de la UE.",
+     "required_params": false,
+     "params": {},
+     "params_schema": [
+      {
+       "name": "max_resultados",
+       "type": "string",
+       "required": false,
+       "default": "10",
+       "description": "Máximo de nodos por organización (tope 100)."
+      },
+      {
+       "name": "incluir_parciales",
+       "type": "select",
+       "default": "false",
+       "required": false,
+       "description": "Incluir coincidencias parciales (todas las palabras del nombre) como POSIBLE_COINCIDENCIA_SANCIONES.",
+       "options": [
+        {
+         "label": "No",
+         "value": "false"
+        },
+        {
+         "label": "Sí",
+         "value": "true"
+        }
+       ]
+      }
+     ],
+     "icon": null,
+     "key": "es_org_to_sanciones_ue",
+     "color": "#94a3b8"
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "Organization-1-es_org_resolver_identidad-1",
+    "source": "Organization-1",
+    "target": "es_org_resolver_identidad-1",
+    "sourceHandle": "Organization",
+    "targetHandle": "Organization",
+    "style": {
+     "stroke": "#64748b"
+    },
+    "markerEnd": {
+     "type": "arrowclosed",
+     "width": 15,
+     "height": 15,
+     "color": "#64748b"
+    }
+   },
+   {
+    "id": "es_org_resolver_identidad-1-es_org_to_registry_borme-2",
+    "source": "es_org_resolver_identidad-1",
+    "target": "es_org_to_registry_borme-2",
+    "sourceHandle": "Organization",
+    "targetHandle": "Organization",
+    "style": {
+     "stroke": "#64748b"
+    },
+    "markerEnd": {
+     "type": "arrowclosed",
+     "width": 15,
+     "height": 15,
+     "color": "#64748b"
+    }
+   },
+   {
+    "id": "es_org_resolver_identidad-1-es_org_to_officers_borme-3",
+    "source": "es_org_resolver_identidad-1",
+    "target": "es_org_to_officers_borme-3",
+    "sourceHandle": "Organization",
+    "targetHandle": "Organization",
+    "style": {
+     "stroke": "#64748b"
+    },
+    "markerEnd": {
+     "type": "arrowclosed",
+     "width": 15,
+     "height": 15,
+     "color": "#64748b"
+    }
+   },
+   {
+    "id": "es_org_resolver_identidad-1-es_org_to_subvenciones_bdns-4",
+    "source": "es_org_resolver_identidad-1",
+    "target": "es_org_to_subvenciones_bdns-4",
+    "sourceHandle": "Organization",
+    "targetHandle": "Organization",
+    "style": {
+     "stroke": "#64748b"
+    },
+    "markerEnd": {
+     "type": "arrowclosed",
+     "width": 15,
+     "height": 15,
+     "color": "#64748b"
+    }
+   },
+   {
+    "id": "es_org_resolver_identidad-1-es_org_to_registros_cnmv-5",
+    "source": "es_org_resolver_identidad-1",
+    "target": "es_org_to_registros_cnmv-5",
+    "sourceHandle": "Organization",
+    "targetHandle": "Organization",
+    "style": {
+     "stroke": "#64748b"
+    },
+    "markerEnd": {
+     "type": "arrowclosed",
+     "width": 15,
+     "height": 15,
+     "color": "#64748b"
+    }
+   },
+   {
+    "id": "es_org_resolver_identidad-1-es_org_to_edictos_boe-6",
+    "source": "es_org_resolver_identidad-1",
+    "target": "es_org_to_edictos_boe-6",
+    "sourceHandle": "Organization",
+    "targetHandle": "Organization",
+    "style": {
+     "stroke": "#64748b"
+    },
+    "markerEnd": {
+     "type": "arrowclosed",
+     "width": 15,
+     "height": 15,
+     "color": "#64748b"
+    }
+   },
+   {
+    "id": "es_org_resolver_identidad-1-es_org_to_sentencias_cendoj-7",
+    "source": "es_org_resolver_identidad-1",
+    "target": "es_org_to_sentencias_cendoj-7",
+    "sourceHandle": "Organization",
+    "targetHandle": "Organization",
+    "style": {
+     "stroke": "#64748b"
+    },
+    "markerEnd": {
+     "type": "arrowclosed",
+     "width": 15,
+     "height": 15,
+     "color": "#64748b"
+    }
+   },
+   {
+    "id": "es_org_resolver_identidad-1-es_org_to_contratos_placsp-8",
+    "source": "es_org_resolver_identidad-1",
+    "target": "es_org_to_contratos_placsp-8",
+    "sourceHandle": "Organization",
+    "targetHandle": "Organization",
+    "style": {
+     "stroke": "#64748b"
+    },
+    "markerEnd": {
+     "type": "arrowclosed",
+     "width": 15,
+     "height": 15,
+     "color": "#64748b"
+    }
+   },
+   {
+    "id": "es_org_resolver_identidad-1-es_org_to_contratos_ted-9",
+    "source": "es_org_resolver_identidad-1",
+    "target": "es_org_to_contratos_ted-9",
+    "sourceHandle": "Organization",
+    "targetHandle": "Organization",
+    "style": {
+     "stroke": "#64748b"
+    },
+    "markerEnd": {
+     "type": "arrowclosed",
+     "width": 15,
+     "height": 15,
+     "color": "#64748b"
+    }
+   },
+   {
+    "id": "es_org_resolver_identidad-1-es_org_to_sanciones_ue-10",
+    "source": "es_org_resolver_identidad-1",
+    "target": "es_org_to_sanciones_ue-10",
+    "sourceHandle": "Organization",
+    "targetHandle": "Organization",
+    "style": {
+     "stroke": "#64748b"
+    },
+    "markerEnd": {
+     "type": "arrowclosed",
+     "width": 15,
+     "height": 15,
+     "color": "#64748b"
+    }
+   }
+  ]
+ }
+}

@@ -1,0 +1,4474 @@
+{
+ "name": "Empresa → personas y huella digital",
+ "description": "Administradores (BORME) y empleados (LinkedIn vía Apify) de la empresa → correos probables (+Gravatar) y perfil de LinkedIn. Correos públicos de la web. Apify es de pago y opt-in.",
+ "category": [
+  "Organization"
+ ],
+ "flow_schema": {
+  "nodes": [
+   {
+    "id": "Organization-1",
+    "type": "type",
+    "position": {
+     "x": 0,
+     "y": 0
+    },
+    "data": {
+     "id": null,
+     "class_name": "Organization",
+     "module": "flowsint_types.organization",
+     "name": "Organization",
+     "category": "Organization",
+     "type": "type",
+     "inputs": {
+      "type": "",
+      "properties": []
+     },
+     "outputs": {
+      "type": "Organization",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "name",
+        "type": "any"
+       },
+       {
+        "name": "siren",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_complet",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_raison_sociale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "sigle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nombre_etablissements",
+        "type": "integer | null"
+       },
+       {
+        "name": "nombre_etablissements_ouverts",
+        "type": "integer | null"
+       },
+       {
+        "name": "activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "section_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_rne",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nature_juridique",
+        "type": "unknown | null"
+       },
+       {
+        "name": "etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "statut_diffusion",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale_registre_metier",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_postal",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_complement_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_coordonnees",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_debut_activite",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_departement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_diAnyibution_speciale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_epci",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_est_siege",
+        "type": "boolean | null"
+       },
+       {
+        "name": "siege_etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_geo_adresse",
+        "type": "Location | null"
+       },
+       {
+        "name": "siege_geo_id",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_indice_repetition",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_latitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_liste_enseignes",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_finess",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_bio",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_rge",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_uai",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_longitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_nom_commercial",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_numero_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_region",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_siret",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_statut_diffusion_etablissement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_type_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "dirigeants",
+        "type": "Individual[] | null"
+       },
+       {
+        "name": "matching_etablissements",
+        "type": "object[] | null"
+       },
+       {
+        "name": "finances",
+        "type": "object | null"
+       },
+       {
+        "name": "complements_collectivite_territoriale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_convention_collective_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_egapro_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_achats_responsables",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_alim_confiance",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_association",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_bio",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_individuel",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_spectacle",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_ess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_finess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_organisme_formation",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_qualiopi",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_est_rge",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_service_public",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_l100_3",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_siae",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_societe_mission",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_uai",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_patrimoine_vivant",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_bilan_ges_renseigne",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_identifiant_association",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_statut_entrepreneur_spectacle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_type_siae",
+        "type": "unknown | null"
+       }
+      ]
+     },
+     "documentation": null,
+     "description": "Represents an organization with detailed business and administrative information.",
+     "required_params": null,
+     "params": {},
+     "params_schema": null,
+     "icon": null,
+     "key": "Organization",
+     "color": "#94a3b8"
+    }
+   },
+   {
+    "id": "es_org_resolver_identidad-1",
+    "type": "enricher",
+    "position": {
+     "x": 380,
+     "y": 0
+    },
+    "data": {
+     "id": null,
+     "class_name": "OrgToIdentidadEs",
+     "module": "flowsint_enrichers.es.organization_to_organization_resolver",
+     "name": "es_org_resolver_identidad",
+     "category": "Organization",
+     "type": "enricher",
+     "inputs": {
+      "type": "Organization",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "name",
+        "type": "any"
+       },
+       {
+        "name": "siren",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_complet",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_raison_sociale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "sigle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nombre_etablissements",
+        "type": "integer | null"
+       },
+       {
+        "name": "nombre_etablissements_ouverts",
+        "type": "integer | null"
+       },
+       {
+        "name": "activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "section_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_rne",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nature_juridique",
+        "type": "unknown | null"
+       },
+       {
+        "name": "etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "statut_diffusion",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale_registre_metier",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_postal",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_complement_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_coordonnees",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_debut_activite",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_departement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_diAnyibution_speciale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_epci",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_est_siege",
+        "type": "boolean | null"
+       },
+       {
+        "name": "siege_etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_geo_adresse",
+        "type": "Location | null"
+       },
+       {
+        "name": "siege_geo_id",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_indice_repetition",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_latitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_liste_enseignes",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_finess",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_bio",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_rge",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_uai",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_longitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_nom_commercial",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_numero_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_region",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_siret",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_statut_diffusion_etablissement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_type_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "dirigeants",
+        "type": "Individual[] | null"
+       },
+       {
+        "name": "matching_etablissements",
+        "type": "object[] | null"
+       },
+       {
+        "name": "finances",
+        "type": "object | null"
+       },
+       {
+        "name": "complements_collectivite_territoriale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_convention_collective_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_egapro_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_achats_responsables",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_alim_confiance",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_association",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_bio",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_individuel",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_spectacle",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_ess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_finess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_organisme_formation",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_qualiopi",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_est_rge",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_service_public",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_l100_3",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_siae",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_societe_mission",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_uai",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_patrimoine_vivant",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_bilan_ges_renseigne",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_identifiant_association",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_statut_entrepreneur_spectacle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_type_siae",
+        "type": "unknown | null"
+       }
+      ]
+     },
+     "outputs": {
+      "type": "Organization",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "name",
+        "type": "any"
+       },
+       {
+        "name": "siren",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_complet",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_raison_sociale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "sigle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nombre_etablissements",
+        "type": "integer | null"
+       },
+       {
+        "name": "nombre_etablissements_ouverts",
+        "type": "integer | null"
+       },
+       {
+        "name": "activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "section_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_rne",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nature_juridique",
+        "type": "unknown | null"
+       },
+       {
+        "name": "etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "statut_diffusion",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale_registre_metier",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_postal",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_complement_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_coordonnees",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_debut_activite",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_departement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_diAnyibution_speciale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_epci",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_est_siege",
+        "type": "boolean | null"
+       },
+       {
+        "name": "siege_etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_geo_adresse",
+        "type": "Location | null"
+       },
+       {
+        "name": "siege_geo_id",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_indice_repetition",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_latitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_liste_enseignes",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_finess",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_bio",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_rge",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_uai",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_longitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_nom_commercial",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_numero_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_region",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_siret",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_statut_diffusion_etablissement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_type_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "dirigeants",
+        "type": "Individual[] | null"
+       },
+       {
+        "name": "matching_etablissements",
+        "type": "object[] | null"
+       },
+       {
+        "name": "finances",
+        "type": "object | null"
+       },
+       {
+        "name": "complements_collectivite_territoriale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_convention_collective_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_egapro_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_achats_responsables",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_alim_confiance",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_association",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_bio",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_individuel",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_spectacle",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_ess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_finess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_organisme_formation",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_qualiopi",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_est_rge",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_service_public",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_l100_3",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_siae",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_societe_mission",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_uai",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_patrimoine_vivant",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_bilan_ges_renseigne",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_identifiant_association",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_statut_entrepreneur_spectacle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_type_siae",
+        "type": "unknown | null"
+       }
+      ]
+     },
+     "documentation": "Ejecuta osint-es-scripts/resolver_empresa.py sobre la denominación (o el NIF) del nodo.\nSi hay UN único candidato con denominación exacta (o el nodo ya tenía NIF), completa el\npropio nodo con nif, nif_valido, tipo_entidad, lei, denominacion_normalizada,\ndenominaciones y web; si hay homonimia NO rellena el NIF y crea cada candidato como\nOrganization aparte («DENOMINACIÓN (NIF)») con la relación POSIBLE_IDENTIDAD, para que\nel analista elija. Los dominios que resuelven se crean como Domain con WEB_PROBABLE\n(propiedad confianza: alta si la portada muestra el NIF). `max_resultados` = máximo de\ncandidatos creados.",
+     "description": "[ES IDENTIDAD] Resuelve NIF/CIF, LEI y web probable de una empresa española (BDNS, GLEIF, TED, CNMV).",
+     "required_params": false,
+     "params": {},
+     "params_schema": [
+      {
+       "name": "max_resultados",
+       "type": "string",
+       "required": false,
+       "default": "5",
+       "description": "Máximo de nodos por organización (tope 100)."
+      },
+      {
+       "name": "buscar_web",
+       "type": "select",
+       "default": "true",
+       "required": false,
+       "description": "Probar <nombre>.es/.com/... y crear Domain (WEB_PROBABLE).",
+       "options": [
+        {
+         "label": "Sí",
+         "value": "true"
+        },
+        {
+         "label": "No",
+         "value": "false"
+        }
+       ]
+      },
+      {
+       "name": "fuentes",
+       "type": "string",
+       "default": "bdns,gleif,ted,cnmv",
+       "required": false,
+       "description": "Fuentes de candidatos, separadas por comas."
+      }
+     ],
+     "icon": null,
+     "key": "es_org_resolver_identidad",
+     "color": "#94a3b8"
+    }
+   },
+   {
+    "id": "es_org_to_officers_borme-2",
+    "type": "enricher",
+    "position": {
+     "x": 760,
+     "y": 0
+    },
+    "data": {
+     "id": null,
+     "class_name": "EsOrgToIndividualsBormeEnricher",
+     "module": "flowsint_enrichers.es.organization_to_individuals_borme",
+     "name": "es_org_to_officers_borme",
+     "category": "Organization",
+     "type": "enricher",
+     "inputs": {
+      "type": "Organization",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "name",
+        "type": "any"
+       },
+       {
+        "name": "siren",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_complet",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_raison_sociale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "sigle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nombre_etablissements",
+        "type": "integer | null"
+       },
+       {
+        "name": "nombre_etablissements_ouverts",
+        "type": "integer | null"
+       },
+       {
+        "name": "activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "section_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_rne",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nature_juridique",
+        "type": "unknown | null"
+       },
+       {
+        "name": "etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "statut_diffusion",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale_registre_metier",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_postal",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_complement_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_coordonnees",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_debut_activite",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_departement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_diAnyibution_speciale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_epci",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_est_siege",
+        "type": "boolean | null"
+       },
+       {
+        "name": "siege_etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_geo_adresse",
+        "type": "Location | null"
+       },
+       {
+        "name": "siege_geo_id",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_indice_repetition",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_latitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_liste_enseignes",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_finess",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_bio",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_rge",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_uai",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_longitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_nom_commercial",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_numero_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_region",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_siret",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_statut_diffusion_etablissement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_type_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "dirigeants",
+        "type": "Individual[] | null"
+       },
+       {
+        "name": "matching_etablissements",
+        "type": "object[] | null"
+       },
+       {
+        "name": "finances",
+        "type": "object | null"
+       },
+       {
+        "name": "complements_collectivite_territoriale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_convention_collective_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_egapro_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_achats_responsables",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_alim_confiance",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_association",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_bio",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_individuel",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_spectacle",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_ess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_finess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_organisme_formation",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_qualiopi",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_est_rge",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_service_public",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_l100_3",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_siae",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_societe_mission",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_uai",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_patrimoine_vivant",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_bilan_ges_renseigne",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_identifiant_association",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_statut_entrepreneur_spectacle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_type_siae",
+        "type": "unknown | null"
+       }
+      ]
+     },
+     "outputs": {
+      "type": "Individual",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "first_name",
+        "type": "string | null"
+       },
+       {
+        "name": "last_name",
+        "type": "string | null"
+       },
+       {
+        "name": "full_name",
+        "type": "string | null"
+       },
+       {
+        "name": "middle_name",
+        "type": "string | null"
+       },
+       {
+        "name": "maiden_name",
+        "type": "string | null"
+       },
+       {
+        "name": "aliases",
+        "type": "string[] | null"
+       },
+       {
+        "name": "birth_date",
+        "type": "string | null"
+       },
+       {
+        "name": "birth_place",
+        "type": "Location | null"
+       },
+       {
+        "name": "age",
+        "type": "integer | null"
+       },
+       {
+        "name": "gender",
+        "type": "string | null"
+       },
+       {
+        "name": "height",
+        "type": "string | null"
+       },
+       {
+        "name": "weight",
+        "type": "string | null"
+       },
+       {
+        "name": "eye_color",
+        "type": "string | null"
+       },
+       {
+        "name": "hair_color",
+        "type": "string | null"
+       },
+       {
+        "name": "skin_tone",
+        "type": "string | null"
+       },
+       {
+        "name": "ethnicity",
+        "type": "string | null"
+       },
+       {
+        "name": "blood_type",
+        "type": "string | null"
+       },
+       {
+        "name": "distinguishing_marks",
+        "type": "string[] | null"
+       },
+       {
+        "name": "disabilities",
+        "type": "string[] | null"
+       },
+       {
+        "name": "is_smoker",
+        "type": "boolean | null"
+       },
+       {
+        "name": "is_deceased",
+        "type": "boolean | null"
+       },
+       {
+        "name": "death_date",
+        "type": "string | null"
+       },
+       {
+        "name": "death_place",
+        "type": "Location | null"
+       },
+       {
+        "name": "cause_of_death",
+        "type": "string | null"
+       },
+       {
+        "name": "phone_numbers",
+        "type": "Phone[] | null"
+       },
+       {
+        "name": "email_addresses",
+        "type": "Email[] | null"
+       },
+       {
+        "name": "social_media_profiles",
+        "type": "string[] | null"
+       },
+       {
+        "name": "current_address",
+        "type": "Location | null"
+       },
+       {
+        "name": "previous_addresses",
+        "type": "Location[] | null"
+       },
+       {
+        "name": "nationality",
+        "type": "string | null"
+       },
+       {
+        "name": "citizenship",
+        "type": "string[] | null"
+       },
+       {
+        "name": "place_of_residence",
+        "type": "string | null"
+       },
+       {
+        "name": "passport_number",
+        "type": "string | null"
+       },
+       {
+        "name": "drivers_license",
+        "type": "string | null"
+       },
+       {
+        "name": "social_security_number",
+        "type": "string | null"
+       },
+       {
+        "name": "national_id",
+        "type": "string | null"
+       },
+       {
+        "name": "voter_id",
+        "type": "string | null"
+       },
+       {
+        "name": "tax_id",
+        "type": "string | null"
+       },
+       {
+        "name": "marital_status",
+        "type": "string | null"
+       },
+       {
+        "name": "spouse_name",
+        "type": "string | null"
+       },
+       {
+        "name": "children_count",
+        "type": "integer | null"
+       },
+       {
+        "name": "children_names",
+        "type": "string[] | null"
+       },
+       {
+        "name": "parents_names",
+        "type": "string[] | null"
+       },
+       {
+        "name": "emergency_contact",
+        "type": "string | null"
+       },
+       {
+        "name": "occupation",
+        "type": "string | null"
+       },
+       {
+        "name": "employer",
+        "type": "string | null"
+       },
+       {
+        "name": "employer_address",
+        "type": "Location | null"
+       },
+       {
+        "name": "job_title",
+        "type": "string | null"
+       },
+       {
+        "name": "annual_income",
+        "type": "number | null"
+       },
+       {
+        "name": "employment_history",
+        "type": "string[] | null"
+       },
+       {
+        "name": "education_level",
+        "type": "string | null"
+       },
+       {
+        "name": "schools_attended",
+        "type": "string[] | null"
+       },
+       {
+        "name": "degrees",
+        "type": "string[] | null"
+       },
+       {
+        "name": "languages_spoken",
+        "type": "string[] | null"
+       },
+       {
+        "name": "religion",
+        "type": "string | null"
+       },
+       {
+        "name": "political_affiliation",
+        "type": "string | null"
+       },
+       {
+        "name": "hobbies",
+        "type": "string[] | null"
+       },
+       {
+        "name": "personality_traits",
+        "type": "string[] | null"
+       },
+       {
+        "name": "fingerprints",
+        "type": "string | null"
+       },
+       {
+        "name": "dna_profile",
+        "type": "string | null"
+       },
+       {
+        "name": "facial_recognition_id",
+        "type": "string | null"
+       },
+       {
+        "name": "iris_scan",
+        "type": "string | null"
+       },
+       {
+        "name": "voice_print",
+        "type": "string | null"
+       },
+       {
+        "name": "bank_accounts",
+        "type": "string[] | null"
+       },
+       {
+        "name": "credit_score",
+        "type": "integer | null"
+       },
+       {
+        "name": "net_worth",
+        "type": "number | null"
+       },
+       {
+        "name": "assets",
+        "type": "string[] | null"
+       },
+       {
+        "name": "criminal_record",
+        "type": "boolean | null"
+       },
+       {
+        "name": "arrest_history",
+        "type": "string[] | null"
+       },
+       {
+        "name": "convictions",
+        "type": "string[] | null"
+       },
+       {
+        "name": "civil_cases",
+        "type": "string[] | null"
+       },
+       {
+        "name": "security_clearance",
+        "type": "string | null"
+       },
+       {
+        "name": "ip_addresses",
+        "type": "Ip[] | null"
+       },
+       {
+        "name": "usernames",
+        "type": "string[] | null"
+       },
+       {
+        "name": "device_ids",
+        "type": "string[] | null"
+       },
+       {
+        "name": "first_seen",
+        "type": "string | null"
+       },
+       {
+        "name": "last_seen",
+        "type": "string | null"
+       },
+       {
+        "name": "source",
+        "type": "string | null"
+       },
+       {
+        "name": "confidence",
+        "type": "number | null"
+       },
+       {
+        "name": "notes",
+        "type": "string | null"
+       },
+       {
+        "name": "src",
+        "type": "string | null"
+       },
+       {
+        "name": "last_updated",
+        "type": "string | null"
+       }
+      ]
+     },
+     "documentation": "Busca la denominación en la Sección Primera del BORME (actos inscritos) usando la\nAPI de datos abiertos del BOE (sumario diario + índice alfabético + texto de cada\nprovincia; caché SQLite en ~/.cache/osint-es/borme.sqlite) o apispain.es si hay\nAPISPAIN_API_KEY. Crea un Individual por persona con cargo y la relación\nIndividual -[ADM_UNICO|CONSEJERO|APODERADO|...]-> Organization (EX_<CARGO> si\nconsta cese/revocación). Los cargos 'vigentes' son una inferencia parcial sobre el\nrango consultado (por defecto 90 días). El BORME no publica DNI: posibles homónimos.",
+     "description": "[BORME] Company officers (administrators, directors, attorneys, sole shareholder) from BORME.",
+     "required_params": false,
+     "params": {},
+     "params_schema": [
+      {
+       "name": "DIAS",
+       "type": "string",
+       "default": "90",
+       "required": false,
+       "description": "Días hacia atrás a revisar en el BORME si no se da DESDE (coste: ~2 peticiones/día hábil en modo índice, ~30/día en modo completo)."
+      },
+      {
+       "name": "DESDE",
+       "type": "string",
+       "required": false,
+       "description": "Fecha inicial AAAA-MM-DD."
+      },
+      {
+       "name": "HASTA",
+       "type": "string",
+       "required": false,
+       "description": "Fecha final AAAA-MM-DD (hoy)."
+      },
+      {
+       "name": "PROVINCIA",
+       "type": "string",
+       "required": false,
+       "description": "Provincias del Registro Mercantil separadas por comas (nombre o código INE). Reduce mucho el coste si se conoce."
+      },
+      {
+       "name": "EXACTA",
+       "type": "string",
+       "default": "false",
+       "required": false,
+       "description": "true = solo denominación exacta (normalizada, sin forma jurídica)."
+      },
+      {
+       "name": "BACKEND",
+       "type": "string",
+       "default": "auto",
+       "required": false,
+       "description": "auto | boe | apispain (auto usa apispain si hay APISPAIN_API_KEY)."
+      },
+      {
+       "name": "APISPAIN_API_KEY",
+       "type": "vaultSecret",
+       "required": false,
+       "description": "Clave opcional de apispain.es (plan Free: 100 peticiones/mes)."
+      },
+      {
+       "name": "SOLO_VIGENTES",
+       "type": "string",
+       "default": "false",
+       "required": false,
+       "description": "true = solo cargos sin cese posterior observado; false = también EX_ cargos."
+      },
+      {
+       "name": "COMPLETO",
+       "type": "string",
+       "default": "false",
+       "required": false,
+       "description": "true = descargar todos los documentos provinciales (lento; llena la caché)."
+      },
+      {
+       "name": "MAX_PETICIONES",
+       "type": "string",
+       "default": "3000",
+       "required": false,
+       "description": "Tope de peticiones a boe.es por ejecución."
+      }
+     ],
+     "icon": null,
+     "key": "es_org_to_officers_borme",
+     "color": "#94a3b8"
+    }
+   },
+   {
+    "id": "es_org_to_linkedin_employees-3",
+    "type": "enricher",
+    "position": {
+     "x": 760,
+     "y": 110
+    },
+    "data": {
+     "id": null,
+     "class_name": "EsOrgToLinkedinEmployeesEnricher",
+     "module": "flowsint_enrichers.es.organization_to_individuals_linkedin_apify",
+     "name": "es_org_to_linkedin_employees",
+     "category": "Organization",
+     "type": "enricher",
+     "inputs": {
+      "type": "Organization",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "name",
+        "type": "any"
+       },
+       {
+        "name": "siren",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_complet",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nom_raison_sociale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "sigle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nombre_etablissements",
+        "type": "integer | null"
+       },
+       {
+        "name": "nombre_etablissements_ouverts",
+        "type": "integer | null"
+       },
+       {
+        "name": "activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "section_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_categorie_entreprise",
+        "type": "unknown | null"
+       },
+       {
+        "name": "caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "date_mise_a_jour_rne",
+        "type": "unknown | null"
+       },
+       {
+        "name": "nature_juridique",
+        "type": "unknown | null"
+       },
+       {
+        "name": "etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "statut_diffusion",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_activite_principale_registre_metier",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_annee_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_caractere_employeur",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_code_postal",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_complement_adresse",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_coordonnees",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_creation",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_debut_activite",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_fermeture",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_date_mise_a_jour_insee",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_departement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_diAnyibution_speciale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_epci",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_est_siege",
+        "type": "boolean | null"
+       },
+       {
+        "name": "siege_etat_administratif",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_geo_adresse",
+        "type": "Location | null"
+       },
+       {
+        "name": "siege_geo_id",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_indice_repetition",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_latitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_cedex",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_commune_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_pays_etranger",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_libelle_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_liste_enseignes",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_finess",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_bio",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_rge",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_liste_uai",
+        "type": "any[] | null"
+       },
+       {
+        "name": "siege_longitude",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_nom_commercial",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_numero_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_region",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_siret",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_statut_diffusion_etablissement",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_tranche_effectif_salarie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "siege_type_voie",
+        "type": "unknown | null"
+       },
+       {
+        "name": "dirigeants",
+        "type": "Individual[] | null"
+       },
+       {
+        "name": "matching_etablissements",
+        "type": "object[] | null"
+       },
+       {
+        "name": "finances",
+        "type": "object | null"
+       },
+       {
+        "name": "complements_collectivite_territoriale",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_convention_collective_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_idcc",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_egapro_renseignee",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_achats_responsables",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_alim_confiance",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_association",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_bio",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_individuel",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_entrepreneur_spectacle",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_ess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_finess",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_organisme_formation",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_qualiopi",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_liste_id_organisme_formation",
+        "type": "any[] | null"
+       },
+       {
+        "name": "complements_est_rge",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_service_public",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_l100_3",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_siae",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_societe_mission",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_uai",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_est_patrimoine_vivant",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_bilan_ges_renseigne",
+        "type": "boolean | null"
+       },
+       {
+        "name": "complements_identifiant_association",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_statut_entrepreneur_spectacle",
+        "type": "unknown | null"
+       },
+       {
+        "name": "complements_type_siae",
+        "type": "unknown | null"
+       }
+      ]
+     },
+     "outputs": {
+      "type": "Individual",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "first_name",
+        "type": "string | null"
+       },
+       {
+        "name": "last_name",
+        "type": "string | null"
+       },
+       {
+        "name": "full_name",
+        "type": "string | null"
+       },
+       {
+        "name": "middle_name",
+        "type": "string | null"
+       },
+       {
+        "name": "maiden_name",
+        "type": "string | null"
+       },
+       {
+        "name": "aliases",
+        "type": "string[] | null"
+       },
+       {
+        "name": "birth_date",
+        "type": "string | null"
+       },
+       {
+        "name": "birth_place",
+        "type": "Location | null"
+       },
+       {
+        "name": "age",
+        "type": "integer | null"
+       },
+       {
+        "name": "gender",
+        "type": "string | null"
+       },
+       {
+        "name": "height",
+        "type": "string | null"
+       },
+       {
+        "name": "weight",
+        "type": "string | null"
+       },
+       {
+        "name": "eye_color",
+        "type": "string | null"
+       },
+       {
+        "name": "hair_color",
+        "type": "string | null"
+       },
+       {
+        "name": "skin_tone",
+        "type": "string | null"
+       },
+       {
+        "name": "ethnicity",
+        "type": "string | null"
+       },
+       {
+        "name": "blood_type",
+        "type": "string | null"
+       },
+       {
+        "name": "distinguishing_marks",
+        "type": "string[] | null"
+       },
+       {
+        "name": "disabilities",
+        "type": "string[] | null"
+       },
+       {
+        "name": "is_smoker",
+        "type": "boolean | null"
+       },
+       {
+        "name": "is_deceased",
+        "type": "boolean | null"
+       },
+       {
+        "name": "death_date",
+        "type": "string | null"
+       },
+       {
+        "name": "death_place",
+        "type": "Location | null"
+       },
+       {
+        "name": "cause_of_death",
+        "type": "string | null"
+       },
+       {
+        "name": "phone_numbers",
+        "type": "Phone[] | null"
+       },
+       {
+        "name": "email_addresses",
+        "type": "Email[] | null"
+       },
+       {
+        "name": "social_media_profiles",
+        "type": "string[] | null"
+       },
+       {
+        "name": "current_address",
+        "type": "Location | null"
+       },
+       {
+        "name": "previous_addresses",
+        "type": "Location[] | null"
+       },
+       {
+        "name": "nationality",
+        "type": "string | null"
+       },
+       {
+        "name": "citizenship",
+        "type": "string[] | null"
+       },
+       {
+        "name": "place_of_residence",
+        "type": "string | null"
+       },
+       {
+        "name": "passport_number",
+        "type": "string | null"
+       },
+       {
+        "name": "drivers_license",
+        "type": "string | null"
+       },
+       {
+        "name": "social_security_number",
+        "type": "string | null"
+       },
+       {
+        "name": "national_id",
+        "type": "string | null"
+       },
+       {
+        "name": "voter_id",
+        "type": "string | null"
+       },
+       {
+        "name": "tax_id",
+        "type": "string | null"
+       },
+       {
+        "name": "marital_status",
+        "type": "string | null"
+       },
+       {
+        "name": "spouse_name",
+        "type": "string | null"
+       },
+       {
+        "name": "children_count",
+        "type": "integer | null"
+       },
+       {
+        "name": "children_names",
+        "type": "string[] | null"
+       },
+       {
+        "name": "parents_names",
+        "type": "string[] | null"
+       },
+       {
+        "name": "emergency_contact",
+        "type": "string | null"
+       },
+       {
+        "name": "occupation",
+        "type": "string | null"
+       },
+       {
+        "name": "employer",
+        "type": "string | null"
+       },
+       {
+        "name": "employer_address",
+        "type": "Location | null"
+       },
+       {
+        "name": "job_title",
+        "type": "string | null"
+       },
+       {
+        "name": "annual_income",
+        "type": "number | null"
+       },
+       {
+        "name": "employment_history",
+        "type": "string[] | null"
+       },
+       {
+        "name": "education_level",
+        "type": "string | null"
+       },
+       {
+        "name": "schools_attended",
+        "type": "string[] | null"
+       },
+       {
+        "name": "degrees",
+        "type": "string[] | null"
+       },
+       {
+        "name": "languages_spoken",
+        "type": "string[] | null"
+       },
+       {
+        "name": "religion",
+        "type": "string | null"
+       },
+       {
+        "name": "political_affiliation",
+        "type": "string | null"
+       },
+       {
+        "name": "hobbies",
+        "type": "string[] | null"
+       },
+       {
+        "name": "personality_traits",
+        "type": "string[] | null"
+       },
+       {
+        "name": "fingerprints",
+        "type": "string | null"
+       },
+       {
+        "name": "dna_profile",
+        "type": "string | null"
+       },
+       {
+        "name": "facial_recognition_id",
+        "type": "string | null"
+       },
+       {
+        "name": "iris_scan",
+        "type": "string | null"
+       },
+       {
+        "name": "voice_print",
+        "type": "string | null"
+       },
+       {
+        "name": "bank_accounts",
+        "type": "string[] | null"
+       },
+       {
+        "name": "credit_score",
+        "type": "integer | null"
+       },
+       {
+        "name": "net_worth",
+        "type": "number | null"
+       },
+       {
+        "name": "assets",
+        "type": "string[] | null"
+       },
+       {
+        "name": "criminal_record",
+        "type": "boolean | null"
+       },
+       {
+        "name": "arrest_history",
+        "type": "string[] | null"
+       },
+       {
+        "name": "convictions",
+        "type": "string[] | null"
+       },
+       {
+        "name": "civil_cases",
+        "type": "string[] | null"
+       },
+       {
+        "name": "security_clearance",
+        "type": "string | null"
+       },
+       {
+        "name": "ip_addresses",
+        "type": "Ip[] | null"
+       },
+       {
+        "name": "usernames",
+        "type": "string[] | null"
+       },
+       {
+        "name": "device_ids",
+        "type": "string[] | null"
+       },
+       {
+        "name": "first_seen",
+        "type": "string | null"
+       },
+       {
+        "name": "last_seen",
+        "type": "string | null"
+       },
+       {
+        "name": "source",
+        "type": "string | null"
+       },
+       {
+        "name": "confidence",
+        "type": "number | null"
+       },
+       {
+        "name": "notes",
+        "type": "string | null"
+       },
+       {
+        "name": "src",
+        "type": "string | null"
+       },
+       {
+        "name": "last_updated",
+        "type": "string | null"
+       }
+      ]
+     },
+     "documentation": "Lista empleados actuales de la empresa en LinkedIn con el actor de Apify\nharvestapi/linkedin-company-employees (sin cookies). Si no se da la URL de\nla página de empresa, la busca con apify/google-search-scraper\n(`site:linkedin.com/company \"<nombre>\"`). Crea Individual + SocialAccount\ncon la relación WORKS_AT / HAS_LINKEDIN. Requiere APIFY_TOKEN.\nAVISO: el scraping de LinkedIn incumple sus condiciones de uso.",
+     "description": "[APIFY] List a company's employees on LinkedIn (paid, opt-in).",
+     "required_params": false,
+     "params": {},
+     "params_schema": [
+      {
+       "name": "APIFY_TOKEN",
+       "type": "vaultSecret",
+       "required": false,
+       "description": "Token de Apify (si no está en la vault se usa la variable de entorno APIFY_TOKEN)."
+      },
+      {
+       "name": "empresa_linkedin_url",
+       "type": "string",
+       "required": false,
+       "description": "URL linkedin.com/company/...; si se omite se busca con Google (Apify, ~0,005 $)."
+      },
+      {
+       "name": "cargos",
+       "type": "string",
+       "required": false,
+       "description": "Filtro de cargos separados por comas (p. ej. CEO,CTO,Director)."
+      },
+      {
+       "name": "max_resultados",
+       "type": "string",
+       "default": "15",
+       "required": false,
+       "description": "Empleados a pedir (0,02 $ por arranque + ~0,004 $ por perfil)."
+      }
+     ],
+     "icon": null,
+     "key": "es_org_to_linkedin_employees",
+     "color": "#94a3b8"
+    }
+   },
+   {
+    "id": "es_individual_to_emails-4",
+    "type": "enricher",
+    "position": {
+     "x": 1140,
+     "y": 0
+    },
+    "data": {
+     "id": null,
+     "class_name": "EsIndividualToEmailsEnricher",
+     "module": "flowsint_enrichers.es.individual_to_emails_correos",
+     "name": "es_individual_to_emails",
+     "category": "Individual",
+     "type": "enricher",
+     "inputs": {
+      "type": "Individual",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "first_name",
+        "type": "string | null"
+       },
+       {
+        "name": "last_name",
+        "type": "string | null"
+       },
+       {
+        "name": "full_name",
+        "type": "string | null"
+       },
+       {
+        "name": "middle_name",
+        "type": "string | null"
+       },
+       {
+        "name": "maiden_name",
+        "type": "string | null"
+       },
+       {
+        "name": "aliases",
+        "type": "string[] | null"
+       },
+       {
+        "name": "birth_date",
+        "type": "string | null"
+       },
+       {
+        "name": "birth_place",
+        "type": "Location | null"
+       },
+       {
+        "name": "age",
+        "type": "integer | null"
+       },
+       {
+        "name": "gender",
+        "type": "string | null"
+       },
+       {
+        "name": "height",
+        "type": "string | null"
+       },
+       {
+        "name": "weight",
+        "type": "string | null"
+       },
+       {
+        "name": "eye_color",
+        "type": "string | null"
+       },
+       {
+        "name": "hair_color",
+        "type": "string | null"
+       },
+       {
+        "name": "skin_tone",
+        "type": "string | null"
+       },
+       {
+        "name": "ethnicity",
+        "type": "string | null"
+       },
+       {
+        "name": "blood_type",
+        "type": "string | null"
+       },
+       {
+        "name": "distinguishing_marks",
+        "type": "string[] | null"
+       },
+       {
+        "name": "disabilities",
+        "type": "string[] | null"
+       },
+       {
+        "name": "is_smoker",
+        "type": "boolean | null"
+       },
+       {
+        "name": "is_deceased",
+        "type": "boolean | null"
+       },
+       {
+        "name": "death_date",
+        "type": "string | null"
+       },
+       {
+        "name": "death_place",
+        "type": "Location | null"
+       },
+       {
+        "name": "cause_of_death",
+        "type": "string | null"
+       },
+       {
+        "name": "phone_numbers",
+        "type": "Phone[] | null"
+       },
+       {
+        "name": "email_addresses",
+        "type": "Email[] | null"
+       },
+       {
+        "name": "social_media_profiles",
+        "type": "string[] | null"
+       },
+       {
+        "name": "current_address",
+        "type": "Location | null"
+       },
+       {
+        "name": "previous_addresses",
+        "type": "Location[] | null"
+       },
+       {
+        "name": "nationality",
+        "type": "string | null"
+       },
+       {
+        "name": "citizenship",
+        "type": "string[] | null"
+       },
+       {
+        "name": "place_of_residence",
+        "type": "string | null"
+       },
+       {
+        "name": "passport_number",
+        "type": "string | null"
+       },
+       {
+        "name": "drivers_license",
+        "type": "string | null"
+       },
+       {
+        "name": "social_security_number",
+        "type": "string | null"
+       },
+       {
+        "name": "national_id",
+        "type": "string | null"
+       },
+       {
+        "name": "voter_id",
+        "type": "string | null"
+       },
+       {
+        "name": "tax_id",
+        "type": "string | null"
+       },
+       {
+        "name": "marital_status",
+        "type": "string | null"
+       },
+       {
+        "name": "spouse_name",
+        "type": "string | null"
+       },
+       {
+        "name": "children_count",
+        "type": "integer | null"
+       },
+       {
+        "name": "children_names",
+        "type": "string[] | null"
+       },
+       {
+        "name": "parents_names",
+        "type": "string[] | null"
+       },
+       {
+        "name": "emergency_contact",
+        "type": "string | null"
+       },
+       {
+        "name": "occupation",
+        "type": "string | null"
+       },
+       {
+        "name": "employer",
+        "type": "string | null"
+       },
+       {
+        "name": "employer_address",
+        "type": "Location | null"
+       },
+       {
+        "name": "job_title",
+        "type": "string | null"
+       },
+       {
+        "name": "annual_income",
+        "type": "number | null"
+       },
+       {
+        "name": "employment_history",
+        "type": "string[] | null"
+       },
+       {
+        "name": "education_level",
+        "type": "string | null"
+       },
+       {
+        "name": "schools_attended",
+        "type": "string[] | null"
+       },
+       {
+        "name": "degrees",
+        "type": "string[] | null"
+       },
+       {
+        "name": "languages_spoken",
+        "type": "string[] | null"
+       },
+       {
+        "name": "religion",
+        "type": "string | null"
+       },
+       {
+        "name": "political_affiliation",
+        "type": "string | null"
+       },
+       {
+        "name": "hobbies",
+        "type": "string[] | null"
+       },
+       {
+        "name": "personality_traits",
+        "type": "string[] | null"
+       },
+       {
+        "name": "fingerprints",
+        "type": "string | null"
+       },
+       {
+        "name": "dna_profile",
+        "type": "string | null"
+       },
+       {
+        "name": "facial_recognition_id",
+        "type": "string | null"
+       },
+       {
+        "name": "iris_scan",
+        "type": "string | null"
+       },
+       {
+        "name": "voice_print",
+        "type": "string | null"
+       },
+       {
+        "name": "bank_accounts",
+        "type": "string[] | null"
+       },
+       {
+        "name": "credit_score",
+        "type": "integer | null"
+       },
+       {
+        "name": "net_worth",
+        "type": "number | null"
+       },
+       {
+        "name": "assets",
+        "type": "string[] | null"
+       },
+       {
+        "name": "criminal_record",
+        "type": "boolean | null"
+       },
+       {
+        "name": "arrest_history",
+        "type": "string[] | null"
+       },
+       {
+        "name": "convictions",
+        "type": "string[] | null"
+       },
+       {
+        "name": "civil_cases",
+        "type": "string[] | null"
+       },
+       {
+        "name": "security_clearance",
+        "type": "string | null"
+       },
+       {
+        "name": "ip_addresses",
+        "type": "Ip[] | null"
+       },
+       {
+        "name": "usernames",
+        "type": "string[] | null"
+       },
+       {
+        "name": "device_ids",
+        "type": "string[] | null"
+       },
+       {
+        "name": "first_seen",
+        "type": "string | null"
+       },
+       {
+        "name": "last_seen",
+        "type": "string | null"
+       },
+       {
+        "name": "source",
+        "type": "string | null"
+       },
+       {
+        "name": "confidence",
+        "type": "number | null"
+       },
+       {
+        "name": "notes",
+        "type": "string | null"
+       },
+       {
+        "name": "src",
+        "type": "string | null"
+       },
+       {
+        "name": "last_updated",
+        "type": "string | null"
+       }
+      ]
+     },
+     "outputs": {
+      "type": "Email",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "email",
+        "type": "string"
+       }
+      ]
+     },
+     "documentation": "Genera correos corporativos candidatos para una persona y los puntúa con\nevidencias públicas: patrón real de la empresa (correos de su web y commits\npúblicos de GitHub del dominio), MX del dominio, Gravatar y Hunter.io si hay\nclave. No hace verificación SMTP. El dominio sale del parámetro `dominio` o\nde los nodos Domain/Website conectados a la persona o a su empresa.\nLa confianza y las evidencias se registran en el log del sketch.",
+     "description": "[CORREOS] Candidate corporate emails for a person (pattern + MX + web + GitHub + Gravatar).",
+     "required_params": false,
+     "params": {},
+     "params_schema": [
+      {
+       "name": "dominio",
+       "type": "string",
+       "required": false,
+       "description": "Dominio de la empresa. Si se omite, se usa el Domain/Website vecino en el grafo."
+      },
+      {
+       "name": "min_confianza",
+       "type": "string",
+       "default": "0.4",
+       "required": false,
+       "description": "Confianza mínima (0-1) para crear el nodo."
+      },
+      {
+       "name": "max_resultados",
+       "type": "string",
+       "default": "3",
+       "required": false,
+       "description": "Máximo de correos por persona."
+      },
+      {
+       "name": "HUNTER_API_KEY",
+       "type": "vaultSecret",
+       "required": false,
+       "description": "Opcional: clave de Hunter.io para domain-search / email-finder."
+      }
+     ],
+     "icon": null,
+     "key": "es_individual_to_emails",
+     "color": "#94a3b8"
+    }
+   },
+   {
+    "id": "es_individual_to_linkedin-5",
+    "type": "enricher",
+    "position": {
+     "x": 1140,
+     "y": 110
+    },
+    "data": {
+     "id": null,
+     "class_name": "EsIndividualToLinkedinEnricher",
+     "module": "flowsint_enrichers.es.individual_to_linkedin_apify",
+     "name": "es_individual_to_linkedin",
+     "category": "Individual",
+     "type": "enricher",
+     "inputs": {
+      "type": "Individual",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "first_name",
+        "type": "string | null"
+       },
+       {
+        "name": "last_name",
+        "type": "string | null"
+       },
+       {
+        "name": "full_name",
+        "type": "string | null"
+       },
+       {
+        "name": "middle_name",
+        "type": "string | null"
+       },
+       {
+        "name": "maiden_name",
+        "type": "string | null"
+       },
+       {
+        "name": "aliases",
+        "type": "string[] | null"
+       },
+       {
+        "name": "birth_date",
+        "type": "string | null"
+       },
+       {
+        "name": "birth_place",
+        "type": "Location | null"
+       },
+       {
+        "name": "age",
+        "type": "integer | null"
+       },
+       {
+        "name": "gender",
+        "type": "string | null"
+       },
+       {
+        "name": "height",
+        "type": "string | null"
+       },
+       {
+        "name": "weight",
+        "type": "string | null"
+       },
+       {
+        "name": "eye_color",
+        "type": "string | null"
+       },
+       {
+        "name": "hair_color",
+        "type": "string | null"
+       },
+       {
+        "name": "skin_tone",
+        "type": "string | null"
+       },
+       {
+        "name": "ethnicity",
+        "type": "string | null"
+       },
+       {
+        "name": "blood_type",
+        "type": "string | null"
+       },
+       {
+        "name": "distinguishing_marks",
+        "type": "string[] | null"
+       },
+       {
+        "name": "disabilities",
+        "type": "string[] | null"
+       },
+       {
+        "name": "is_smoker",
+        "type": "boolean | null"
+       },
+       {
+        "name": "is_deceased",
+        "type": "boolean | null"
+       },
+       {
+        "name": "death_date",
+        "type": "string | null"
+       },
+       {
+        "name": "death_place",
+        "type": "Location | null"
+       },
+       {
+        "name": "cause_of_death",
+        "type": "string | null"
+       },
+       {
+        "name": "phone_numbers",
+        "type": "Phone[] | null"
+       },
+       {
+        "name": "email_addresses",
+        "type": "Email[] | null"
+       },
+       {
+        "name": "social_media_profiles",
+        "type": "string[] | null"
+       },
+       {
+        "name": "current_address",
+        "type": "Location | null"
+       },
+       {
+        "name": "previous_addresses",
+        "type": "Location[] | null"
+       },
+       {
+        "name": "nationality",
+        "type": "string | null"
+       },
+       {
+        "name": "citizenship",
+        "type": "string[] | null"
+       },
+       {
+        "name": "place_of_residence",
+        "type": "string | null"
+       },
+       {
+        "name": "passport_number",
+        "type": "string | null"
+       },
+       {
+        "name": "drivers_license",
+        "type": "string | null"
+       },
+       {
+        "name": "social_security_number",
+        "type": "string | null"
+       },
+       {
+        "name": "national_id",
+        "type": "string | null"
+       },
+       {
+        "name": "voter_id",
+        "type": "string | null"
+       },
+       {
+        "name": "tax_id",
+        "type": "string | null"
+       },
+       {
+        "name": "marital_status",
+        "type": "string | null"
+       },
+       {
+        "name": "spouse_name",
+        "type": "string | null"
+       },
+       {
+        "name": "children_count",
+        "type": "integer | null"
+       },
+       {
+        "name": "children_names",
+        "type": "string[] | null"
+       },
+       {
+        "name": "parents_names",
+        "type": "string[] | null"
+       },
+       {
+        "name": "emergency_contact",
+        "type": "string | null"
+       },
+       {
+        "name": "occupation",
+        "type": "string | null"
+       },
+       {
+        "name": "employer",
+        "type": "string | null"
+       },
+       {
+        "name": "employer_address",
+        "type": "Location | null"
+       },
+       {
+        "name": "job_title",
+        "type": "string | null"
+       },
+       {
+        "name": "annual_income",
+        "type": "number | null"
+       },
+       {
+        "name": "employment_history",
+        "type": "string[] | null"
+       },
+       {
+        "name": "education_level",
+        "type": "string | null"
+       },
+       {
+        "name": "schools_attended",
+        "type": "string[] | null"
+       },
+       {
+        "name": "degrees",
+        "type": "string[] | null"
+       },
+       {
+        "name": "languages_spoken",
+        "type": "string[] | null"
+       },
+       {
+        "name": "religion",
+        "type": "string | null"
+       },
+       {
+        "name": "political_affiliation",
+        "type": "string | null"
+       },
+       {
+        "name": "hobbies",
+        "type": "string[] | null"
+       },
+       {
+        "name": "personality_traits",
+        "type": "string[] | null"
+       },
+       {
+        "name": "fingerprints",
+        "type": "string | null"
+       },
+       {
+        "name": "dna_profile",
+        "type": "string | null"
+       },
+       {
+        "name": "facial_recognition_id",
+        "type": "string | null"
+       },
+       {
+        "name": "iris_scan",
+        "type": "string | null"
+       },
+       {
+        "name": "voice_print",
+        "type": "string | null"
+       },
+       {
+        "name": "bank_accounts",
+        "type": "string[] | null"
+       },
+       {
+        "name": "credit_score",
+        "type": "integer | null"
+       },
+       {
+        "name": "net_worth",
+        "type": "number | null"
+       },
+       {
+        "name": "assets",
+        "type": "string[] | null"
+       },
+       {
+        "name": "criminal_record",
+        "type": "boolean | null"
+       },
+       {
+        "name": "arrest_history",
+        "type": "string[] | null"
+       },
+       {
+        "name": "convictions",
+        "type": "string[] | null"
+       },
+       {
+        "name": "civil_cases",
+        "type": "string[] | null"
+       },
+       {
+        "name": "security_clearance",
+        "type": "string | null"
+       },
+       {
+        "name": "ip_addresses",
+        "type": "Ip[] | null"
+       },
+       {
+        "name": "usernames",
+        "type": "string[] | null"
+       },
+       {
+        "name": "device_ids",
+        "type": "string[] | null"
+       },
+       {
+        "name": "first_seen",
+        "type": "string | null"
+       },
+       {
+        "name": "last_seen",
+        "type": "string | null"
+       },
+       {
+        "name": "source",
+        "type": "string | null"
+       },
+       {
+        "name": "confidence",
+        "type": "number | null"
+       },
+       {
+        "name": "notes",
+        "type": "string | null"
+       },
+       {
+        "name": "src",
+        "type": "string | null"
+       },
+       {
+        "name": "last_updated",
+        "type": "string | null"
+       }
+      ]
+     },
+     "outputs": {
+      "type": "SocialAccount",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "id",
+        "type": "string | null"
+       },
+       {
+        "name": "username",
+        "type": "Username | null"
+       },
+       {
+        "name": "display_name",
+        "type": "string | null"
+       },
+       {
+        "name": "profile_url",
+        "type": "string | null"
+       },
+       {
+        "name": "profile_picture_url",
+        "type": "string | null"
+       },
+       {
+        "name": "bio",
+        "type": "string | null"
+       },
+       {
+        "name": "location",
+        "type": "string | null"
+       },
+       {
+        "name": "platform",
+        "type": "string | null"
+       },
+       {
+        "name": "created_at",
+        "type": "string | null"
+       },
+       {
+        "name": "followers_count",
+        "type": "integer | null"
+       },
+       {
+        "name": "following_count",
+        "type": "integer | null"
+       },
+       {
+        "name": "posts_count",
+        "type": "integer | null"
+       },
+       {
+        "name": "verified",
+        "type": "boolean | null"
+       },
+       {
+        "name": "is_private",
+        "type": "boolean | null"
+       },
+       {
+        "name": "is_suspended",
+        "type": "boolean | null"
+       },
+       {
+        "name": "associated_emails",
+        "type": "string[] | null"
+       },
+       {
+        "name": "associated_phones",
+        "type": "string[] | null"
+       }
+      ]
+     },
+     "documentation": "Busca el perfil de LinkedIn de una persona con el actor de Apify\nharvestapi/linkedin-profile-search-by-name (sin cookies; configurable con\nAPIFY_ACTOR_LINKEDIN_BUSCAR) y puntúa cada candidato por coincidencia de\nnombre y de empresa. Gasto máximo por ejecución: APIFY_MAX_USD (0,10 $).\nRequiere APIFY_TOKEN; sin token no hace ninguna petición.\nAVISO: el scraping de LinkedIn incumple sus condiciones de uso.",
+     "description": "[APIFY] Find a person's LinkedIn profile by name + company (paid, opt-in).",
+     "required_params": false,
+     "params": {},
+     "params_schema": [
+      {
+       "name": "APIFY_TOKEN",
+       "type": "vaultSecret",
+       "required": false,
+       "description": "Token de Apify (si no está en la vault se usa la variable de entorno APIFY_TOKEN)."
+      },
+      {
+       "name": "empresa",
+       "type": "string",
+       "required": false,
+       "description": "Empresa actual. Si se omite, se usa la Organization vecina en el grafo."
+      },
+      {
+       "name": "empresa_linkedin_url",
+       "type": "string",
+       "required": false,
+       "description": "URL linkedin.com/company/... para filtrar por empresa actual (más preciso)."
+      },
+      {
+       "name": "min_confianza",
+       "type": "string",
+       "default": "0.5",
+       "required": false,
+       "description": "Confianza mínima (0-1) para crear el nodo."
+      },
+      {
+       "name": "max_resultados",
+       "type": "string",
+       "default": "3",
+       "required": false,
+       "description": "Perfiles por persona que se piden a Apify (coste ~0,002 $ por perfil)."
+      }
+     ],
+     "icon": null,
+     "key": "es_individual_to_linkedin",
+     "color": "#94a3b8"
+    }
+   },
+   {
+    "id": "es_individual_to_emails-6",
+    "type": "enricher",
+    "position": {
+     "x": 1140,
+     "y": 220
+    },
+    "data": {
+     "id": null,
+     "class_name": "EsIndividualToEmailsEnricher",
+     "module": "flowsint_enrichers.es.individual_to_emails_correos",
+     "name": "es_individual_to_emails",
+     "category": "Individual",
+     "type": "enricher",
+     "inputs": {
+      "type": "Individual",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "first_name",
+        "type": "string | null"
+       },
+       {
+        "name": "last_name",
+        "type": "string | null"
+       },
+       {
+        "name": "full_name",
+        "type": "string | null"
+       },
+       {
+        "name": "middle_name",
+        "type": "string | null"
+       },
+       {
+        "name": "maiden_name",
+        "type": "string | null"
+       },
+       {
+        "name": "aliases",
+        "type": "string[] | null"
+       },
+       {
+        "name": "birth_date",
+        "type": "string | null"
+       },
+       {
+        "name": "birth_place",
+        "type": "Location | null"
+       },
+       {
+        "name": "age",
+        "type": "integer | null"
+       },
+       {
+        "name": "gender",
+        "type": "string | null"
+       },
+       {
+        "name": "height",
+        "type": "string | null"
+       },
+       {
+        "name": "weight",
+        "type": "string | null"
+       },
+       {
+        "name": "eye_color",
+        "type": "string | null"
+       },
+       {
+        "name": "hair_color",
+        "type": "string | null"
+       },
+       {
+        "name": "skin_tone",
+        "type": "string | null"
+       },
+       {
+        "name": "ethnicity",
+        "type": "string | null"
+       },
+       {
+        "name": "blood_type",
+        "type": "string | null"
+       },
+       {
+        "name": "distinguishing_marks",
+        "type": "string[] | null"
+       },
+       {
+        "name": "disabilities",
+        "type": "string[] | null"
+       },
+       {
+        "name": "is_smoker",
+        "type": "boolean | null"
+       },
+       {
+        "name": "is_deceased",
+        "type": "boolean | null"
+       },
+       {
+        "name": "death_date",
+        "type": "string | null"
+       },
+       {
+        "name": "death_place",
+        "type": "Location | null"
+       },
+       {
+        "name": "cause_of_death",
+        "type": "string | null"
+       },
+       {
+        "name": "phone_numbers",
+        "type": "Phone[] | null"
+       },
+       {
+        "name": "email_addresses",
+        "type": "Email[] | null"
+       },
+       {
+        "name": "social_media_profiles",
+        "type": "string[] | null"
+       },
+       {
+        "name": "current_address",
+        "type": "Location | null"
+       },
+       {
+        "name": "previous_addresses",
+        "type": "Location[] | null"
+       },
+       {
+        "name": "nationality",
+        "type": "string | null"
+       },
+       {
+        "name": "citizenship",
+        "type": "string[] | null"
+       },
+       {
+        "name": "place_of_residence",
+        "type": "string | null"
+       },
+       {
+        "name": "passport_number",
+        "type": "string | null"
+       },
+       {
+        "name": "drivers_license",
+        "type": "string | null"
+       },
+       {
+        "name": "social_security_number",
+        "type": "string | null"
+       },
+       {
+        "name": "national_id",
+        "type": "string | null"
+       },
+       {
+        "name": "voter_id",
+        "type": "string | null"
+       },
+       {
+        "name": "tax_id",
+        "type": "string | null"
+       },
+       {
+        "name": "marital_status",
+        "type": "string | null"
+       },
+       {
+        "name": "spouse_name",
+        "type": "string | null"
+       },
+       {
+        "name": "children_count",
+        "type": "integer | null"
+       },
+       {
+        "name": "children_names",
+        "type": "string[] | null"
+       },
+       {
+        "name": "parents_names",
+        "type": "string[] | null"
+       },
+       {
+        "name": "emergency_contact",
+        "type": "string | null"
+       },
+       {
+        "name": "occupation",
+        "type": "string | null"
+       },
+       {
+        "name": "employer",
+        "type": "string | null"
+       },
+       {
+        "name": "employer_address",
+        "type": "Location | null"
+       },
+       {
+        "name": "job_title",
+        "type": "string | null"
+       },
+       {
+        "name": "annual_income",
+        "type": "number | null"
+       },
+       {
+        "name": "employment_history",
+        "type": "string[] | null"
+       },
+       {
+        "name": "education_level",
+        "type": "string | null"
+       },
+       {
+        "name": "schools_attended",
+        "type": "string[] | null"
+       },
+       {
+        "name": "degrees",
+        "type": "string[] | null"
+       },
+       {
+        "name": "languages_spoken",
+        "type": "string[] | null"
+       },
+       {
+        "name": "religion",
+        "type": "string | null"
+       },
+       {
+        "name": "political_affiliation",
+        "type": "string | null"
+       },
+       {
+        "name": "hobbies",
+        "type": "string[] | null"
+       },
+       {
+        "name": "personality_traits",
+        "type": "string[] | null"
+       },
+       {
+        "name": "fingerprints",
+        "type": "string | null"
+       },
+       {
+        "name": "dna_profile",
+        "type": "string | null"
+       },
+       {
+        "name": "facial_recognition_id",
+        "type": "string | null"
+       },
+       {
+        "name": "iris_scan",
+        "type": "string | null"
+       },
+       {
+        "name": "voice_print",
+        "type": "string | null"
+       },
+       {
+        "name": "bank_accounts",
+        "type": "string[] | null"
+       },
+       {
+        "name": "credit_score",
+        "type": "integer | null"
+       },
+       {
+        "name": "net_worth",
+        "type": "number | null"
+       },
+       {
+        "name": "assets",
+        "type": "string[] | null"
+       },
+       {
+        "name": "criminal_record",
+        "type": "boolean | null"
+       },
+       {
+        "name": "arrest_history",
+        "type": "string[] | null"
+       },
+       {
+        "name": "convictions",
+        "type": "string[] | null"
+       },
+       {
+        "name": "civil_cases",
+        "type": "string[] | null"
+       },
+       {
+        "name": "security_clearance",
+        "type": "string | null"
+       },
+       {
+        "name": "ip_addresses",
+        "type": "Ip[] | null"
+       },
+       {
+        "name": "usernames",
+        "type": "string[] | null"
+       },
+       {
+        "name": "device_ids",
+        "type": "string[] | null"
+       },
+       {
+        "name": "first_seen",
+        "type": "string | null"
+       },
+       {
+        "name": "last_seen",
+        "type": "string | null"
+       },
+       {
+        "name": "source",
+        "type": "string | null"
+       },
+       {
+        "name": "confidence",
+        "type": "number | null"
+       },
+       {
+        "name": "notes",
+        "type": "string | null"
+       },
+       {
+        "name": "src",
+        "type": "string | null"
+       },
+       {
+        "name": "last_updated",
+        "type": "string | null"
+       }
+      ]
+     },
+     "outputs": {
+      "type": "Email",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "email",
+        "type": "string"
+       }
+      ]
+     },
+     "documentation": "Genera correos corporativos candidatos para una persona y los puntúa con\nevidencias públicas: patrón real de la empresa (correos de su web y commits\npúblicos de GitHub del dominio), MX del dominio, Gravatar y Hunter.io si hay\nclave. No hace verificación SMTP. El dominio sale del parámetro `dominio` o\nde los nodos Domain/Website conectados a la persona o a su empresa.\nLa confianza y las evidencias se registran en el log del sketch.",
+     "description": "[CORREOS] Candidate corporate emails for a person (pattern + MX + web + GitHub + Gravatar).",
+     "required_params": false,
+     "params": {},
+     "params_schema": [
+      {
+       "name": "dominio",
+       "type": "string",
+       "required": false,
+       "description": "Dominio de la empresa. Si se omite, se usa el Domain/Website vecino en el grafo."
+      },
+      {
+       "name": "min_confianza",
+       "type": "string",
+       "default": "0.4",
+       "required": false,
+       "description": "Confianza mínima (0-1) para crear el nodo."
+      },
+      {
+       "name": "max_resultados",
+       "type": "string",
+       "default": "3",
+       "required": false,
+       "description": "Máximo de correos por persona."
+      },
+      {
+       "name": "HUNTER_API_KEY",
+       "type": "vaultSecret",
+       "required": false,
+       "description": "Opcional: clave de Hunter.io para domain-search / email-finder."
+      }
+     ],
+     "icon": null,
+     "key": "es_individual_to_emails",
+     "color": "#94a3b8"
+    }
+   },
+   {
+    "id": "email_to_gravatar-7",
+    "type": "enricher",
+    "position": {
+     "x": 1520,
+     "y": 0
+    },
+    "data": {
+     "id": null,
+     "class_name": "EmailToGravatarEnricher",
+     "module": "flowsint_enrichers.email.to_gravatar",
+     "name": "email_to_gravatar",
+     "category": "Email",
+     "type": "enricher",
+     "inputs": {
+      "type": "Email",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "email",
+        "type": "string"
+       }
+      ]
+     },
+     "outputs": {
+      "type": "Gravatar",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "src",
+        "type": "string"
+       },
+       {
+        "name": "hash",
+        "type": "string"
+       },
+       {
+        "name": "size",
+        "type": "integer | null"
+       },
+       {
+        "name": "rating",
+        "type": "string | null"
+       },
+       {
+        "name": "default_image",
+        "type": "string | null"
+       },
+       {
+        "name": "force_default",
+        "type": "boolean | null"
+       },
+       {
+        "name": "exists",
+        "type": "boolean | null"
+       },
+       {
+        "name": "profile_url",
+        "type": "string | null"
+       },
+       {
+        "name": "display_name",
+        "type": "string | null"
+       },
+       {
+        "name": "location",
+        "type": "string | null"
+       },
+       {
+        "name": "about_me",
+        "type": "string | null"
+       },
+       {
+        "name": "thumbnail_url",
+        "type": "string | null"
+       },
+       {
+        "name": "large_url",
+        "type": "string | null"
+       }
+      ]
+     },
+     "documentation": "From md5 hash of email to gravatar.",
+     "description": "From md5 hash of email to gravatar.",
+     "required_params": false,
+     "params": {},
+     "params_schema": [],
+     "icon": null,
+     "key": "email_to_gravatar",
+     "color": "#94a3b8"
+    }
+   },
+   {
+    "id": "email_to_gravatar-8",
+    "type": "enricher",
+    "position": {
+     "x": 1520,
+     "y": 110
+    },
+    "data": {
+     "id": null,
+     "class_name": "EmailToGravatarEnricher",
+     "module": "flowsint_enrichers.email.to_gravatar",
+     "name": "email_to_gravatar",
+     "category": "Email",
+     "type": "enricher",
+     "inputs": {
+      "type": "Email",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "email",
+        "type": "string"
+       }
+      ]
+     },
+     "outputs": {
+      "type": "Gravatar",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "src",
+        "type": "string"
+       },
+       {
+        "name": "hash",
+        "type": "string"
+       },
+       {
+        "name": "size",
+        "type": "integer | null"
+       },
+       {
+        "name": "rating",
+        "type": "string | null"
+       },
+       {
+        "name": "default_image",
+        "type": "string | null"
+       },
+       {
+        "name": "force_default",
+        "type": "boolean | null"
+       },
+       {
+        "name": "exists",
+        "type": "boolean | null"
+       },
+       {
+        "name": "profile_url",
+        "type": "string | null"
+       },
+       {
+        "name": "display_name",
+        "type": "string | null"
+       },
+       {
+        "name": "location",
+        "type": "string | null"
+       },
+       {
+        "name": "about_me",
+        "type": "string | null"
+       },
+       {
+        "name": "thumbnail_url",
+        "type": "string | null"
+       },
+       {
+        "name": "large_url",
+        "type": "string | null"
+       }
+      ]
+     },
+     "documentation": "From md5 hash of email to gravatar.",
+     "description": "From md5 hash of email to gravatar.",
+     "required_params": false,
+     "params": {},
+     "params_schema": [],
+     "icon": null,
+     "key": "email_to_gravatar",
+     "color": "#94a3b8"
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "Organization-1-es_org_resolver_identidad-1",
+    "source": "Organization-1",
+    "target": "es_org_resolver_identidad-1",
+    "sourceHandle": "Organization",
+    "targetHandle": "Organization",
+    "style": {
+     "stroke": "#64748b"
+    },
+    "markerEnd": {
+     "type": "arrowclosed",
+     "width": 15,
+     "height": 15,
+     "color": "#64748b"
+    }
+   },
+   {
+    "id": "es_org_resolver_identidad-1-es_org_to_officers_borme-2",
+    "source": "es_org_resolver_identidad-1",
+    "target": "es_org_to_officers_borme-2",
+    "sourceHandle": "Organization",
+    "targetHandle": "Organization",
+    "style": {
+     "stroke": "#64748b"
+    },
+    "markerEnd": {
+     "type": "arrowclosed",
+     "width": 15,
+     "height": 15,
+     "color": "#64748b"
+    }
+   },
+   {
+    "id": "es_org_resolver_identidad-1-es_org_to_linkedin_employees-3",
+    "source": "es_org_resolver_identidad-1",
+    "target": "es_org_to_linkedin_employees-3",
+    "sourceHandle": "Organization",
+    "targetHandle": "Organization",
+    "style": {
+     "stroke": "#64748b"
+    },
+    "markerEnd": {
+     "type": "arrowclosed",
+     "width": 15,
+     "height": 15,
+     "color": "#64748b"
+    }
+   },
+   {
+    "id": "es_org_to_officers_borme-2-es_individual_to_emails-4",
+    "source": "es_org_to_officers_borme-2",
+    "target": "es_individual_to_emails-4",
+    "sourceHandle": "Individual",
+    "targetHandle": "Individual",
+    "style": {
+     "stroke": "#64748b"
+    },
+    "markerEnd": {
+     "type": "arrowclosed",
+     "width": 15,
+     "height": 15,
+     "color": "#64748b"
+    }
+   },
+   {
+    "id": "es_org_to_officers_borme-2-es_individual_to_linkedin-5",
+    "source": "es_org_to_officers_borme-2",
+    "target": "es_individual_to_linkedin-5",
+    "sourceHandle": "Individual",
+    "targetHandle": "Individual",
+    "style": {
+     "stroke": "#64748b"
+    },
+    "markerEnd": {
+     "type": "arrowclosed",
+     "width": 15,
+     "height": 15,
+     "color": "#64748b"
+    }
+   },
+   {
+    "id": "es_org_to_linkedin_employees-3-es_individual_to_emails-6",
+    "source": "es_org_to_linkedin_employees-3",
+    "target": "es_individual_to_emails-6",
+    "sourceHandle": "Individual",
+    "targetHandle": "Individual",
+    "style": {
+     "stroke": "#64748b"
+    },
+    "markerEnd": {
+     "type": "arrowclosed",
+     "width": 15,
+     "height": 15,
+     "color": "#64748b"
+    }
+   },
+   {
+    "id": "es_individual_to_emails-4-email_to_gravatar-7",
+    "source": "es_individual_to_emails-4",
+    "target": "email_to_gravatar-7",
+    "sourceHandle": "Email",
+    "targetHandle": "Email",
+    "style": {
+     "stroke": "#64748b"
+    },
+    "markerEnd": {
+     "type": "arrowclosed",
+     "width": 15,
+     "height": 15,
+     "color": "#64748b"
+    }
+   },
+   {
+    "id": "es_individual_to_emails-6-email_to_gravatar-8",
+    "source": "es_individual_to_emails-6",
+    "target": "email_to_gravatar-8",
+    "sourceHandle": "Email",
+    "targetHandle": "Email",
+    "style": {
+     "stroke": "#64748b"
+    },
+    "markerEnd": {
+     "type": "arrowclosed",
+     "width": 15,
+     "height": 15,
+     "color": "#64748b"
+    }
+   }
+  ]
+ }
+}

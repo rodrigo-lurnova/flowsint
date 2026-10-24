@@ -182,3 +182,4 @@ cython_debug/
 !.claude/skills/flowsint-enricher-builder/
 .flowsint-local-account
 community-enrichers/
+.osint-es-cache/

@@ -29,7 +29,7 @@ HEADERS = {"Accept": "application/json", "User-Agent": "Mozilla/5.0 (osint-es-sc
 def buscar_terceros(client: httpx.Client, texto: str) -> list[dict]:
     r = client.get(f"{BASE}/terceros", params={"ambito": "C", "busqueda": texto, "vpd": "GE"})
     r.raise_for_status()
-    return r.json().get("terceros", [])
+    return r.json().get("terceros", []) if r.content.strip() else []  # sin coincidencias: cuerpo vacío
 
 
 def concesiones(client: httpx.Client, id_persona: int, max_items: int) -> list[dict]:
