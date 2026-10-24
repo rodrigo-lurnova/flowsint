@@ -53,6 +53,12 @@ FLOWS = [
       ("correos", "es_individual_to_emails", None),
       ("linkedin", "es_individual_to_linkedin", None),
       ("gravatar", "email_to_gravatar", "correos")]),
+    ("Persona vinculada: perfiles sociales (opcional)",
+     "OPCIONAL. Persona vinculada a la empresa → perfiles públicos en LinkedIn, X, Instagram, Facebook, TikTok, "
+     "YouTube, GitHub y Medium (búsquedas site: en SearXNG + API de GitHub). Sin empresa vinculada no busca. "
+     "Los usuarios encontrados pueden encadenarse con maigret/sherlock.",
+     "Individual",
+     [("perfiles", "es_individual_to_socials", None)]),
 ]
 
 

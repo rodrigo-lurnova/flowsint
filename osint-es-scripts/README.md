@@ -69,6 +69,7 @@ inferencia sobre el rango consultado; el BORME no publica DNI ni NIF (posibles h
 |---|---|---|
 | `correos.py "Nombre Apellido" dominio.es` | Candidatos por patrón (tildes, ñ, dos apellidos) puntuados con: patrón real de la empresa (correos de su web, commits públicos de GitHub del dominio, Hunter), MX, Gravatar. **Sin verificación SMTP.** | `HUNTER_API_KEY`, `GITHUB_TOKEN` (opcionales) |
 | `apify_actores.py` | Cliente Apify v2 (`run-sync-get-dataset-items`): LinkedIn por nombre/URL, empleados de empresa, Google Search. Tope de gasto `APIFY_MAX_USD` (0,10 $). Actores configurables `APIFY_ACTOR_<CLAVE>`. | `APIFY_TOKEN` |
+| `perfiles.py "Nombre" --empresa ACME [--dominio acme.es]` | **Opcional.** Perfiles públicos (LinkedIn, X, Instagram, Facebook, TikTok, YouTube, GitHub, Medium) de una persona **vinculada a la empresa** (`--empresa` obligatorio). Búsquedas `site:` en SearXNG (yandex/seznam, `SEARXNG_URL`) + API de GitHub; Google vía Apify con `--apify`. El nombre debe estar en el título del resultado (un snippet que lo menciona suele ser el perfil de otra persona); empresa/dominio suben la confianza. No entra en las redes. | `SEARXNG_URL`, `GITHUB_TOKEN`, `APIFY_TOKEN` (opcionales) |
 | `personas_comun.py` | Normalización de nombres españoles y BORME («APELLIDOS, NOMBRE»), crawl ligero de la web, extracción de correos. | — |
 
 **Aviso:** los actores de LinkedIn rascan linkedin.com, cuyas condiciones lo prohíben; usarlos es decisión de quien
@@ -96,11 +97,13 @@ Se montan como `flowsint_enrichers.es` y reutilizan estos scripts (montados en `
 | `es_individual_to_emails` | Individual → Email | PROBABLE_EMAIL (dominio del parámetro o del grafo) |
 | `es_individual_to_linkedin` | Individual → SocialAccount | HAS_LINKEDIN (Apify) |
 | `es_org_to_linkedin_employees` | Organization → Individual | WORKS_AT + HAS_LINKEDIN (Apify) |
+| `es_individual_to_socials` (opcional) | Individual → SocialAccount | HAS_PROFILE; sin empresa vinculada no busca |
 
 Los enrichers de personas toman la empresa y el dominio de los vecinos del Individual en el grafo.
 
 Flows (`../flows/`, importables con `python flows/build_flows.py --token <JWT>`):
-«Ficha de empresa (España)», «Empresa → personas y huella digital» y «Persona vinculada: huella profesional».
+«Ficha de empresa (España)», «Empresa → personas y huella digital», «Persona vinculada: huella profesional» y
+«Persona vinculada: perfiles sociales (opcional)», que no forma parte de los demás y hay que lanzar a propósito.
 
 ## Fuentes analizadas y descartadas
 

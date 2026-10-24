@@ -91,6 +91,7 @@ services:
       - BRAVE_API_KEY=${BRAVE_API_KEY:-}
       - BORME_DB=/data/osint-es/borme.sqlite
       - OSINT_ES_CACHE=/data/osint-es
+      - SEARXNG_URL=${SEARXNG_URL:-http://host.docker.internal:9000}
       - REDIS_URL=redis://redis:6379/0
     depends_on:
       postgres:
@@ -143,6 +144,7 @@ services:
       - BRAVE_API_KEY=${BRAVE_API_KEY:-}
       - BORME_DB=/data/osint-es/borme.sqlite
       - OSINT_ES_CACHE=/data/osint-es
+      - SEARXNG_URL=${SEARXNG_URL:-http://host.docker.internal:9000}
       - REDIS_URL=redis://redis:6379/0
       - SKIP_MIGRATIONS=true
       - AUTH_SECRET=${AUTH_SECRET}

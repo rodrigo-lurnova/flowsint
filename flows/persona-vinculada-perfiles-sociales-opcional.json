@@ -1,0 +1,866 @@
+{
+ "name": "Persona vinculada: perfiles sociales (opcional)",
+ "description": "OPCIONAL. Persona vinculada a la empresa → perfiles públicos en LinkedIn, X, Instagram, Facebook, TikTok, YouTube, GitHub y Medium (búsquedas site: en SearXNG + API de GitHub). Sin empresa vinculada no busca. Los usuarios encontrados pueden encadenarse con maigret/sherlock.",
+ "category": [
+  "Individual"
+ ],
+ "flow_schema": {
+  "nodes": [
+   {
+    "id": "Individual-1",
+    "type": "type",
+    "position": {
+     "x": 0,
+     "y": 0
+    },
+    "data": {
+     "id": null,
+     "class_name": "Individual",
+     "module": "flowsint_types.individual",
+     "name": "Individual",
+     "category": "Individual",
+     "type": "type",
+     "inputs": {
+      "type": "",
+      "properties": []
+     },
+     "outputs": {
+      "type": "Individual",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "first_name",
+        "type": "string | null"
+       },
+       {
+        "name": "last_name",
+        "type": "string | null"
+       },
+       {
+        "name": "full_name",
+        "type": "string | null"
+       },
+       {
+        "name": "middle_name",
+        "type": "string | null"
+       },
+       {
+        "name": "maiden_name",
+        "type": "string | null"
+       },
+       {
+        "name": "aliases",
+        "type": "string[] | null"
+       },
+       {
+        "name": "birth_date",
+        "type": "string | null"
+       },
+       {
+        "name": "birth_place",
+        "type": "Location | null"
+       },
+       {
+        "name": "age",
+        "type": "integer | null"
+       },
+       {
+        "name": "gender",
+        "type": "string | null"
+       },
+       {
+        "name": "height",
+        "type": "string | null"
+       },
+       {
+        "name": "weight",
+        "type": "string | null"
+       },
+       {
+        "name": "eye_color",
+        "type": "string | null"
+       },
+       {
+        "name": "hair_color",
+        "type": "string | null"
+       },
+       {
+        "name": "skin_tone",
+        "type": "string | null"
+       },
+       {
+        "name": "ethnicity",
+        "type": "string | null"
+       },
+       {
+        "name": "blood_type",
+        "type": "string | null"
+       },
+       {
+        "name": "distinguishing_marks",
+        "type": "string[] | null"
+       },
+       {
+        "name": "disabilities",
+        "type": "string[] | null"
+       },
+       {
+        "name": "is_smoker",
+        "type": "boolean | null"
+       },
+       {
+        "name": "is_deceased",
+        "type": "boolean | null"
+       },
+       {
+        "name": "death_date",
+        "type": "string | null"
+       },
+       {
+        "name": "death_place",
+        "type": "Location | null"
+       },
+       {
+        "name": "cause_of_death",
+        "type": "string | null"
+       },
+       {
+        "name": "phone_numbers",
+        "type": "Phone[] | null"
+       },
+       {
+        "name": "email_addresses",
+        "type": "Email[] | null"
+       },
+       {
+        "name": "social_media_profiles",
+        "type": "string[] | null"
+       },
+       {
+        "name": "current_address",
+        "type": "Location | null"
+       },
+       {
+        "name": "previous_addresses",
+        "type": "Location[] | null"
+       },
+       {
+        "name": "nationality",
+        "type": "string | null"
+       },
+       {
+        "name": "citizenship",
+        "type": "string[] | null"
+       },
+       {
+        "name": "place_of_residence",
+        "type": "string | null"
+       },
+       {
+        "name": "passport_number",
+        "type": "string | null"
+       },
+       {
+        "name": "drivers_license",
+        "type": "string | null"
+       },
+       {
+        "name": "social_security_number",
+        "type": "string | null"
+       },
+       {
+        "name": "national_id",
+        "type": "string | null"
+       },
+       {
+        "name": "voter_id",
+        "type": "string | null"
+       },
+       {
+        "name": "tax_id",
+        "type": "string | null"
+       },
+       {
+        "name": "marital_status",
+        "type": "string | null"
+       },
+       {
+        "name": "spouse_name",
+        "type": "string | null"
+       },
+       {
+        "name": "children_count",
+        "type": "integer | null"
+       },
+       {
+        "name": "children_names",
+        "type": "string[] | null"
+       },
+       {
+        "name": "parents_names",
+        "type": "string[] | null"
+       },
+       {
+        "name": "emergency_contact",
+        "type": "string | null"
+       },
+       {
+        "name": "occupation",
+        "type": "string | null"
+       },
+       {
+        "name": "employer",
+        "type": "string | null"
+       },
+       {
+        "name": "employer_address",
+        "type": "Location | null"
+       },
+       {
+        "name": "job_title",
+        "type": "string | null"
+       },
+       {
+        "name": "annual_income",
+        "type": "number | null"
+       },
+       {
+        "name": "employment_history",
+        "type": "string[] | null"
+       },
+       {
+        "name": "education_level",
+        "type": "string | null"
+       },
+       {
+        "name": "schools_attended",
+        "type": "string[] | null"
+       },
+       {
+        "name": "degrees",
+        "type": "string[] | null"
+       },
+       {
+        "name": "languages_spoken",
+        "type": "string[] | null"
+       },
+       {
+        "name": "religion",
+        "type": "string | null"
+       },
+       {
+        "name": "political_affiliation",
+        "type": "string | null"
+       },
+       {
+        "name": "hobbies",
+        "type": "string[] | null"
+       },
+       {
+        "name": "personality_traits",
+        "type": "string[] | null"
+       },
+       {
+        "name": "fingerprints",
+        "type": "string | null"
+       },
+       {
+        "name": "dna_profile",
+        "type": "string | null"
+       },
+       {
+        "name": "facial_recognition_id",
+        "type": "string | null"
+       },
+       {
+        "name": "iris_scan",
+        "type": "string | null"
+       },
+       {
+        "name": "voice_print",
+        "type": "string | null"
+       },
+       {
+        "name": "bank_accounts",
+        "type": "string[] | null"
+       },
+       {
+        "name": "credit_score",
+        "type": "integer | null"
+       },
+       {
+        "name": "net_worth",
+        "type": "number | null"
+       },
+       {
+        "name": "assets",
+        "type": "string[] | null"
+       },
+       {
+        "name": "criminal_record",
+        "type": "boolean | null"
+       },
+       {
+        "name": "arrest_history",
+        "type": "string[] | null"
+       },
+       {
+        "name": "convictions",
+        "type": "string[] | null"
+       },
+       {
+        "name": "civil_cases",
+        "type": "string[] | null"
+       },
+       {
+        "name": "security_clearance",
+        "type": "string | null"
+       },
+       {
+        "name": "ip_addresses",
+        "type": "Ip[] | null"
+       },
+       {
+        "name": "usernames",
+        "type": "string[] | null"
+       },
+       {
+        "name": "device_ids",
+        "type": "string[] | null"
+       },
+       {
+        "name": "first_seen",
+        "type": "string | null"
+       },
+       {
+        "name": "last_seen",
+        "type": "string | null"
+       },
+       {
+        "name": "source",
+        "type": "string | null"
+       },
+       {
+        "name": "confidence",
+        "type": "number | null"
+       },
+       {
+        "name": "notes",
+        "type": "string | null"
+       },
+       {
+        "name": "src",
+        "type": "string | null"
+       },
+       {
+        "name": "last_updated",
+        "type": "string | null"
+       }
+      ]
+     },
+     "documentation": null,
+     "description": "Represents an individual person with comprehensive personal information.",
+     "required_params": null,
+     "params": {},
+     "params_schema": null,
+     "icon": null,
+     "key": "Individual",
+     "color": "#94a3b8"
+    }
+   },
+   {
+    "id": "es_individual_to_socials-1",
+    "type": "enricher",
+    "position": {
+     "x": 380,
+     "y": 0
+    },
+    "data": {
+     "id": null,
+     "class_name": "EsIndividualToSocialsEnricher",
+     "module": "flowsint_enrichers.es.individual_to_socials_perfiles",
+     "name": "es_individual_to_socials",
+     "category": "Individual",
+     "type": "enricher",
+     "inputs": {
+      "type": "Individual",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "first_name",
+        "type": "string | null"
+       },
+       {
+        "name": "last_name",
+        "type": "string | null"
+       },
+       {
+        "name": "full_name",
+        "type": "string | null"
+       },
+       {
+        "name": "middle_name",
+        "type": "string | null"
+       },
+       {
+        "name": "maiden_name",
+        "type": "string | null"
+       },
+       {
+        "name": "aliases",
+        "type": "string[] | null"
+       },
+       {
+        "name": "birth_date",
+        "type": "string | null"
+       },
+       {
+        "name": "birth_place",
+        "type": "Location | null"
+       },
+       {
+        "name": "age",
+        "type": "integer | null"
+       },
+       {
+        "name": "gender",
+        "type": "string | null"
+       },
+       {
+        "name": "height",
+        "type": "string | null"
+       },
+       {
+        "name": "weight",
+        "type": "string | null"
+       },
+       {
+        "name": "eye_color",
+        "type": "string | null"
+       },
+       {
+        "name": "hair_color",
+        "type": "string | null"
+       },
+       {
+        "name": "skin_tone",
+        "type": "string | null"
+       },
+       {
+        "name": "ethnicity",
+        "type": "string | null"
+       },
+       {
+        "name": "blood_type",
+        "type": "string | null"
+       },
+       {
+        "name": "distinguishing_marks",
+        "type": "string[] | null"
+       },
+       {
+        "name": "disabilities",
+        "type": "string[] | null"
+       },
+       {
+        "name": "is_smoker",
+        "type": "boolean | null"
+       },
+       {
+        "name": "is_deceased",
+        "type": "boolean | null"
+       },
+       {
+        "name": "death_date",
+        "type": "string | null"
+       },
+       {
+        "name": "death_place",
+        "type": "Location | null"
+       },
+       {
+        "name": "cause_of_death",
+        "type": "string | null"
+       },
+       {
+        "name": "phone_numbers",
+        "type": "Phone[] | null"
+       },
+       {
+        "name": "email_addresses",
+        "type": "Email[] | null"
+       },
+       {
+        "name": "social_media_profiles",
+        "type": "string[] | null"
+       },
+       {
+        "name": "current_address",
+        "type": "Location | null"
+       },
+       {
+        "name": "previous_addresses",
+        "type": "Location[] | null"
+       },
+       {
+        "name": "nationality",
+        "type": "string | null"
+       },
+       {
+        "name": "citizenship",
+        "type": "string[] | null"
+       },
+       {
+        "name": "place_of_residence",
+        "type": "string | null"
+       },
+       {
+        "name": "passport_number",
+        "type": "string | null"
+       },
+       {
+        "name": "drivers_license",
+        "type": "string | null"
+       },
+       {
+        "name": "social_security_number",
+        "type": "string | null"
+       },
+       {
+        "name": "national_id",
+        "type": "string | null"
+       },
+       {
+        "name": "voter_id",
+        "type": "string | null"
+       },
+       {
+        "name": "tax_id",
+        "type": "string | null"
+       },
+       {
+        "name": "marital_status",
+        "type": "string | null"
+       },
+       {
+        "name": "spouse_name",
+        "type": "string | null"
+       },
+       {
+        "name": "children_count",
+        "type": "integer | null"
+       },
+       {
+        "name": "children_names",
+        "type": "string[] | null"
+       },
+       {
+        "name": "parents_names",
+        "type": "string[] | null"
+       },
+       {
+        "name": "emergency_contact",
+        "type": "string | null"
+       },
+       {
+        "name": "occupation",
+        "type": "string | null"
+       },
+       {
+        "name": "employer",
+        "type": "string | null"
+       },
+       {
+        "name": "employer_address",
+        "type": "Location | null"
+       },
+       {
+        "name": "job_title",
+        "type": "string | null"
+       },
+       {
+        "name": "annual_income",
+        "type": "number | null"
+       },
+       {
+        "name": "employment_history",
+        "type": "string[] | null"
+       },
+       {
+        "name": "education_level",
+        "type": "string | null"
+       },
+       {
+        "name": "schools_attended",
+        "type": "string[] | null"
+       },
+       {
+        "name": "degrees",
+        "type": "string[] | null"
+       },
+       {
+        "name": "languages_spoken",
+        "type": "string[] | null"
+       },
+       {
+        "name": "religion",
+        "type": "string | null"
+       },
+       {
+        "name": "political_affiliation",
+        "type": "string | null"
+       },
+       {
+        "name": "hobbies",
+        "type": "string[] | null"
+       },
+       {
+        "name": "personality_traits",
+        "type": "string[] | null"
+       },
+       {
+        "name": "fingerprints",
+        "type": "string | null"
+       },
+       {
+        "name": "dna_profile",
+        "type": "string | null"
+       },
+       {
+        "name": "facial_recognition_id",
+        "type": "string | null"
+       },
+       {
+        "name": "iris_scan",
+        "type": "string | null"
+       },
+       {
+        "name": "voice_print",
+        "type": "string | null"
+       },
+       {
+        "name": "bank_accounts",
+        "type": "string[] | null"
+       },
+       {
+        "name": "credit_score",
+        "type": "integer | null"
+       },
+       {
+        "name": "net_worth",
+        "type": "number | null"
+       },
+       {
+        "name": "assets",
+        "type": "string[] | null"
+       },
+       {
+        "name": "criminal_record",
+        "type": "boolean | null"
+       },
+       {
+        "name": "arrest_history",
+        "type": "string[] | null"
+       },
+       {
+        "name": "convictions",
+        "type": "string[] | null"
+       },
+       {
+        "name": "civil_cases",
+        "type": "string[] | null"
+       },
+       {
+        "name": "security_clearance",
+        "type": "string | null"
+       },
+       {
+        "name": "ip_addresses",
+        "type": "Ip[] | null"
+       },
+       {
+        "name": "usernames",
+        "type": "string[] | null"
+       },
+       {
+        "name": "device_ids",
+        "type": "string[] | null"
+       },
+       {
+        "name": "first_seen",
+        "type": "string | null"
+       },
+       {
+        "name": "last_seen",
+        "type": "string | null"
+       },
+       {
+        "name": "source",
+        "type": "string | null"
+       },
+       {
+        "name": "confidence",
+        "type": "number | null"
+       },
+       {
+        "name": "notes",
+        "type": "string | null"
+       },
+       {
+        "name": "src",
+        "type": "string | null"
+       },
+       {
+        "name": "last_updated",
+        "type": "string | null"
+       }
+      ]
+     },
+     "outputs": {
+      "type": "SocialAccount",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "id",
+        "type": "string | null"
+       },
+       {
+        "name": "username",
+        "type": "Username | null"
+       },
+       {
+        "name": "display_name",
+        "type": "string | null"
+       },
+       {
+        "name": "profile_url",
+        "type": "string | null"
+       },
+       {
+        "name": "profile_picture_url",
+        "type": "string | null"
+       },
+       {
+        "name": "bio",
+        "type": "string | null"
+       },
+       {
+        "name": "location",
+        "type": "string | null"
+       },
+       {
+        "name": "platform",
+        "type": "string | null"
+       },
+       {
+        "name": "created_at",
+        "type": "string | null"
+       },
+       {
+        "name": "followers_count",
+        "type": "integer | null"
+       },
+       {
+        "name": "following_count",
+        "type": "integer | null"
+       },
+       {
+        "name": "posts_count",
+        "type": "integer | null"
+       },
+       {
+        "name": "verified",
+        "type": "boolean | null"
+       },
+       {
+        "name": "is_private",
+        "type": "boolean | null"
+       },
+       {
+        "name": "is_suspended",
+        "type": "boolean | null"
+       },
+       {
+        "name": "associated_emails",
+        "type": "string[] | null"
+       },
+       {
+        "name": "associated_phones",
+        "type": "string[] | null"
+       }
+      ]
+     },
+     "documentation": "OPCIONAL. Busca perfiles públicos (LinkedIn, X, Instagram, Facebook, TikTok,\nYouTube, GitHub, Medium) de una persona vinculada a la empresa investigada,\ncon búsquedas `site:` en el SearXNG local (yandex/seznam; SEARXNG_URL) y la\nAPI de GitHub; Google vía Apify si usar_apify=true. No entra en las redes.\nEl nombre debe aparecer en el título del resultado; la empresa o el dominio\nsuben la confianza. Sin empresa vinculada no hace nada.",
+     "description": "[PERFILES] Public social profiles of a company-linked person (opt-in).",
+     "required_params": false,
+     "params": {},
+     "params_schema": [
+      {
+       "name": "empresa",
+       "type": "string",
+       "required": false,
+       "description": "Empresa vinculada. Si se omite se usa la Organization vecina; sin empresa no se busca."
+      },
+      {
+       "name": "redes",
+       "type": "string",
+       "default": "linkedin,x,instagram,facebook,tiktok,youtube,github,medium",
+       "required": false,
+       "description": "Redes a buscar, separadas por comas."
+      },
+      {
+       "name": "min_confianza",
+       "type": "string",
+       "default": "0.6",
+       "required": false,
+       "description": "Confianza mínima (0-1)."
+      },
+      {
+       "name": "usar_apify",
+       "type": "string",
+       "default": "false",
+       "required": false,
+       "description": "Añadir Google vía Apify (de pago, ~0,005 $ por consulta)."
+      },
+      {
+       "name": "APIFY_TOKEN",
+       "type": "vaultSecret",
+       "required": false,
+       "description": "Solo si usar_apify=true (si no está en la vault se usa la variable de entorno)."
+      }
+     ],
+     "icon": null,
+     "key": "es_individual_to_socials",
+     "color": "#94a3b8"
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "Individual-1-es_individual_to_socials-1",
+    "source": "Individual-1",
+    "target": "es_individual_to_socials-1",
+    "sourceHandle": "Individual",
+    "targetHandle": "Individual",
+    "style": {
+     "stroke": "#64748b"
+    },
+    "markerEnd": {
+     "type": "arrowclosed",
+     "width": 15,
+     "height": 15,
+     "color": "#64748b"
+    }
+   }
+  ]
+ }
+}
