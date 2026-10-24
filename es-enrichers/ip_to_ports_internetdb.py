@@ -90,6 +90,7 @@ class EsIpToPortsInternetdbEnricher(Enricher):
                 self.create_node(t)
                 self.create_relationship(ip, t, "RUNS")
             extra = f" · CVE: {', '.join(d['vulns'])}" if d.get("vulns") else ""
+            extra += f" · etiquetas: {', '.join(d['tags'])}" if d.get("tags") else ""
             self.log_graph_message(f"{ip.address}: puertos {d.get('ports')} · {', '.join(d.get('cpes', [])) or 'sin CPE'}"
                                    f" · hostnames {d.get('hostnames')}{extra}")
         return results
