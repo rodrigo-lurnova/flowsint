@@ -1,0 +1,388 @@
+{
+ "name": "Infraestructura IP",
+ "description": "IP → puertos, software (CPE) y CVE expuestos según Shodan InternetDB (pasivo, sin clave), ASN (Team Cymru) y datos de red/geolocalización.",
+ "category": [
+  "Ip"
+ ],
+ "flow_schema": {
+  "nodes": [
+   {
+    "id": "Ip-1",
+    "type": "type",
+    "position": {
+     "x": 0,
+     "y": 0
+    },
+    "data": {
+     "id": null,
+     "class_name": "Ip",
+     "module": "flowsint_types.ip",
+     "name": "Ip",
+     "category": "Ip",
+     "type": "type",
+     "inputs": {
+      "type": "",
+      "properties": []
+     },
+     "outputs": {
+      "type": "Ip",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "address",
+        "type": "string"
+       },
+       {
+        "name": "latitude",
+        "type": "number | null"
+       },
+       {
+        "name": "longitude",
+        "type": "number | null"
+       },
+       {
+        "name": "country",
+        "type": "string | null"
+       },
+       {
+        "name": "city",
+        "type": "string | null"
+       },
+       {
+        "name": "isp",
+        "type": "string | null"
+       }
+      ]
+     },
+     "documentation": null,
+     "description": "Represents an IP address with geolocation and ISP information.",
+     "required_params": null,
+     "params": {},
+     "params_schema": null,
+     "icon": null,
+     "key": "Ip",
+     "color": "#94a3b8"
+    }
+   },
+   {
+    "id": "es_ip_to_ports_internetdb-1",
+    "type": "enricher",
+    "position": {
+     "x": 380,
+     "y": 0
+    },
+    "data": {
+     "id": null,
+     "class_name": "EsIpToPortsInternetdbEnricher",
+     "module": "flowsint_enrichers.es.ip_to_ports_internetdb",
+     "name": "es_ip_to_ports_internetdb",
+     "category": "Ip",
+     "type": "enricher",
+     "inputs": {
+      "type": "Ip",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "address",
+        "type": "string"
+       },
+       {
+        "name": "latitude",
+        "type": "number | null"
+       },
+       {
+        "name": "longitude",
+        "type": "number | null"
+       },
+       {
+        "name": "country",
+        "type": "string | null"
+       },
+       {
+        "name": "city",
+        "type": "string | null"
+       },
+       {
+        "name": "isp",
+        "type": "string | null"
+       }
+      ]
+     },
+     "outputs": {
+      "type": "Port",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "number",
+        "type": "integer"
+       },
+       {
+        "name": "protocol",
+        "type": "string | null"
+       },
+       {
+        "name": "state",
+        "type": "string | null"
+       },
+       {
+        "name": "service",
+        "type": "string | null"
+       },
+       {
+        "name": "banner",
+        "type": "string | null"
+       }
+      ]
+     },
+     "documentation": "Consulta Shodan InternetDB (https://internetdb.shodan.io/<ip>, gratuito y\nsin clave) y crea los puertos abiertos (OPEN_PORT), el software detectado\npor CPE (RUNS) y, si los hay, los CVE conocidos en el log. Es información\npasiva: lo último que Shodan observó, no un escaneo en vivo.",
+     "description": "[INTERNETDB] Open ports, software (CPE) and known CVEs for an IP (passive, no key).",
+     "required_params": false,
+     "params": {},
+     "params_schema": [],
+     "icon": null,
+     "key": "es_ip_to_ports_internetdb",
+     "color": "#94a3b8"
+    }
+   },
+   {
+    "id": "to_asn_cymru-2",
+    "type": "enricher",
+    "position": {
+     "x": 380,
+     "y": 110
+    },
+    "data": {
+     "id": null,
+     "class_name": "IpToAsnCymruEnricher",
+     "module": "flowsint_enrichers.ip.to_asn_cymru",
+     "name": "to_asn_cymru",
+     "category": "Ip",
+     "type": "enricher",
+     "inputs": {
+      "type": "Ip",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "address",
+        "type": "string"
+       },
+       {
+        "name": "latitude",
+        "type": "number | null"
+       },
+       {
+        "name": "longitude",
+        "type": "number | null"
+       },
+       {
+        "name": "country",
+        "type": "string | null"
+       },
+       {
+        "name": "city",
+        "type": "string | null"
+       },
+       {
+        "name": "isp",
+        "type": "string | null"
+       }
+      ]
+     },
+     "outputs": {
+      "type": "ASN",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "asn_str",
+        "type": "string"
+       },
+       {
+        "name": "number",
+        "type": "integer | null"
+       },
+       {
+        "name": "name",
+        "type": "string | null"
+       },
+       {
+        "name": "country",
+        "type": "string | null"
+       },
+       {
+        "name": "description",
+        "type": "string | null"
+       },
+       {
+        "name": "cidrs",
+        "type": "CIDR[]"
+       }
+      ]
+     },
+     "documentation": "Resolve IPv4 and IPv6 addresses to their BGP origin Autonomous System\nusing Team Cymru's public DNS IP-to-ASN service.\n\nTeam Cymru DNS resolution is implemented directly in this enricher.\nNo API key or auxiliary module is required.\n\nFor each public IP, the enricher performs:\n\n1. An origin.asn.cymru.com/origin6.asn.cymru.com TXT lookup to obtain\n   the BGP origin ASN and advertised prefix.\n2. An AS<NUMBER>.asn.cymru.com TXT lookup to obtain the ASN name and\n   registry metadata.\n\nNon-global IP addresses are ignored.",
+     "description": "[TEAM CYMRU] Resolve an IP address to its BGP origin ASN using DNS.",
+     "required_params": false,
+     "params": {},
+     "params_schema": [],
+     "icon": null,
+     "key": "to_asn_cymru",
+     "color": "#94a3b8"
+    }
+   },
+   {
+    "id": "ip_to_infos-3",
+    "type": "enricher",
+    "position": {
+     "x": 380,
+     "y": 220
+    },
+    "data": {
+     "id": null,
+     "class_name": "IpToInfosEnricher",
+     "module": "flowsint_enrichers.ip.to_infos",
+     "name": "ip_to_infos",
+     "category": "Ip",
+     "type": "enricher",
+     "inputs": {
+      "type": "Ip",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "address",
+        "type": "string"
+       },
+       {
+        "name": "latitude",
+        "type": "number | null"
+       },
+       {
+        "name": "longitude",
+        "type": "number | null"
+       },
+       {
+        "name": "country",
+        "type": "string | null"
+       },
+       {
+        "name": "city",
+        "type": "string | null"
+       },
+       {
+        "name": "isp",
+        "type": "string | null"
+       }
+      ]
+     },
+     "outputs": {
+      "type": "Ip",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "address",
+        "type": "string"
+       },
+       {
+        "name": "latitude",
+        "type": "number | null"
+       },
+       {
+        "name": "longitude",
+        "type": "number | null"
+       },
+       {
+        "name": "country",
+        "type": "string | null"
+       },
+       {
+        "name": "city",
+        "type": "string | null"
+       },
+       {
+        "name": "isp",
+        "type": "string | null"
+       }
+      ]
+     },
+     "documentation": "[ip-api.com] Get information data for IP addresses.",
+     "description": "[ip-api.com] Get information data for IP addresses.",
+     "required_params": false,
+     "params": {},
+     "params_schema": [],
+     "icon": null,
+     "key": "ip_to_infos",
+     "color": "#94a3b8"
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "Ip-1-es_ip_to_ports_internetdb-1",
+    "source": "Ip-1",
+    "target": "es_ip_to_ports_internetdb-1",
+    "sourceHandle": "Ip",
+    "targetHandle": "Ip",
+    "style": {
+     "stroke": "#64748b"
+    },
+    "markerEnd": {
+     "type": "arrowclosed",
+     "width": 15,
+     "height": 15,
+     "color": "#64748b"
+    }
+   },
+   {
+    "id": "Ip-1-to_asn_cymru-2",
+    "source": "Ip-1",
+    "target": "to_asn_cymru-2",
+    "sourceHandle": "Ip",
+    "targetHandle": "Ip",
+    "style": {
+     "stroke": "#64748b"
+    },
+    "markerEnd": {
+     "type": "arrowclosed",
+     "width": 15,
+     "height": 15,
+     "color": "#64748b"
+    }
+   },
+   {
+    "id": "Ip-1-ip_to_infos-3",
+    "source": "Ip-1",
+    "target": "ip_to_infos-3",
+    "sourceHandle": "Ip",
+    "targetHandle": "Ip",
+    "style": {
+     "stroke": "#64748b"
+    },
+    "markerEnd": {
+     "type": "arrowclosed",
+     "width": 15,
+     "height": 15,
+     "color": "#64748b"
+    }
+   }
+  ]
+ }
+}

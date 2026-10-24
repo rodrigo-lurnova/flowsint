@@ -1,0 +1,258 @@
+{
+ "name": "Dominio: correos y DNS",
+ "description": "Dominio → registros DNS (MX, TXT/SPF, DMARC, NS, CAA, SOA) y correos publicados en su propia web.",
+ "category": [
+  "Domain"
+ ],
+ "flow_schema": {
+  "nodes": [
+   {
+    "id": "Domain-1",
+    "type": "type",
+    "position": {
+     "x": 0,
+     "y": 0
+    },
+    "data": {
+     "id": null,
+     "class_name": "Domain",
+     "module": "flowsint_types.domain",
+     "name": "Domain",
+     "category": "Domain",
+     "type": "type",
+     "inputs": {
+      "type": "",
+      "properties": []
+     },
+     "outputs": {
+      "type": "Domain",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "domain",
+        "type": "string"
+       },
+       {
+        "name": "root",
+        "type": "boolean | null"
+       }
+      ]
+     },
+     "documentation": null,
+     "description": "Represents a domain name and its properties.",
+     "required_params": null,
+     "params": {},
+     "params_schema": null,
+     "icon": null,
+     "key": "Domain",
+     "color": "#94a3b8"
+    }
+   },
+   {
+    "id": "es_domain_to_dns_records-1",
+    "type": "enricher",
+    "position": {
+     "x": 380,
+     "y": 0
+    },
+    "data": {
+     "id": null,
+     "class_name": "EsDomainToDnsRecordsEnricher",
+     "module": "flowsint_enrichers.es.domain_to_dns_records",
+     "name": "es_domain_to_dns_records",
+     "category": "Domain",
+     "type": "enricher",
+     "inputs": {
+      "type": "Domain",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "domain",
+        "type": "string"
+       },
+       {
+        "name": "root",
+        "type": "boolean | null"
+       }
+      ]
+     },
+     "outputs": {
+      "type": "DNSRecord",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "value",
+        "type": "string"
+       },
+       {
+        "name": "record_type",
+        "type": "string"
+       },
+       {
+        "name": "ttl",
+        "type": "integer | null"
+       },
+       {
+        "name": "priority",
+        "type": "integer | null"
+       },
+       {
+        "name": "first_seen",
+        "type": "string | null"
+       },
+       {
+        "name": "last_seen",
+        "type": "string | null"
+       },
+       {
+        "name": "is_active",
+        "type": "boolean | null"
+       },
+       {
+        "name": "nameserver",
+        "type": "string | null"
+       },
+       {
+        "name": "source",
+        "type": "string | null"
+       },
+       {
+        "name": "associated_domains",
+        "type": "string[] | null"
+       },
+       {
+        "name": "description",
+        "type": "string | null"
+       },
+       {
+        "name": "is_suspicious",
+        "type": "boolean | null"
+       },
+       {
+        "name": "malware_family",
+        "type": "string | null"
+       },
+       {
+        "name": "threat_level",
+        "type": "string | null"
+       }
+      ]
+     },
+     "documentation": "[DNS] MX, TXT/SPF, DMARC, NS, CAA and SOA records of a domain.",
+     "description": "[DNS] MX, TXT/SPF, DMARC, NS, CAA and SOA records of a domain.",
+     "required_params": false,
+     "params": {},
+     "params_schema": [],
+     "icon": null,
+     "key": "es_domain_to_dns_records",
+     "color": "#94a3b8"
+    }
+   },
+   {
+    "id": "es_domain_to_web_emails-2",
+    "type": "enricher",
+    "position": {
+     "x": 380,
+     "y": 110
+    },
+    "data": {
+     "id": null,
+     "class_name": "EsDomainToWebEmailsEnricher",
+     "module": "flowsint_enrichers.es.domain_to_emails_web",
+     "name": "es_domain_to_web_emails",
+     "category": "Domain",
+     "type": "enricher",
+     "inputs": {
+      "type": "Domain",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "domain",
+        "type": "string"
+       },
+       {
+        "name": "root",
+        "type": "boolean | null"
+       }
+      ]
+     },
+     "outputs": {
+      "type": "Email",
+      "properties": [
+       {
+        "name": "nodeLabel",
+        "type": "string | null"
+       },
+       {
+        "name": "email",
+        "type": "string"
+       }
+      ]
+     },
+     "documentation": "Crawl ligero (sin salir del dominio) de las páginas de contacto, aviso\nlegal, privacidad y equipo, y extrae los correos @dominio que aparecen\n(mailto, texto, «[at]», ofuscación de Cloudflare). La página y el contexto\nde cada correo se registran en el log del sketch.",
+     "description": "[WEB] Emails published on the domain's own website (contact, legal, team pages).",
+     "required_params": false,
+     "params": {},
+     "params_schema": [
+      {
+       "name": "max_paginas",
+       "type": "string",
+       "default": "12",
+       "required": false,
+       "description": "Páginas del sitio a visitar (contacto, aviso legal, privacidad, equipo...)."
+      }
+     ],
+     "icon": null,
+     "key": "es_domain_to_web_emails",
+     "color": "#94a3b8"
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "Domain-1-es_domain_to_dns_records-1",
+    "source": "Domain-1",
+    "target": "es_domain_to_dns_records-1",
+    "sourceHandle": "Domain",
+    "targetHandle": "Domain",
+    "style": {
+     "stroke": "#64748b"
+    },
+    "markerEnd": {
+     "type": "arrowclosed",
+     "width": 15,
+     "height": 15,
+     "color": "#64748b"
+    }
+   },
+   {
+    "id": "Domain-1-es_domain_to_web_emails-2",
+    "source": "Domain-1",
+    "target": "es_domain_to_web_emails-2",
+    "sourceHandle": "Domain",
+    "targetHandle": "Domain",
+    "style": {
+     "stroke": "#64748b"
+    },
+    "markerEnd": {
+     "type": "arrowclosed",
+     "width": 15,
+     "height": 15,
+     "color": "#64748b"
+    }
+   }
+  ]
+ }
+}

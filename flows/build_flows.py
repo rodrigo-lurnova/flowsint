@@ -59,6 +59,17 @@ FLOWS = [
      "Los usuarios encontrados pueden encadenarse con maigret/sherlock.",
      "Individual",
      [("perfiles", "es_individual_to_socials", None)]),
+    ("Infraestructura IP",
+     "IP → puertos, software (CPE) y CVE expuestos según Shodan InternetDB (pasivo, sin clave), ASN (Team Cymru) y datos de red/geolocalización.",
+     "Ip",
+     [("puertos", "es_ip_to_ports_internetdb", None),
+      ("asn", "to_asn_cymru", None),
+      ("infos", "ip_to_infos", None)]),
+    ("Dominio: correos y DNS",
+     "Dominio → registros DNS (MX, TXT/SPF, DMARC, NS, CAA, SOA) y correos publicados en su propia web.",
+     "Domain",
+     [("dns", "es_domain_to_dns_records", None),
+      ("correos", "es_domain_to_web_emails", None)]),
 ]
 
 

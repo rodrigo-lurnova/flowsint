@@ -94,6 +94,8 @@ Se montan como `flowsint_enrichers.es` y reutilizan estos scripts (montados en `
 | `es_org_to_sanciones_ue` | Organization → Document | SANCIONADA / POSIBLE_COINCIDENCIA_SANCIONES |
 | `es_org_to_asn` | Organization → ASN | sustituto sin clave de `org_to_asn` (PeeringDB + RIPEstat + Team Cymru) |
 | `es_domain_to_web_emails` | Domain → Email | PUBLISHES_EMAIL |
+| `es_domain_to_dns_records` | Domain → DNSRecord | HAS_MX/TXT/DMARC/NS/CAA/SOA_RECORD; describe SPF y verificaciones SaaS |
+| `es_ip_to_ports_internetdb` | Ip → Port | OPEN_PORT + RUNS (software por CPE) desde Shodan InternetDB, pasivo y sin clave |
 | `es_individual_to_emails` | Individual → Email | PROBABLE_EMAIL (dominio del parámetro o del grafo) |
 | `es_individual_to_linkedin` | Individual → SocialAccount | HAS_LINKEDIN (Apify) |
 | `es_org_to_linkedin_employees` | Organization → Individual | WORKS_AT + HAS_LINKEDIN (Apify) |
