@@ -1,0 +1,31 @@
+name: wayback-primera-captura
+description: 'Primera captura en Internet Archive: desde cuándo existe la web.'
+category: Domain
+version: 1.0
+input:
+  type: Domain
+  key: domain
+request:
+  method: GET
+  url: https://archive.org/wayback/available
+  timeout: 30
+  params:
+    url: '{{domain}}'
+    timestamp: '19960101'
+response:
+  expect: json
+  map:
+    url: archived_snapshots.closest.url
+    title: archived_snapshots.closest.timestamp
+output:
+  type: Website
+retry:
+  max_retries: 2
+  backoff_factor: 1.0
+  retry_on_status:
+  - 429
+  - 500
+  - 502
+  - 503
+  - 504
+

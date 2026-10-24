@@ -1,0 +1,42 @@
+name: gleif-lei
+description: 'Busca la entidad en GLEIF (registro mundial de identificadores LEI):
+  razón social oficial, ciudad, país y estado.'
+category: Organization
+version: 1.0
+input:
+  type: Organization
+  key: name
+request:
+  method: GET
+  url: https://api.gleif.org/api/v1/lei-records
+  params:
+    filter[entity.legalName]: '{{name}}'
+    page[size]: '5'
+  headers:
+    Accept: application/vnd.api+json
+    User-Agent: flowsint-enricher
+  timeout: 20
+response:
+  expect: json
+  map:
+    name: attributes.entity.legalName.name
+    nom_complet: attributes.entity.legalName.name
+    siren: attributes.lei
+    siege_libelle_commune: attributes.entity.legalAddress.city
+    siege_code_pays_etranger: attributes.entity.legalAddress.country
+    etat_administratif: attributes.entity.status
+    date_creation: attributes.entity.creationDate
+output:
+  type: Organization
+  is_array: true
+  array_path: data
+retry:
+  max_retries: 2
+  backoff_factor: 1.0
+  retry_on_status:
+  - 429
+  - 500
+  - 502
+  - 503
+  - 504
+

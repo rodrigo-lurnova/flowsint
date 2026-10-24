@@ -1,0 +1,38 @@
+name: hunter-emails-empresa
+description: 'Emails corporativos públicos de un dominio vía Hunter.io (plan gratuito:
+  25 búsquedas/mes).'
+category: Domain
+version: 1.0
+input:
+  type: Domain
+  key: domain
+request:
+  method: GET
+  url: https://api.hunter.io/v2/domain-search
+  timeout: 20
+  params:
+    domain: '{{domain}}'
+    limit: '10'
+    api_key: '{{secrets.HUNTER_API_KEY}}'
+response:
+  expect: json
+  map:
+    email: value
+output:
+  type: Email
+  is_array: true
+  array_path: data.emails
+retry:
+  max_retries: 2
+  backoff_factor: 1.0
+  retry_on_status:
+  - 429
+  - 500
+  - 502
+  - 503
+  - 504
+secrets:
+- name: HUNTER_API_KEY
+  required: true
+  description: API key de hunter.io
+

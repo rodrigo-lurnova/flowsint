@@ -1,0 +1,37 @@
+name: github-repos
+description: Repositorios públicos de una organización de GitHub, ordenados por actividad
+  reciente.
+category: Username
+version: 1.0
+input:
+  type: Username
+  key: value
+request:
+  method: GET
+  url: https://api.github.com/users/{{value}}/repos
+  headers:
+    User-Agent: flowsint-enricher
+    Accept: application/vnd.github+json
+  timeout: 15
+  params:
+    per_page: '50'
+    sort: updated
+response:
+  expect: json
+  map:
+    url: html_url
+    title: full_name
+    description: description
+output:
+  type: Website
+  is_array: true
+retry:
+  max_retries: 2
+  backoff_factor: 1.0
+  retry_on_status:
+  - 429
+  - 500
+  - 502
+  - 503
+  - 504
+

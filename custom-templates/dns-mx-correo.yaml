@@ -1,0 +1,32 @@
+name: dns-mx-correo
+description: 'Registros MX: qué proveedor de correo usa la empresa.'
+category: Domain
+version: 1.0
+input:
+  type: Domain
+  key: domain
+request:
+  method: GET
+  url: https://dns.google/resolve
+  timeout: 15
+  params:
+    name: '{{domain}}'
+    type: MX
+response:
+  expect: json
+  map:
+    text: data
+output:
+  type: Phrase
+  is_array: true
+  array_path: Answer
+retry:
+  max_retries: 2
+  backoff_factor: 1.0
+  retry_on_status:
+  - 429
+  - 500
+  - 502
+  - 503
+  - 504
+

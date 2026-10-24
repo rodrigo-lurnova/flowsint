@@ -1,0 +1,30 @@
+name: ip-puertos-internetdb
+description: Puertos abiertos conocidos de una IP según Shodan InternetDB (pasivo,
+  sin escanear).
+category: Ip
+version: 1.0
+input:
+  type: Ip
+  key: address
+request:
+  method: GET
+  url: https://internetdb.shodan.io/{{address}}
+  timeout: 15
+response:
+  expect: json
+  map:
+    number: ''
+output:
+  type: Port
+  is_array: true
+  array_path: ports
+retry:
+  max_retries: 2
+  backoff_factor: 1.0
+  retry_on_status:
+  - 429
+  - 500
+  - 502
+  - 503
+  - 504
+

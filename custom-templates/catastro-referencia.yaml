@@ -1,0 +1,32 @@
+name: catastro-referencia
+description: 'Datos no protegidos de un inmueble por referencia catastral (14 o 20
+  caracteres): dirección, municipio, superficie, uso y año.'
+category: Phrase
+version: 1.0
+input:
+  type: Phrase
+  key: text
+request:
+  method: GET
+  url: https://ovc.catastro.meh.es/OVCServWeb/OVCWcfCallejero/COVCCallejero.svc/json/Consulta_DNPRC
+  params:
+    RefCat: '{{text}}'
+  headers:
+    User-Agent: flowsint-enricher
+  timeout: 30
+response:
+  expect: json
+  map:
+    text: consulta_dnprcResult.bico.bi.ldt
+output:
+  type: Phrase
+retry:
+  max_retries: 2
+  backoff_factor: 1.0
+  retry_on_status:
+  - 429
+  - 500
+  - 502
+  - 503
+  - 504
+

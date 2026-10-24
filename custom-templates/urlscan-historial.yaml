@@ -1,0 +1,35 @@
+name: urlscan-historial
+description: 'Escaneos públicos en urlscan.io: páginas, campañas y landings vistas
+  del dominio.'
+category: Domain
+version: 1.0
+input:
+  type: Domain
+  key: domain
+request:
+  method: GET
+  url: https://urlscan.io/api/v1/search/
+  timeout: 20
+  params:
+    q: domain:{{domain}}
+    size: '50'
+response:
+  expect: json
+  map:
+    url: page.url
+    title: page.title
+    status_code: page.status
+output:
+  type: Website
+  is_array: true
+  array_path: results
+retry:
+  max_retries: 2
+  backoff_factor: 1.0
+  retry_on_status:
+  - 429
+  - 500
+  - 502
+  - 503
+  - 504
+

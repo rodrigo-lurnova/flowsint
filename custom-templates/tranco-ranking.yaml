@@ -1,0 +1,28 @@
+name: tranco-ranking
+description: Posición del dominio en el ranking Tranco de popularidad web (menor =
+  más tráfico).
+category: Domain
+version: 1.0
+input:
+  type: Domain
+  key: domain
+request:
+  method: GET
+  url: https://tranco-list.eu/api/ranks/domain/{{domain}}
+  timeout: 15
+response:
+  expect: json
+  map:
+    text: ranks.0.rank
+output:
+  type: Phrase
+retry:
+  max_retries: 2
+  backoff_factor: 1.0
+  retry_on_status:
+  - 429
+  - 500
+  - 502
+  - 503
+  - 504
+

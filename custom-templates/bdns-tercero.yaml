@@ -1,0 +1,39 @@
+name: bdns-tercero
+description: 'Paso 1 BDNS: busca la empresa por NIF o nombre en la Base de Datos Nacional
+  de Subvenciones y devuelve su id interno (campo siren) para encadenar con bdns-concesiones.'
+category: Organization
+version: 1.0
+input:
+  type: Organization
+  key: name
+request:
+  method: GET
+  url: https://www.infosubvenciones.es/bdnstrans/api/terceros
+  params:
+    ambito: C
+    busqueda: '{{name}}'
+    vpd: GE
+  headers:
+    Accept: application/json
+    User-Agent: flowsint-enricher
+  timeout: 20
+response:
+  expect: json
+  map:
+    nom_complet: descripcion
+    name: descripcion
+    siren: id
+output:
+  type: Organization
+  is_array: true
+  array_path: terceros
+retry:
+  max_retries: 2
+  backoff_factor: 1.0
+  retry_on_status:
+  - 429
+  - 500
+  - 502
+  - 503
+  - 504
+

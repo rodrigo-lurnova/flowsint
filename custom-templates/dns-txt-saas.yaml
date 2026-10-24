@@ -1,0 +1,33 @@
+name: dns-txt-saas
+description: 'Registros TXT del dominio: revelan proveedores SaaS verificados (Google,
+  Microsoft, HubSpot, Atlassian...).'
+category: Domain
+version: 1.0
+input:
+  type: Domain
+  key: domain
+request:
+  method: GET
+  url: https://dns.google/resolve
+  timeout: 15
+  params:
+    name: '{{domain}}'
+    type: TXT
+response:
+  expect: json
+  map:
+    text: data
+output:
+  type: Phrase
+  is_array: true
+  array_path: Answer
+retry:
+  max_retries: 2
+  backoff_factor: 1.0
+  retry_on_status:
+  - 429
+  - 500
+  - 502
+  - 503
+  - 504
+
