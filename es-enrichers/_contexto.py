@@ -6,12 +6,14 @@ es administrador según BORME y el Domain de esa Organization).
 """
 from typing import Dict, List
 
+# Las propiedades se guardan aplanadas ("nodeProperties.<campo>") y el tipo en nodeType.
 CYPHER = """
 MATCH (i {sketch_id: $sketch_id})-[*1..2]-(n {sketch_id: $sketch_id})
-WHERE (i.full_name = $nombre OR i.nodeLabel = $nombre OR i.label = $nombre)
-  AND n.type IN ['organization', 'domain', 'website']
-RETURN DISTINCT n.type AS tipo, n.name AS name, n.domain AS domain, n.url AS url,
-       n.linkedin_url AS linkedin_url
+WHERE i.nodeType = 'individual'
+  AND (i.`nodeProperties.full_name` = $nombre OR i.nodeLabel = $nombre)
+  AND n.nodeType IN ['organization', 'domain', 'website']
+RETURN DISTINCT n.nodeType AS tipo, n.`nodeProperties.name` AS name, n.`nodeProperties.domain` AS domain,
+       n.`nodeProperties.url` AS url, n.`nodeProperties.linkedin_url` AS linkedin_url
 LIMIT 25
 """
 
