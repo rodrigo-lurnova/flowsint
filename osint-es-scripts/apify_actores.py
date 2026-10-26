@@ -47,6 +47,7 @@ Uso:
 import argparse
 import json
 import os
+import re
 import sys
 
 import httpx
@@ -83,8 +84,14 @@ def ejecutar(actor_id: str, entrada: dict, token: str | None = None, max_items: 
     params = {"timeout": timeout, "maxTotalChargeUsd": max_usd}
     if max_items:
         params["maxItems"] = max_items
-    r = httpx.post(f"{API}/acts/{actor_id.replace('/', '~')}/run-sync-get-dataset-items", params=params,
-                   json=entrada, headers={"Authorization": f"Bearer {token}"}, timeout=timeout + 30)
+    url = f"{API}/acts/{actor_id.replace('/', '~')}/run-sync-get-dataset-items"
+    hdr = {"Authorization": f"Bearer {token}"}
+    r = httpx.post(url, params=params, json=entrada, headers=hdr, timeout=timeout + 30)
+    if r.status_code == 400 and "max-total-charge-usd-below-minimum" in r.text:
+        # Algunos actores (p. ej. google-search-scraper) exigen un tope mínimo; el cobro real sigue siendo por uso
+        m = re.search(r"minimum of \$([\d.]+)", r.text)
+        params["maxTotalChargeUsd"] = float(m.group(1)) if m else 0.5
+        r = httpx.post(url, params=params, json=entrada, headers=hdr, timeout=timeout + 30)
     if r.status_code >= 400:
         raise RuntimeError(f"Apify {actor_id}: HTTP {r.status_code} {r.text[:300]}")
     data = r.json()

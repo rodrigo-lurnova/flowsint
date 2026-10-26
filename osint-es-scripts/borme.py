@@ -704,13 +704,21 @@ def buscar_empresa_apispain(nombre: str, exacta: bool = False, api_key: str | No
         actos = []
         for a in e.get("actos") or e.get("ultimosActos") or []:
             dp = a.get("datosParseados") or {}
-            actos.append({"fecha": (a.get("fechaPublicacion") or "")[:10], "provincia": dp.get("provincia") or e.get("provincia"),
+            cargos = [{"accion": p.get("accion"), "cargo": p.get("cargo"),
+                       "cargo_codigo": cargo_codigo(p.get("cargo") or ""), "persona": p.get("nombre")}
+                      for p in a.get("personas") or []]
+            # La lista «personas» de apispain omite cargos repetidos, ceses y nombres separados por «;»:
+            # si el parser propio saca más del texto original, manda el parser.
+            propio = parse_acto(a.get("textoOriginal") or "")
+            if len(propio["cargos"]) > len(cargos):
+                cargos = propio["cargos"]
+            # Sin fecha de publicación, la de inscripción (I/A n (dd.mm.aa)) permite ordenar los actos
+            fecha = (a.get("fechaPublicacion") or "")[:10] or propio["datos"].get("fecha_inscripcion") or ""
+            actos.append({"fecha": fecha, "provincia": dp.get("provincia") or e.get("provincia"),
                           "num": None, "empresa": dp.get("empresaNombre") or e.get("nombre"), "tipo": a.get("tipoActo"),
-                          "tipos": [a.get("tipoActo")], "texto": a.get("textoOriginal"),
-                          "cargos": [{"accion": p.get("accion"), "cargo": p.get("cargo"),
-                                      "cargo_codigo": cargo_codigo(p.get("cargo") or ""), "persona": p.get("nombre")}
-                                     for p in a.get("personas") or []],
-                          "datos": dp, "borme_id": a.get("bormeId"), "url_pdf": None, "url_html": None})
+                          "tipos": propio["tipos"] or [a.get("tipoActo")], "texto": a.get("textoOriginal"),
+                          "cargos": cargos, "datos": {**propio["datos"], **dp}, "borme_id": a.get("bormeId"),
+                          "url_pdf": None, "url_html": None})
         inf = inferir(actos)
         ficha = {**inf["ficha"], "nif": e.get("nif"), "denominacion": e.get("nombre"), "domicilio": e.get("domicilio")
                  or inf["ficha"]["domicilio"], "provincia": e.get("provincia"), "municipio": e.get("municipio"),
