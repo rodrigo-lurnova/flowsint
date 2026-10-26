@@ -92,6 +92,16 @@ def ejecutar(actor_id: str, entrada: dict, token: str | None = None, max_items: 
         m = re.search(r"minimum of \$([\d.]+)", r.text)
         params["maxTotalChargeUsd"] = float(m.group(1)) if m else 0.5
         r = httpx.post(url, params=params, json=entrada, headers=hdr, timeout=timeout + 30)
+    if r.status_code == 400 and "TIMED-OUT" in r.text:
+        # El run agotó el tiempo, pero lo ya extraído (y cobrado) está en su dataset: se recupera
+        m = re.search(r"run ID: (\w+)", r.text)
+        if m:
+            run = httpx.get(f"{API}/actor-runs/{m.group(1)}", headers=hdr, timeout=30).json().get("data") or {}
+            if run.get("defaultDatasetId"):
+                items = httpx.get(f"{API}/datasets/{run['defaultDatasetId']}/items", params={"clean": 1},
+                                  headers=hdr, timeout=60).json()
+                if items:
+                    return items
     if r.status_code >= 400:
         raise RuntimeError(f"Apify {actor_id}: HTTP {r.status_code} {r.text[:300]}")
     data = r.json()
@@ -196,7 +206,9 @@ def linkedin_empleados(empresa_url: str, max_items: int = 25, busqueda: str | No
         entrada["searchQuery"] = busqueda
     if cargos:
         entrada["jobTitles"] = cargos
-    return [perfil_linkedin(i) for i in ejecutar(actor("linkedin_empleados"), entrada, token, max_items=max_items)]
+    # Páginas de empresa grandes tardan más de 4 min en modo síncrono
+    return [perfil_linkedin(i) for i in ejecutar(actor("linkedin_empleados"), entrada, token, max_items=max_items,
+                                                  timeout=480)]
 
 
 def google(consultas: list[str], token: str | None = None, pais: str = "es") -> list[dict]:

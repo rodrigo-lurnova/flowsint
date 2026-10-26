@@ -622,17 +622,27 @@ def buscar_empresa(nombre: str, desde=None, hasta=None, dias: int = 90, provinci
     dl = None if solo_cache else Descargador(pausa, max_peticiones, progreso)
     try:
         est = cubrir(db, dl, desde, hasta, provincias, completo, q, exacta)
-        rows = db.execute(
-            "SELECT a.doc_id, a.num, a.fecha, a.provincia, a.empresa, a.texto, d.url_pdf, d.url_html "
-            "FROM actos a LEFT JOIN docs d USING(doc_id) WHERE a.empresa_norm LIKE ? AND a.fecha BETWEEN ? AND ?",
-            (f"%{q['base']}%", desde.isoformat(), hasta.isoformat())).fetchall()
+        sel = ("SELECT a.doc_id, a.num, a.fecha, a.provincia, a.empresa, a.texto, d.url_pdf, d.url_html "
+               "FROM actos a LEFT JOIN docs d USING(doc_id) ")
+        rows = db.execute(sel + "WHERE a.empresa_norm LIKE ? AND a.fecha BETWEEN ? AND ?",
+                          (f"%{q['base']}%", desde.isoformat(), hasta.isoformat())).fetchall()
+        actos = [_acto_dict(r) for r in rows
+                 if coincide(q, normalizar_denominacion(r[4]), exacta)
+                 and (not provincias or _prov_ok({"id": r[0], "provincia": r[3]}, provincias))]
+        # La hoja registral no cambia con la denominación: se añaden los actos publicados con nombres
+        # anteriores o posteriores (constitución, cargos...) de las mismas hojas.
+        vistos = {(a["borme_id"], a.get("num")) for a in actos}
+        for prov, hoja in {(a["provincia"], a["datos"]["hoja"]) for a in actos if a["datos"].get("hoja")}:
+            for r in db.execute(sel + "WHERE a.texto LIKE ? AND a.provincia = ? AND a.fecha BETWEEN ? AND ?",
+                                (f"%H {hoja},%", prov, desde.isoformat(), hasta.isoformat())).fetchall():
+                a = _acto_dict(r)
+                if a["datos"].get("hoja") == hoja and (a["borme_id"], a.get("num")) not in vistos:
+                    vistos.add((a["borme_id"], a.get("num")))
+                    actos.append(a)
     finally:
         if dl:
             dl.close()
         db.close()
-    actos = [_acto_dict(r) for r in rows
-             if coincide(q, normalizar_denominacion(r[4]), exacta)
-             and (not provincias or _prov_ok({"id": r[0], "provincia": r[3]}, provincias))]
     empresas = _agrupar(actos)
     empresas.sort(key=lambda e: normalizar_denominacion(e["empresa"] or "")["base"] != q["base"])
     return {"consulta": nombre, "normalizada": q["norm"], "backend": "boe", "desde": desde.isoformat(),
