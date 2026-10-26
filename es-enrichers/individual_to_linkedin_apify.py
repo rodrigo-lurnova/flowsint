@@ -18,8 +18,14 @@ from flowsint_types.username import Username
 
 
 def perfil_a_social(p: dict) -> SocialAccount:
+    usuario = p.get("usuario")
+    if not usuario and p.get("url"):
+        # La lista de empleados trae URLs con URN (/in/ACwAA...), no la URL personalizada
+        slug = p["url"].rstrip("/").rsplit("/", 1)[-1]
+        usuario = None if slug.startswith("ACwAA") else slug
     return SocialAccount(
-        username=Username(value=p["usuario"], platform="linkedin") if p.get("usuario") else None,
+        nodeLabel=None if usuario else f"{p.get('nombre') or 'Perfil'} (LinkedIn)",
+        username=Username(value=usuario, platform="linkedin") if usuario else None,
         display_name=p.get("nombre"), profile_url=p.get("url"), platform="linkedin",
         bio=" · ".join(x for x in (p.get("titular"), p.get("cargo") and p.get("empresa")
                                    and f"{p['cargo']} en {p['empresa']}") if x) or None,
