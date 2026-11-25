@@ -4,14 +4,15 @@ AVISO: los actores de LinkedIn rascan linkedin.com, cuyas condiciones lo prohíb
 usarlos es decisión del usuario. Limítalo a personas vinculadas a la empresa
 investigada (RGPD: minimización).
 """
+
 import os
 from typing import Any, Dict, List, Optional
 
 from flowsint_core.core.enricher_base import Enricher
 from flowsint_core.core.logger import Logger
-from flowsint_enrichers.registry import flowsint_enricher
 from flowsint_enrichers.es._contexto import nombre_de, vecinos
 from flowsint_enrichers.es._scripts import load
+from flowsint_enrichers.registry import flowsint_enricher
 from flowsint_types.individual import Individual
 from flowsint_types.social_account import SocialAccount
 from flowsint_types.username import Username
@@ -26,11 +27,24 @@ def perfil_a_social(p: dict) -> SocialAccount:
     return SocialAccount(
         nodeLabel=None if usuario else f"{p.get('nombre') or 'Perfil'} (LinkedIn)",
         username=Username(value=usuario, platform="linkedin") if usuario else None,
-        display_name=p.get("nombre"), profile_url=p.get("url"), platform="linkedin",
-        bio=" · ".join(x for x in (p.get("titular"), p.get("cargo") and p.get("empresa")
-                                   and f"{p['cargo']} en {p['empresa']}") if x) or None,
-        location=p.get("ubicacion"), profile_picture_url=p.get("foto"),
-        followers_count=p.get("seguidores"))
+        display_name=p.get("nombre"),
+        profile_url=p.get("url"),
+        platform="linkedin",
+        bio=" · ".join(
+            x
+            for x in (
+                p.get("titular"),
+                p.get("cargo")
+                and p.get("empresa")
+                and f"{p['cargo']} en {p['empresa']}",
+            )
+            if x
+        )
+        or None,
+        location=p.get("ubicacion"),
+        profile_picture_url=p.get("foto"),
+        followers_count=p.get("seguidores"),
+    )
 
 
 @flowsint_enricher
@@ -40,25 +54,59 @@ class EsIndividualToLinkedinEnricher(Enricher):
     InputType = Individual
     OutputType = SocialAccount
 
-    def __init__(self, sketch_id: Optional[str] = None, scan_id: Optional[str] = None,
-                 vault=None, params: Optional[Dict[str, Any]] = None, graph_service=None):
-        super().__init__(sketch_id=sketch_id, scan_id=scan_id, params_schema=self.get_params_schema(),
-                         vault=vault, params=params, graph_service=graph_service)
+    def __init__(
+        self,
+        sketch_id: Optional[str] = None,
+        scan_id: Optional[str] = None,
+        vault=None,
+        params: Optional[Dict[str, Any]] = None,
+        graph_service=None,
+    ):
+        super().__init__(
+            sketch_id=sketch_id,
+            scan_id=scan_id,
+            params_schema=self.get_params_schema(),
+            vault=vault,
+            params=params,
+            graph_service=graph_service,
+        )
         self.mapping: List[tuple] = []
 
     @classmethod
     def get_params_schema(cls) -> List[Dict[str, Any]]:
         return [
-            {"name": "APIFY_TOKEN", "type": "vaultSecret", "required": False,
-             "description": "Token de Apify (si no está en la vault se usa la variable de entorno APIFY_TOKEN)."},
-            {"name": "empresa", "type": "string", "required": False,
-             "description": "Empresa actual. Si se omite, se usa la Organization vecina en el grafo."},
-            {"name": "empresa_linkedin_url", "type": "string", "required": False,
-             "description": "URL linkedin.com/company/... para filtrar por empresa actual (más preciso)."},
-            {"name": "min_confianza", "type": "string", "default": "0.5", "required": False,
-             "description": "Confianza mínima (0-1) para crear el nodo."},
-            {"name": "max_resultados", "type": "string", "default": "3", "required": False,
-             "description": "Perfiles por persona que se piden a Apify (coste ~0,002 $ por perfil)."},
+            {
+                "name": "APIFY_TOKEN",
+                "type": "vaultSecret",
+                "required": False,
+                "description": "Token de Apify (si no está en la vault se usa la variable de entorno APIFY_TOKEN).",
+            },
+            {
+                "name": "empresa",
+                "type": "string",
+                "required": False,
+                "description": "Empresa actual. Si se omite, se usa la Organization vecina en el grafo.",
+            },
+            {
+                "name": "empresa_linkedin_url",
+                "type": "string",
+                "required": False,
+                "description": "URL linkedin.com/company/... para filtrar por empresa actual (más preciso).",
+            },
+            {
+                "name": "min_confianza",
+                "type": "string",
+                "default": "0.5",
+                "required": False,
+                "description": "Confianza mínima (0-1) para crear el nodo.",
+            },
+            {
+                "name": "max_resultados",
+                "type": "string",
+                "default": "3",
+                "required": False,
+                "description": "Perfiles por persona que se piden a Apify (coste ~0,002 $ por perfil).",
+            },
         ]
 
     @classmethod
@@ -88,7 +136,10 @@ class EsIndividualToLinkedinEnricher(Enricher):
         apify = load("apify_actores")
         token = self.params.get("APIFY_TOKEN") or os.getenv("APIFY_TOKEN")
         if not token:
-            Logger.info(self.sketch_id, {"message": "[APIFY] Falta APIFY_TOKEN (vault o entorno): se omite"})
+            Logger.info(
+                self.sketch_id,
+                {"message": "[APIFY] Falta APIFY_TOKEN (vault o entorno): se omite"},
+            )
             return []
         self.mapping, out = [], []
         minc = float(self.params.get("min_confianza") or 0.5)
@@ -97,10 +148,18 @@ class EsIndividualToLinkedinEnricher(Enricher):
             nombre = nombre_de(ind)
             ctx = vecinos(self._graph_service, self.sketch_id, nombre)
             empresa = self.params.get("empresa") or (ctx["empresas"] or [None])[0]
-            url_emp = self.params.get("empresa_linkedin_url") or (ctx["linkedin"] or [None])[0]
+            url_emp = (
+                self.params.get("empresa_linkedin_url")
+                or (ctx["linkedin"] or [None])[0]
+            )
             try:
-                perfiles = apify.linkedin_buscar(nombre, empresa=empresa, empresa_url=url_emp,
-                                                 max_items=maxr, token=token)
+                perfiles = apify.linkedin_buscar(
+                    nombre,
+                    empresa=empresa,
+                    empresa_url=url_emp,
+                    max_items=maxr,
+                    token=token,
+                )
             except Exception as exc:
                 Logger.error(self.sketch_id, {"message": f"[APIFY] {nombre}: {exc}"})
                 continue
@@ -110,13 +169,17 @@ class EsIndividualToLinkedinEnricher(Enricher):
                 self.mapping.append((ind, acc, p))
         return out
 
-    def postprocess(self, results: List[OutputType], original_input: List[InputType] = None) -> List[OutputType]:
+    def postprocess(
+        self, results: List[OutputType], original_input: List[InputType] = None
+    ) -> List[OutputType]:
         for ind, acc, p in self.mapping:
             self.create_node(ind)
             self.create_node(acc)
             self.create_relationship(ind, acc, "HAS_LINKEDIN")
-            self.log_graph_message(f"{nombre_de(ind)} -> {p['url']} ({p['confianza']:.0%}: "
-                                   f"{'; '.join(p['evidencias'])})")
+            self.log_graph_message(
+                f"{nombre_de(ind)} -> {p['url']} ({p['confianza']:.0%}: "
+                f"{'; '.join(p['evidencias'])})"
+            )
         return results
 
 

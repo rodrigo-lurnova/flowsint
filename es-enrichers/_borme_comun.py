@@ -3,6 +3,7 @@
 La lógica de descarga/parseo vive en osint-es-scripts/borme.py (y apispain.py);
 aquí solo: parámetros comunes, llamada no bloqueante y conversión a tipos Flowsint.
 """
+
 import asyncio
 import os
 import re
@@ -12,27 +13,106 @@ from flowsint_enrichers.es._scripts import load
 from flowsint_types.individual import Individual
 from flowsint_types.organization import Organization
 
-PARTICULAS = {"DE", "DEL", "LA", "LAS", "LOS", "Y", "SAN", "SANTA", "VAN", "VON", "DA", "DOS", "DI"}
-PALABRAS_JURIDICAS = {"SOCIEDAD", "SOCIEDADES", "AUDITORES", "AUDITORIA", "ASESORES", "CONSULTORES", "BANCO",
-                      "CAJA", "FUNDACION", "ASOCIACION", "HOLDING", "GROUP", "GRUPO", "INVERSIONES", "GESTION",
-                      "LIMITED", "LTD", "LLC", "LLP", "INC", "GMBH", "BV", "SARL", "SAS", "SRL", "SPA", "AG",
-                      "CORPORATION", "CORP", "COMPANY", "PARTNERS", "CAPITAL", "SERVICIOS", "ABOGADOS"}
+PARTICULAS = {
+    "DE",
+    "DEL",
+    "LA",
+    "LAS",
+    "LOS",
+    "Y",
+    "SAN",
+    "SANTA",
+    "VAN",
+    "VON",
+    "DA",
+    "DOS",
+    "DI",
+}
+PALABRAS_JURIDICAS = {
+    "SOCIEDAD",
+    "SOCIEDADES",
+    "AUDITORES",
+    "AUDITORIA",
+    "ASESORES",
+    "CONSULTORES",
+    "BANCO",
+    "CAJA",
+    "FUNDACION",
+    "ASOCIACION",
+    "HOLDING",
+    "GROUP",
+    "GRUPO",
+    "INVERSIONES",
+    "GESTION",
+    "LIMITED",
+    "LTD",
+    "LLC",
+    "LLP",
+    "INC",
+    "GMBH",
+    "BV",
+    "SARL",
+    "SAS",
+    "SRL",
+    "SPA",
+    "AG",
+    "CORPORATION",
+    "CORP",
+    "COMPANY",
+    "PARTNERS",
+    "CAPITAL",
+    "SERVICIOS",
+    "ABOGADOS",
+}
 
 PARAMS_COMUNES: List[Dict[str, Any]] = [
-    {"name": "DIAS", "type": "string", "default": "90", "required": False,
-     "description": "Días hacia atrás a revisar en el BORME si no se da DESDE (coste: ~2 peticiones/día hábil "
-                    "en modo índice, ~30/día en modo completo)."},
-    {"name": "DESDE", "type": "string", "required": False, "description": "Fecha inicial AAAA-MM-DD."},
-    {"name": "HASTA", "type": "string", "required": False, "description": "Fecha final AAAA-MM-DD (hoy)."},
-    {"name": "PROVINCIA", "type": "string", "required": False,
-     "description": "Provincias del Registro Mercantil separadas por comas (nombre o código INE). "
-                    "Reduce mucho el coste si se conoce."},
-    {"name": "EXACTA", "type": "string", "default": "false", "required": False,
-     "description": "true = solo denominación exacta (normalizada, sin forma jurídica)."},
-    {"name": "BACKEND", "type": "string", "default": "auto", "required": False,
-     "description": "auto | boe | apispain (auto usa apispain si hay APISPAIN_API_KEY)."},
-    {"name": "APISPAIN_API_KEY", "type": "vaultSecret", "required": False,
-     "description": "Clave opcional de apispain.es (plan Free: 100 peticiones/mes)."},
+    {
+        "name": "DIAS",
+        "type": "string",
+        "default": "90",
+        "required": False,
+        "description": "Días hacia atrás a revisar en el BORME si no se da DESDE (coste: ~2 peticiones/día hábil "
+        "en modo índice, ~30/día en modo completo).",
+    },
+    {
+        "name": "DESDE",
+        "type": "string",
+        "required": False,
+        "description": "Fecha inicial AAAA-MM-DD.",
+    },
+    {
+        "name": "HASTA",
+        "type": "string",
+        "required": False,
+        "description": "Fecha final AAAA-MM-DD (hoy).",
+    },
+    {
+        "name": "PROVINCIA",
+        "type": "string",
+        "required": False,
+        "description": "Provincias del Registro Mercantil separadas por comas (nombre o código INE). "
+        "Reduce mucho el coste si se conoce.",
+    },
+    {
+        "name": "EXACTA",
+        "type": "string",
+        "default": "false",
+        "required": False,
+        "description": "true = solo denominación exacta (normalizada, sin forma jurídica).",
+    },
+    {
+        "name": "BACKEND",
+        "type": "string",
+        "default": "auto",
+        "required": False,
+        "description": "auto | boe | apispain (auto usa apispain si hay APISPAIN_API_KEY).",
+    },
+    {
+        "name": "APISPAIN_API_KEY",
+        "type": "vaultSecret",
+        "required": False,
+        "description": "Clave opcional de apispain.es (plan Free: 100 peticiones/mes).",
+    },
 ]
 
 
@@ -49,35 +129,62 @@ def borme():
     return load("borme")
 
 
-async def buscar_empresa(nombre: str, params: Dict[str, Any], api_key: Optional[str]) -> dict:
+async def buscar_empresa(
+    nombre: str, params: Dict[str, Any], api_key: Optional[str]
+) -> dict:
     mod = borme()
     backend = (params.get("BACKEND") or "auto").lower()
     exacta = p_bool(params.get("EXACTA"))
     if backend == "apispain" or (backend == "auto" and api_key):
-        return await asyncio.to_thread(mod.buscar_empresa_apispain, nombre, exacta, api_key)
+        return await asyncio.to_thread(
+            mod.buscar_empresa_apispain, nombre, exacta, api_key
+        )
     return await asyncio.to_thread(
-        mod.buscar_empresa, nombre, params.get("DESDE"), params.get("HASTA"), int(params.get("DIAS") or 90),
-        p_list(params.get("PROVINCIA")), p_bool(params.get("COMPLETO")), exacta, mod.DEFAULT_DB, 0.5,
-        int(params.get("MAX_PETICIONES") or 3000))
+        mod.buscar_empresa,
+        nombre,
+        params.get("DESDE"),
+        params.get("HASTA"),
+        int(params.get("DIAS") or 90),
+        p_list(params.get("PROVINCIA")),
+        p_bool(params.get("COMPLETO")),
+        exacta,
+        mod.DEFAULT_DB,
+        0.5,
+        int(params.get("MAX_PETICIONES") or 3000),
+    )
 
 
 async def buscar_persona(nombre: str, params: Dict[str, Any]) -> dict:
     mod = borme()
     return await asyncio.to_thread(
-        mod.buscar_persona, nombre, params.get("DESDE"), params.get("HASTA"), int(params.get("DIAS") or 30),
-        p_list(params.get("PROVINCIA")), mod.DEFAULT_DB, 0.5, int(params.get("MAX_PETICIONES") or 1500))
+        mod.buscar_persona,
+        nombre,
+        params.get("DESDE"),
+        params.get("HASTA"),
+        int(params.get("DIAS") or 30),
+        p_list(params.get("PROVINCIA")),
+        mod.DEFAULT_DB,
+        0.5,
+        int(params.get("MAX_PETICIONES") or 1500),
+    )
 
 
 def es_persona_juridica(nombre: str) -> bool:
     n = borme().normalizar_denominacion(nombre)
-    if n["forma"] or len(n["base"].split()) == 1:  # un solo token (p. ej. socio único "MAJENTESS")
+    if (
+        n["forma"] or len(n["base"].split()) == 1
+    ):  # un solo token (p. ej. socio único "MAJENTESS")
         return True
     return bool(set(n["base"].split()) & PALABRAS_JURIDICAS)
 
 
 def _title(s: str) -> str:
-    return " ".join("-".join(x.capitalize() for x in w.split("-")) if w.upper() not in PARTICULAS else w.lower()
-                    for w in s.split())
+    return " ".join(
+        "-".join(x.capitalize() for x in w.split("-"))
+        if w.upper() not in PARTICULAS
+        else w.lower()
+        for w in s.split()
+    )
 
 
 def individuo(persona_borme: str, **extra) -> Individual:
@@ -102,8 +209,14 @@ def individuo(persona_borme: str, **extra) -> Individual:
     else:
         apellidos, nombre = "", persona_borme
     first, last = _title(nombre), _title(apellidos)
-    return Individual(full_name=f"{first} {last}".strip(), first_name=first or None, last_name=last or None,
-                      aliases=[persona_borme], source="BORME", **extra)
+    return Individual(
+        full_name=f"{first} {last}".strip(),
+        first_name=first or None,
+        last_name=last or None,
+        aliases=[persona_borme],
+        source="BORME",
+        **extra,
+    )
 
 
 def org_actualizada(org: Organization, **campos) -> Organization:
@@ -124,9 +237,19 @@ def historial_cargos(actos: List[dict]) -> List[dict]:
     for a in sorted(actos, key=lambda x: (x["fecha"], x.get("num") or 0)):
         for c in a.get("cargos") or []:
             k = (c["persona"].upper(), c["cargo_codigo"])
-            e = h.setdefault(k, {"persona": c["persona"], "cargo": c["cargo"], "cargo_codigo": c["cargo_codigo"],
-                                 "desde": None, "hasta": None, "ultima_accion": None, "vigente": False,
-                                 "borme_ids": []})
+            e = h.setdefault(
+                k,
+                {
+                    "persona": c["persona"],
+                    "cargo": c["cargo"],
+                    "cargo_codigo": c["cargo_codigo"],
+                    "desde": None,
+                    "hasta": None,
+                    "ultima_accion": None,
+                    "vigente": False,
+                    "borme_ids": [],
+                },
+            )
             if c["accion"] in ("nombramiento", "reelección", "declaración", "vigente"):
                 e["desde"] = e["desde"] if e["vigente"] else a["fecha"]
                 e["vigente"], e["hasta"] = True, None

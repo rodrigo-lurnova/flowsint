@@ -4,6 +4,7 @@ Un Individual llega solo con su nombre; la empresa y el dominio con los que hay
 que cruzarlo están en sus vecinos del sketch (p. ej. la Organization de la que
 es administrador según BORME y el Domain de esa Organization).
 """
+
 from typing import Dict, List
 
 # Las propiedades se guardan aplanadas ("nodeProperties.<campo>") y el tipo en nodeType.
@@ -24,7 +25,10 @@ def vecinos(graph_service, sketch_id: str, nombre: str) -> Dict[str, List[str]]:
     if not graph_service or not nombre:
         return out
     try:
-        filas = graph_service.query(CYPHER, {"sketch_id": sketch_id, "nombre": nombre}) or []
+        filas = (
+            graph_service.query(CYPHER, {"sketch_id": sketch_id, "nombre": nombre})
+            or []
+        )
     except Exception:
         return out
     for f in filas:
@@ -41,5 +45,8 @@ def vecinos(graph_service, sketch_id: str, nombre: str) -> Dict[str, List[str]]:
 
 
 def nombre_de(individual) -> str:
-    return (individual.full_name or " ".join(
-        x for x in (individual.first_name, individual.last_name) if x) or "").strip()
+    return (
+        individual.full_name
+        or " ".join(x for x in (individual.first_name, individual.last_name) if x)
+        or ""
+    ).strip()

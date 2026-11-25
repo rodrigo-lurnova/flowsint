@@ -44,6 +44,7 @@ Uso:
   apify_actores.py google 'site:linkedin.com/in "Rodrigo Martínez" Lurnova'
   apify_actores.py run apify/google-search-scraper --input '{"queries":"lurnova"}'
 """
+
 import argparse
 import json
 import os
@@ -62,8 +63,10 @@ ACTORES = {
     "linkedin_empleados": "harvestapi/linkedin-company-employees",
     "google": "apify/google-search-scraper",
 }
-AVISO_TOS = ("Los actores de LinkedIn rascan linkedin.com (sus ToS lo prohíben); su uso es decisión y "
-             "responsabilidad del usuario.")
+AVISO_TOS = (
+    "Los actores de LinkedIn rascan linkedin.com (sus ToS lo prohíben); su uso es decisión y "
+    "responsabilidad del usuario."
+)
 
 
 class SinToken(RuntimeError):
@@ -74,13 +77,21 @@ def actor(clave: str) -> str:
     return os.getenv(f"APIFY_ACTOR_{clave.upper()}", ACTORES[clave])
 
 
-def ejecutar(actor_id: str, entrada: dict, token: str | None = None, max_items: int | None = None,
-             max_usd: float | None = None, timeout: int = 240) -> list[dict]:
+def ejecutar(
+    actor_id: str,
+    entrada: dict,
+    token: str | None = None,
+    max_items: int | None = None,
+    max_usd: float | None = None,
+    timeout: int = 240,
+) -> list[dict]:
     """Ejecuta un actor en modo síncrono y devuelve los items del dataset."""
     token = token or os.getenv("APIFY_TOKEN")
     if not token:
         raise SinToken("Falta APIFY_TOKEN: integración Apify desactivada (se omite).")
-    max_usd = max_usd if max_usd is not None else float(os.getenv("APIFY_MAX_USD", "0.10"))
+    max_usd = (
+        max_usd if max_usd is not None else float(os.getenv("APIFY_MAX_USD", "0.10"))
+    )
     params = {"timeout": timeout, "maxTotalChargeUsd": max_usd}
     if max_items:
         params["maxItems"] = max_items
@@ -91,15 +102,26 @@ def ejecutar(actor_id: str, entrada: dict, token: str | None = None, max_items: 
         # Algunos actores (p. ej. google-search-scraper) exigen un tope mínimo; el cobro real sigue siendo por uso
         m = re.search(r"minimum of \$([\d.]+)", r.text)
         params["maxTotalChargeUsd"] = float(m.group(1)) if m else 0.5
-        r = httpx.post(url, params=params, json=entrada, headers=hdr, timeout=timeout + 30)
+        r = httpx.post(
+            url, params=params, json=entrada, headers=hdr, timeout=timeout + 30
+        )
     if r.status_code == 400 and "TIMED-OUT" in r.text:
         # El run agotó el tiempo, pero lo ya extraído (y cobrado) está en su dataset: se recupera
         m = re.search(r"run ID: (\w+)", r.text)
         if m:
-            run = httpx.get(f"{API}/actor-runs/{m.group(1)}", headers=hdr, timeout=30).json().get("data") or {}
+            run = (
+                httpx.get(f"{API}/actor-runs/{m.group(1)}", headers=hdr, timeout=30)
+                .json()
+                .get("data")
+                or {}
+            )
             if run.get("defaultDatasetId"):
-                items = httpx.get(f"{API}/datasets/{run['defaultDatasetId']}/items", params={"clean": 1},
-                                  headers=hdr, timeout=60).json()
+                items = httpx.get(
+                    f"{API}/datasets/{run['defaultDatasetId']}/items",
+                    params={"clean": 1},
+                    headers=hdr,
+                    timeout=60,
+                ).json()
                 if items:
                     return items
     if r.status_code >= 400:
@@ -109,6 +131,7 @@ def ejecutar(actor_id: str, entrada: dict, token: str | None = None, max_items: 
 
 
 # ------------------------------------------------------------------ normalización de perfiles
+
 
 def _empresa_actual(p: dict) -> tuple[str | None, str | None]:
     for k in ("currentPosition", "currentPositions", "positions", "experience"):
@@ -142,14 +165,29 @@ def perfil_linkedin(p: dict) -> dict:
     if isinstance(loc, dict):
         loc = loc.get("linkedinText") or (loc.get("parsed") or {}).get("text")
     empresa, cargo = _empresa_actual(p)
-    nombre = " ".join(x for x in (p.get("firstName"), p.get("lastName")) if x) or p.get("fullName") or p.get("name")
+    nombre = (
+        " ".join(x for x in (p.get("firstName"), p.get("lastName")) if x)
+        or p.get("fullName")
+        or p.get("name")
+    )
     foto = p.get("photo") or p.get("profilePicture") or p.get("pictureUrl")
     if isinstance(foto, dict):
         foto = foto.get("url")
-    return {"plataforma": "linkedin", "url": url, "usuario": p.get("publicIdentifier"),
-            "nombre": nombre, "titular": p.get("headline"), "ubicacion": loc, "empresa": empresa, "cargo": cargo,
-            "foto": foto, "seguidores": p.get("followerCount") or p.get("followersCount"),
-            "conexiones": p.get("connectionsCount"), "fuente": "apify", "bruto_id": p.get("id")}
+    return {
+        "plataforma": "linkedin",
+        "url": url,
+        "usuario": p.get("publicIdentifier"),
+        "nombre": nombre,
+        "titular": p.get("headline"),
+        "ubicacion": loc,
+        "empresa": empresa,
+        "cargo": cargo,
+        "foto": foto,
+        "seguidores": p.get("followerCount") or p.get("followersCount"),
+        "conexiones": p.get("connectionsCount"),
+        "fuente": "apify",
+        "bruto_id": p.get("id"),
+    }
 
 
 def puntuar(perfil: dict, nombre: str, empresa: str | None) -> tuple[float, list[str]]:
@@ -159,22 +197,38 @@ def puntuar(perfil: dict, nombre: str, empresa: str | None) -> tuple[float, list
     ev.append(f"nombre {cn:.0%}")
     if empresa:
         ne = normalizar(empresa)
-        txt = normalizar(" ".join(str(perfil.get(k) or "") for k in ("empresa", "titular", "cargo")))
+        txt = normalizar(
+            " ".join(str(perfil.get(k) or "") for k in ("empresa", "titular", "cargo"))
+        )
         if ne and ne in txt:
             s += 0.4
             ev.append(f"empresa «{empresa}» en el perfil")
-    if perfil.get("ubicacion") and any(k in normalizar(perfil["ubicacion"]) for k in ("espana", "spain")):
+    if perfil.get("ubicacion") and any(
+        k in normalizar(perfil["ubicacion"]) for k in ("espana", "spain")
+    ):
         s += 0.05
         ev.append("ubicación en España")
     return round(min(s, 0.99), 2), ev
 
 
-def linkedin_buscar(nombre: str, empresa: str | None = None, empresa_url: str | None = None,
-                    ubicacion: str | None = None, max_items: int = 10, token: str | None = None) -> list[dict]:
+def linkedin_buscar(
+    nombre: str,
+    empresa: str | None = None,
+    empresa_url: str | None = None,
+    ubicacion: str | None = None,
+    max_items: int = 10,
+    token: str | None = None,
+) -> list[dict]:
     """Busca perfiles por nombre (+ filtro de empresa si se da su URL de LinkedIn). Puntúa por empresa."""
     first, last = nombre_apellidos(nombre)
-    entrada = {"firstName": first, "lastName": last, "strictSearch": False, "maxPages": 1,
-               "profileScraperMode": "Short", "maxItems": max_items}
+    entrada = {
+        "firstName": first,
+        "lastName": last,
+        "strictSearch": False,
+        "maxPages": 1,
+        "profileScraperMode": "Short",
+        "maxItems": max_items,
+    }
     if empresa_url:
         entrada["currentCompanies"] = [empresa_url]
     if ubicacion:
@@ -195,42 +249,82 @@ def linkedin_buscar(nombre: str, empresa: str | None = None, empresa_url: str | 
 
 
 def linkedin_perfil(urls: list[str], token: str | None = None) -> list[dict]:
-    items = ejecutar(actor("linkedin_perfil"), {"urls": urls}, token, max_items=len(urls))
+    items = ejecutar(
+        actor("linkedin_perfil"), {"urls": urls}, token, max_items=len(urls)
+    )
     return [{**perfil_linkedin(i), "bruto": i} for i in items]
 
 
-def linkedin_empleados(empresa_url: str, max_items: int = 25, busqueda: str | None = None,
-                       cargos: list[str] | None = None, token: str | None = None) -> list[dict]:
-    entrada = {"companies": [empresa_url], "maxItems": max_items, "profileScraperMode": "Short ($4 per 1k)"}
+def linkedin_empleados(
+    empresa_url: str,
+    max_items: int = 25,
+    busqueda: str | None = None,
+    cargos: list[str] | None = None,
+    token: str | None = None,
+) -> list[dict]:
+    entrada = {
+        "companies": [empresa_url],
+        "maxItems": max_items,
+        "profileScraperMode": "Short ($4 per 1k)",
+    }
     if busqueda:
         entrada["searchQuery"] = busqueda
     if cargos:
         entrada["jobTitles"] = cargos
     # Páginas de empresa grandes tardan más de 4 min en modo síncrono
-    return [perfil_linkedin(i) for i in ejecutar(actor("linkedin_empleados"), entrada, token, max_items=max_items,
-                                                  timeout=480)]
+    return [
+        perfil_linkedin(i)
+        for i in ejecutar(
+            actor("linkedin_empleados"),
+            entrada,
+            token,
+            max_items=max_items,
+            timeout=480,
+        )
+    ]
 
 
-def google(consultas: list[str], token: str | None = None, pais: str = "es") -> list[dict]:
+def google(
+    consultas: list[str], token: str | None = None, pais: str = "es"
+) -> list[dict]:
     """Resultados orgánicos [{url,titulo,snippet,consulta}] vía apify/google-search-scraper."""
-    items = ejecutar(actor("google"), {"queries": "\n".join(consultas), "maxPagesPerQuery": 1,
-                                       "countryCode": pais, "languageCode": "es"}, token)
+    items = ejecutar(
+        actor("google"),
+        {
+            "queries": "\n".join(consultas),
+            "maxPagesPerQuery": 1,
+            "countryCode": pais,
+            "languageCode": "es",
+        },
+        token,
+    )
     out = []
     for it in items:
         q = (it.get("searchQuery") or {}).get("term")
         for o in it.get("organicResults", []):
-            out.append({"url": o.get("url"), "titulo": o.get("title"), "snippet": o.get("description"),
-                        "consulta": q, "motor": "google(apify)"})
+            out.append(
+                {
+                    "url": o.get("url"),
+                    "titulo": o.get("title"),
+                    "snippet": o.get("description"),
+                    "consulta": q,
+                    "motor": "google(apify)",
+                }
+            )
     return out
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     sub = ap.add_subparsers(dest="cmd", required=True)
     b = sub.add_parser("linkedin-buscar")
     b.add_argument("nombre")
     b.add_argument("--empresa")
-    b.add_argument("--empresa-url", help="https://www.linkedin.com/company/<x> (filtro exacto)")
+    b.add_argument(
+        "--empresa-url", help="https://www.linkedin.com/company/<x> (filtro exacto)"
+    )
     b.add_argument("--ubicacion")
     b.add_argument("--max", type=int, default=10)
     p = sub.add_parser("linkedin-perfil")
@@ -251,7 +345,9 @@ def main() -> int:
 
     try:
         if a.cmd == "linkedin-buscar":
-            res = linkedin_buscar(a.nombre, a.empresa, a.empresa_url, a.ubicacion, a.max)
+            res = linkedin_buscar(
+                a.nombre, a.empresa, a.empresa_url, a.ubicacion, a.max
+            )
         elif a.cmd == "linkedin-perfil":
             res = linkedin_perfil(a.urls)
         elif a.cmd == "linkedin-empleados":
@@ -272,8 +368,14 @@ def main() -> int:
         if "url" in x and "titulo" in x:
             print(f"- {x['titulo']}\n  {x['url']}\n  {(x.get('snippet') or '')[:160]}")
         else:
-            print(f"- {x.get('confianza', '')} {x.get('nombre')} | {x.get('titular')} | {x.get('ubicacion')}\n  {x.get('url')}"
-                  + (f"\n  {', '.join(x.get('evidencias', []))}" if x.get("evidencias") else ""))
+            print(
+                f"- {x.get('confianza', '')} {x.get('nombre')} | {x.get('titular')} | {x.get('ubicacion')}\n  {x.get('url')}"
+                + (
+                    f"\n  {', '.join(x.get('evidencias', []))}"
+                    if x.get("evidencias")
+                    else ""
+                )
+            )
     return 0
 
 

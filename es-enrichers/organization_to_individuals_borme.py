@@ -6,12 +6,13 @@ Relación Individual -[CARGO]-> Organization con el código del cargo como etiqu
 SOCIO_UNICO...). Los cargos cesados/revocados en el rango llevan prefijo EX_.
 Las personas jurídicas que ocupan cargos se crean como Organization.
 """
+
 from typing import Any, Dict, List, Optional
 
 from flowsint_core.core.enricher_base import Enricher
 from flowsint_core.core.logger import Logger
-from flowsint_enrichers.registry import flowsint_enricher
 from flowsint_enrichers.es import _borme_comun as bc
+from flowsint_enrichers.registry import flowsint_enricher
 from flowsint_types.individual import Individual
 from flowsint_types.organization import Organization
 
@@ -23,21 +24,48 @@ class EsOrgToIndividualsBormeEnricher(Enricher):
     InputType = Organization
     OutputType = Individual
 
-    def __init__(self, sketch_id: Optional[str] = None, scan_id: Optional[str] = None,
-                 vault=None, params: Optional[Dict[str, Any]] = None, graph_service=None):
-        super().__init__(sketch_id=sketch_id, scan_id=scan_id, params_schema=self.get_params_schema(),
-                         vault=vault, params=params, graph_service=graph_service)
+    def __init__(
+        self,
+        sketch_id: Optional[str] = None,
+        scan_id: Optional[str] = None,
+        vault=None,
+        params: Optional[Dict[str, Any]] = None,
+        graph_service=None,
+    ):
+        super().__init__(
+            sketch_id=sketch_id,
+            scan_id=scan_id,
+            params_schema=self.get_params_schema(),
+            vault=vault,
+            params=params,
+            graph_service=graph_service,
+        )
         self.mapping: List[tuple] = []
 
     @classmethod
     def get_params_schema(cls) -> List[Dict[str, Any]]:
         return bc.PARAMS_COMUNES + [
-            {"name": "SOLO_VIGENTES", "type": "string", "default": "false", "required": False,
-             "description": "true = solo cargos sin cese posterior observado; false = también EX_ cargos."},
-            {"name": "COMPLETO", "type": "string", "default": "false", "required": False,
-             "description": "true = descargar todos los documentos provinciales (lento; llena la caché)."},
-            {"name": "MAX_PETICIONES", "type": "string", "default": "3000", "required": False,
-             "description": "Tope de peticiones a boe.es por ejecución."},
+            {
+                "name": "SOLO_VIGENTES",
+                "type": "string",
+                "default": "false",
+                "required": False,
+                "description": "true = solo cargos sin cese posterior observado; false = también EX_ cargos.",
+            },
+            {
+                "name": "COMPLETO",
+                "type": "string",
+                "default": "false",
+                "required": False,
+                "description": "true = descargar todos los documentos provinciales (lento; llena la caché).",
+            },
+            {
+                "name": "MAX_PETICIONES",
+                "type": "string",
+                "default": "3000",
+                "required": False,
+                "description": "Tope de peticiones a boe.es por ejecución.",
+            },
         ]
 
     @classmethod
@@ -76,32 +104,63 @@ class EsOrgToIndividualsBormeEnricher(Enricher):
                 Logger.error(self.sketch_id, {"message": f"[BORME] {org.name}: {exc}"})
                 continue
             q = mod.normalizar_denominacion(str(org.name))
-            Logger.info(self.sketch_id, {"message": f"[BORME] {org.name}: {len(res['empresas'])} sociedades, "
-                                                    f"coste {res['coste']}"})
+            Logger.info(
+                self.sketch_id,
+                {
+                    "message": f"[BORME] {org.name}: {len(res['empresas'])} sociedades, "
+                    f"coste {res['coste']}"
+                },
+            )
             for emp in res["empresas"]:
-                exacta = mod.normalizar_denominacion(emp["empresa"] or "")["base"] == q["base"]
-                destino = org if exacta else Organization(name=emp["empresa"], source="BORME")
+                exacta = (
+                    mod.normalizar_denominacion(emp["empresa"] or "")["base"]
+                    == q["base"]
+                )
+                destino = (
+                    org if exacta else Organization(name=emp["empresa"], source="BORME")
+                )
                 if not exacta:
-                    self.mapping.append(("org", org, destino, "BORME_COINCIDENCIA_PARCIAL", None))
+                    self.mapping.append(
+                        ("org", org, destino, "BORME_COINCIDENCIA_PARCIAL", None)
+                    )
                 for h in bc.historial_cargos(emp["actos"]):
                     if solo_vig and not h["vigente"]:
                         continue
-                    etiqueta = h["cargo_codigo"] if h["vigente"] else f"EX_{h['cargo_codigo']}"
-                    resumen = (f"{h['cargo']} en {emp['empresa']} desde {h['desde'] or '¿?'}"
-                               + (f" hasta {h['hasta']}" if h["hasta"] else " (vigente, inferido)")
-                               + f" [BORME {', '.join(h['borme_ids'][:3])}]")
+                    etiqueta = (
+                        h["cargo_codigo"] if h["vigente"] else f"EX_{h['cargo_codigo']}"
+                    )
+                    resumen = (
+                        f"{h['cargo']} en {emp['empresa']} desde {h['desde'] or '¿?'}"
+                        + (
+                            f" hasta {h['hasta']}"
+                            if h["hasta"]
+                            else " (vigente, inferido)"
+                        )
+                        + f" [BORME {', '.join(h['borme_ids'][:3])}]"
+                    )
                     if bc.es_persona_juridica(h["persona"]):
-                        nodo = Organization(name=h["persona"], source="BORME", borme_cargos=[resumen])
+                        nodo = Organization(
+                            name=h["persona"], source="BORME", borme_cargos=[resumen]
+                        )
                     else:
-                        nodo = bc.individuo(h["persona"], job_title=h["cargo"], employer=emp["empresa"],
-                                            first_seen=h["desde"], last_seen=h["hasta"] or h["desde"],
-                                            notes=resumen, borme_cargos=[resumen],
-                                            borme_cargo_codigo=h["cargo_codigo"], borme_vigente=h["vigente"])
+                        nodo = bc.individuo(
+                            h["persona"],
+                            job_title=h["cargo"],
+                            employer=emp["empresa"],
+                            first_seen=h["desde"],
+                            last_seen=h["hasta"] or h["desde"],
+                            notes=resumen,
+                            borme_cargos=[resumen],
+                            borme_cargo_codigo=h["cargo_codigo"],
+                            borme_vigente=h["vigente"],
+                        )
                         out.append(nodo)
                     self.mapping.append(("cargo", nodo, destino, etiqueta, resumen))
         return out
 
-    def postprocess(self, results: List[OutputType], original_input: List[InputType] = None) -> List[OutputType]:
+    def postprocess(
+        self, results: List[OutputType], original_input: List[InputType] = None
+    ) -> List[OutputType]:
         if not self._graph_service:
             return results
         for kind, a, b, etiqueta, resumen in self.mapping:
@@ -112,7 +171,9 @@ class EsOrgToIndividualsBormeEnricher(Enricher):
                 self.log_graph_message(f"{a.name} ~ {b.name} ({etiqueta})")
             else:
                 self.create_relationship(a, b, etiqueta)
-                self.log_graph_message(f"{getattr(a, 'full_name', None) or a.name} -[{etiqueta}]-> {b.name}")
+                self.log_graph_message(
+                    f"{getattr(a, 'full_name', None) or a.name} -[{etiqueta}]-> {b.name}"
+                )
         return results
 
 
