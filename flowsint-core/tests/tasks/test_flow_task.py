@@ -1,10 +1,12 @@
 """run_flow derives the scan status from the aggregated flow outcome."""
 
 import uuid
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict
 from unittest.mock import MagicMock
 
 import pytest
+from celery.exceptions import Ignore
 
 from flowsint_core.core.enums import EventLevel
 from flowsint_core.core.models import Scan
@@ -176,3 +178,93 @@ def test_run_flow_duplicate_scan_id_stops_and_keeps_existing_scan(monkeypatch):
     assert again.error is None
     assert again.completed_at == done_at
     check.close()
+
+
+@pytest.fixture
+def expiring(monkeypatch):
+    """Run the task as a worker does, with `expires` in its request, on sqlite."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy.pool import StaticPool
+
+    from flowsint_core.core.models import Base
+
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine)
+    monkeypatch.setattr(flow_task, "SessionLocal", Session)
+    ran = []
+
+    class FakeOrchestrator:
+        def __init__(self, **kwargs):
+            pass
+
+        def scan(self, values):
+            ran.append(1)
+            return _results("success", [])
+
+    monkeypatch.setattr(flow_task, "FlowOrchestrator", FakeOrchestrator)
+
+    def runner(expires):
+        """(ignored, times run, scan rows)"""
+        ignored = False
+        flow_task.run_flow.push_request(id=str(uuid.uuid4()), expires=expires)
+        try:
+            flow_task.run_flow.run([BRANCH], [], None)
+        except Ignore:
+            ignored = True
+        finally:
+            flow_task.run_flow.pop_request()
+        with Session() as check:
+            return ignored, len(ran), check.query(Scan).count()
+
+    return runner
+
+
+def _at(seconds: int) -> datetime:
+    return datetime.now(timezone.utc) + timedelta(seconds=seconds)
+
+
+_MADRID = timezone(timedelta(hours=2))
+
+
+@pytest.mark.parametrize(
+    "expires",
+    [
+        _at(-60).isoformat(),
+        _at(-60).isoformat().replace("+00:00", "Z"),
+        _at(-60).astimezone(_MADRID).isoformat(),
+        _at(-60).replace(tzinfo=None).isoformat(),  # naive = UTC
+        _at(-60),
+        _at(-60).replace(tzinfo=None),
+    ],
+)
+def test_run_flow_expired_runs_nothing_and_leaves_no_scan(expiring, expires):
+    assert expiring(expires) == (True, 0, 0)
+
+
+@pytest.mark.parametrize(
+    "expires",
+    [
+        None,
+        "",
+        _at(600).isoformat(),
+        _at(600).astimezone(_MADRID).isoformat(),
+        _at(600).replace(tzinfo=None).isoformat(),
+        _at(600),
+        _at(600).replace(tzinfo=None),
+    ],
+)
+def test_run_flow_not_expired_runs(expiring, capsys, expires):
+    assert expiring(expires) == (False, 1, 1)
+    assert "expiry" not in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("expires", ["tomorrow", 5, {"a": 1}])
+def test_run_flow_unreadable_expiry_runs_and_is_logged(expiring, capsys, expires):
+    assert expiring(expires) == (False, 1, 1)
+    assert "expiry" in capsys.readouterr().out

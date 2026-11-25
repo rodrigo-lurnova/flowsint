@@ -33,6 +33,25 @@ def _failure_message(sources: List[dict]) -> str:
     return "Flow failed, no source completed: " + "; ".join(errors)
 
 
+def _expired(expires) -> bool:
+    """Whether a message's expiry (ISO string or datetime, naive = UTC) has passed.
+
+    Celery only checks it when it hands the message to the pool. With --pool=threads
+    (and with prefetch in general) the task can start long after that.
+    """
+    if not expires:
+        return False
+    try:
+        if isinstance(expires, str):
+            expires = datetime.fromisoformat(expires.strip().replace("Z", "+00:00"))
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        return expires <= datetime.now(timezone.utc)
+    except (ValueError, TypeError, AttributeError):
+        print(f"Unreadable task expiry {expires!r}, running the flow anyway")
+        return False
+
+
 @celery.task(name="run_flow", bind=True)
 def run_flow(
     self,
@@ -41,6 +60,10 @@ def run_flow(
     sketch_id: str | None,
     owner_id: Optional[str] = None,
 ):
+    if _expired(self.request.expires):
+        print(f"Scan {self.request.id} expired in the queue, not run")
+        raise Ignore()
+
     session = SessionLocal()
 
     try:
