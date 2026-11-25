@@ -93,6 +93,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       # Community enricher (ozeliurs/flowsint-enrichers), reviewed before mounting
       - ./community-enrichers/ozeliurs/ip/to_asn_cymru.py:/app/flowsint-enrichers/src/flowsint_enrichers/ip/to_asn_cymru.py:ro
+      - ./flowsint-enrichers/src/flowsint_enrichers/social/to_maigret.py:/app/flowsint-enrichers/src/flowsint_enrichers/social/to_maigret.py:ro
       - ./es-enrichers:/app/flowsint-enrichers/src/flowsint_enrichers/es:ro
       - ./osint-es-scripts:/opt/osint-es-scripts:ro
       - ./.osint-es-cache:/data/osint-es
@@ -147,6 +148,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       # Community enricher (ozeliurs/flowsint-enrichers), reviewed before mounting
       - ./community-enrichers/ozeliurs/ip/to_asn_cymru.py:/app/flowsint-enrichers/src/flowsint_enrichers/ip/to_asn_cymru.py:ro
+      - ./flowsint-enrichers/src/flowsint_enrichers/social/to_maigret.py:/app/flowsint-enrichers/src/flowsint_enrichers/social/to_maigret.py:ro
       - ./es-enrichers:/app/flowsint-enrichers/src/flowsint_enrichers/es:ro
       - ./osint-es-scripts:/opt/osint-es-scripts:ro
       - ./.osint-es-cache:/data/osint-es

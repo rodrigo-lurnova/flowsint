@@ -1,7 +1,9 @@
 import json
 import subprocess
+import tempfile
 from pathlib import Path
-from typing import List
+from typing import Any, Dict, List, Optional
+from urllib.parse import unquote
 
 from flowsint_core.core.enricher_base import Enricher
 from flowsint_core.core.logger import Logger
@@ -9,7 +11,8 @@ from flowsint_enrichers.registry import flowsint_enricher
 from flowsint_types import Username
 from flowsint_types.social_account import SocialAccount
 
-false_positives = ["LeagueOfLegends"]
+# fixya and Pling claim any username, even nonexistent ones
+false_positives = ["LeagueOfLegends", "fixya", "Pling"]
 
 
 @flowsint_enricher
@@ -19,6 +22,23 @@ class MaigretEnricher(Enricher):
     # Define types as class attributes - base class handles schema generation automatically
     InputType = Username
     OutputType = SocialAccount
+
+    def __init__(
+        self,
+        sketch_id: Optional[str] = None,
+        scan_id: Optional[str] = None,
+        vault=None,
+        params: Optional[Dict[str, Any]] = None,
+        graph_service=None,
+    ):
+        super().__init__(
+            sketch_id=sketch_id,
+            scan_id=scan_id,
+            params_schema=self.get_params_schema(),
+            vault=vault,
+            params=params,
+            graph_service=graph_service,
+        )
 
     @classmethod
     def name(cls) -> str:
@@ -32,21 +52,81 @@ class MaigretEnricher(Enricher):
     def key(cls) -> str:
         return "username"
 
-    def run_maigret(self, username: str) -> Path:
-        output_file = Path(f"/tmp/report_{username}_simple.json")
+    @classmethod
+    def get_params_schema(cls) -> List[Dict[str, Any]]:
+        return [
+            {
+                "name": "top_sites",
+                "type": "string",
+                "default": "500",
+                "required": False,
+                "description": "Number of most popular sites to check, or 'all' (slow).",
+            },
+            {
+                "name": "tags",
+                "type": "string",
+                "required": False,
+                "description": "Only check sites with these tags, comma separated (e.g. 'es,social').",
+            },
+            {
+                "name": "timeout",
+                "type": "string",
+                "default": "300",
+                "required": False,
+                "description": "Maximum seconds per username.",
+            },
+        ]
+
+    def build_command(self, username: str, output_dir: str) -> List[str]:
+        command = [
+            "maigret",
+            "-J",
+            "simple",
+            "-fo",
+            output_dir,
+            # Recursion searches other aliases found in profiles: slow, and
+            # their reports would not belong to this username.
+            "--no-recursion",
+            "--no-progressbar",
+            "--no-color",
+        ]
+        top_sites = str(self.params.get("top_sites") or "500").strip().lower()
+        if top_sites == "all":
+            command.append("--all-sites")
+        else:
+            command += ["--top-sites", str(int(top_sites))]
+        if self.params.get("tags"):
+            command.append(f"--tags={self.params['tags']}")
+        # "--" keeps a username starting with "-" from being read as an option
+        return command + ["--", username]
+
+    def run_maigret(self, username: str, output_dir: str) -> Optional[Path]:
+        timeout = int(self.params.get("timeout") or 300)
         try:
-            subprocess.run(
-                ["maigret", username, "-J", "simple", "-fo", "/tmp"],
+            process = subprocess.run(
+                self.build_command(username, output_dir),
                 capture_output=True,
                 text=True,
-                timeout=100,
+                timeout=timeout,
             )
-        except Exception as e:
+        except subprocess.TimeoutExpired:
             Logger.error(
                 self.sketch_id,
-                {"message": f"Maigret execution failed for {username}: {e}"},
+                {"message": f"[MAIGRET] {username}: no result after {timeout}s"},
             )
-        return output_file
+            return None
+        # Maigret sanitizes the username in the file name, so look it up.
+        report = next(Path(output_dir).glob("report_*_simple.json"), None)
+        if process.returncode != 0 or report is None:
+            detail = (process.stderr or process.stdout or "").strip()[-300:]
+            Logger.error(
+                self.sketch_id,
+                {
+                    "message": f"[MAIGRET] {username}: failed (exit code {process.returncode}): {detail}"
+                },
+            )
+            return None
+        return report
 
     def parse_maigret_output(
         self, username_obj: Username, output_file: Path
@@ -78,6 +158,12 @@ class MaigretEnricher(Enricher):
             ids = status.get("ids", {})
             profile_url = status.get("url") or profile.get("url_user")
             if not profile_url:
+                continue
+
+            # Search pages and URLs without the username do not prove an account
+            if profile.get("is_similar"):
+                continue
+            if username_obj.value.lower() not in unquote(profile_url).lower():
                 continue
 
             try:
@@ -140,9 +226,11 @@ class MaigretEnricher(Enricher):
             if not profile.value:
                 continue
             try:
-                output_file = self.run_maigret(profile.value)
-                parsed = self.parse_maigret_output(profile, output_file)
-                results.extend(parsed)
+                with tempfile.TemporaryDirectory() as output_dir:
+                    report = self.run_maigret(profile.value, output_dir)
+                    if report is None:
+                        continue
+                    results.extend(self.parse_maigret_output(profile, report))
             except Exception as e:
                 Logger.error(
                     self.sketch_id,
