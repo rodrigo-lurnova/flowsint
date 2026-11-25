@@ -20,13 +20,31 @@ DISABLED = "desactivado en este servidor"
 NO_INPUT_TYPE = "sin datos del tipo necesario: paso anterior desactivado"
 
 
-def data_fits_input_type(data: Any, input_type: Any) -> bool:
+def _leading_type(branch: FlowBranch) -> Optional[type]:
+    """The entity type of the branch's leading `type` step, if it resolves.
+
+    The step id follows the flow-schema convention "<TypeName>-<n>".
+    """
+    for step in branch.steps:
+        if step.type != "type":
+            continue
+        from flowsint_types import TYPE_REGISTRY
+
+        return TYPE_REGISTRY.get_lowercase(step.nodeId.split("-")[0])
+    return None
+
+
+def data_fits_input_type(
+    data: Any, input_type: Any, initial_type: Optional[type] = None
+) -> bool:
     """Whether the data a step would receive is really of the enricher's InputType.
 
     Checked on the actual data, never through pydantic coercion (which would turn
     an Organization into an Individual named like the company): model instances by
-    isinstance, dicts by their nodeType. Anything that cannot be determined (strings,
-    dicts without nodeType, no usable InputType, empty data) does not fit.
+    isinstance, dicts by their nodeType. `initial_type` is set while the data is
+    still the flow's initial values (launch payloads carry no nodeType): they are
+    of the branch's leading type. Anything that cannot be determined (no usable
+    InputType, empty data, unknown item) does not fit; mixed lists do not fit.
     """
     if not isinstance(input_type, type) or not isinstance(data, (list, tuple)):
         return False
@@ -37,9 +55,11 @@ def data_fits_input_type(data: Any, input_type: Any) -> bool:
         if isinstance(item, BaseModel):
             if not isinstance(item, input_type):
                 return False
-        elif isinstance(item, dict):
-            node_type = item.get("nodeType")
-            if not isinstance(node_type, str) or node_type.strip().lower() != expected:
+        elif isinstance(item, dict) and isinstance(item.get("nodeType"), str):
+            if item["nodeType"].strip().lower() != expected:
+                return False
+        elif initial_type is not None:
+            if initial_type.__name__.lower() != expected:
                 return False
         else:
             return False
@@ -465,6 +485,8 @@ class FlowOrchestrator(Enricher):
             after_disabled = False
             # Set once a step cannot get data of its type: the rest is skipped.
             type_blocked = False
+            # Until a real step has produced outputs, the data is the initial values
+            initial_type = _leading_type(branch)
 
             # Process each step in the branch
             enricher_inputs = values
@@ -492,7 +514,9 @@ class FlowOrchestrator(Enricher):
 
                 if after_disabled and not branch_failed and not type_blocked:
                     type_blocked = enricher is not None and not data_fits_input_type(
-                        enricher_inputs, getattr(enricher, "InputType", None)
+                        enricher_inputs,
+                        getattr(enricher, "InputType", None),
+                        initial_type,
                     )
                 if type_blocked:
                     add_skipped_run(node_id, enricher_name, NO_INPUT_TYPE)
@@ -619,6 +643,7 @@ class FlowOrchestrator(Enricher):
                     results["results"][node_id] = outputs
                     enricher_inputs = outputs
                     after_disabled = False  # real outputs from here on
+                    initial_type = None
 
                     if run.status == "failed" and not outputs:
                         branch_failed = True

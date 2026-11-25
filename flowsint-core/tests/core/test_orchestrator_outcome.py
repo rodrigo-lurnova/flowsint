@@ -159,6 +159,29 @@ def branch(name: str, *node_ids: str) -> FlowBranch:
     return FlowBranch(id=name, name=name, steps=[step(n) for n in node_ids])
 
 
+def type_step(type_name: str) -> FlowStep:
+    return FlowStep(
+        nodeId=f"{type_name}-1",
+        type="type",
+        inputs={},
+        outputs={},
+        status="pending",
+        branchId="b",
+        depth=0,
+    )
+
+
+def typed_branch(type_name: str, *node_ids: str) -> FlowBranch:
+    """A branch led by a `type` step, as compute_flow_branches builds them."""
+    steps = [type_step(type_name)] + [step(n) for n in node_ids]
+    return FlowBranch(id=type_name, name=type_name, steps=steps)
+
+
+def launch_dump(entity) -> Dict[str, Any]:
+    """An entity exactly as POST /flows/{id}/launch hands it to the task."""
+    return entity.model_dump(mode="json", serialize_as_any=True)
+
+
 @pytest.fixture
 def run_flow_with(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)  # the orchestrator writes enricher_logs/ to the cwd
@@ -396,14 +419,15 @@ DISABLED = "desactivado en este servidor"
 
 
 def test_disabled_enricher_is_skipped_and_the_branch_goes_on(run_flow_with):
+    entity = launch_dump(Individual(full_name="Ana"))
     r = run_flow_with(
-        {"a": [[PERSON]], "c": [[NODE]]},
-        [branch("one", "a-1", "off-1", "c-1")],
+        {"c": [[NODE]]},
+        [typed_branch("Individual", "off-1", "c-1")],
+        values=[entity],
         disabled=("off",),
         input_types={"c": Individual},
     )
     assert [(s["source"], s["status"], s["error"]) for s in r["sources"]] == [
-        ("a", "ok", None),
         ("off", "skipped", DISABLED),
         ("c", "ok", None),
     ]
@@ -416,8 +440,8 @@ def test_disabled_enricher_is_skipped_and_the_branch_goes_on(run_flow_with):
 def test_disabled_enricher_in_two_branches_is_one_skipped_run(run_flow_with):
     r = run_flow_with(
         {"c": [[NODE]]},
-        [branch("one", "off-1", "c-1"), branch("two", "off-1")],
-        values=[PERSON],
+        [typed_branch("Individual", "off-1", "c-1"), branch("two", "off-1")],
+        values=[launch_dump(Individual(full_name="Ana"))],
         disabled=("off",),
         input_types={"c": Individual},
     )
@@ -679,3 +703,142 @@ def test_branches_without_a_disabled_node_keep_string_inputs(run_flow_with):
     assert statuses(r) == ["ok"]
     (received,) = run_flow_with.script.inputs["needs"]
     assert [type(v) for v in received] == [Individual]  # coerced as always
+
+
+# --- real launch: branches from compute_flow_branches, entities as dumped -----
+
+
+def _compute_flow_branches():
+    import sys
+    from pathlib import Path
+
+    api = Path(__file__).resolve().parents[3] / "flowsint-api"
+    if not api.is_dir():
+        pytest.skip("flowsint-api is not available")
+    sys.path.insert(0, str(api))
+    try:
+        from app.api.routes.flows import compute_flow_branches
+    finally:
+        sys.path.remove(str(api))
+    return compute_flow_branches
+
+
+def _schema_node(node_id, kind, out_type, in_type=""):
+    return {
+        "id": node_id,
+        "type": kind,
+        "position": {"x": 0, "y": 0},
+        "data": {
+            "name": node_id.split("-")[0],
+            "class_name": node_id.split("-")[0],
+            "type": kind,
+            "params": {},
+            "inputs": {"type": in_type, "properties": []},
+            "outputs": {"type": out_type, "properties": [{"name": "out", "type": "x"}]},
+        },
+    }
+
+
+def _chain(type_name, *enrichers):
+    """Real FlowBranch list for type -> e1 -> e2 ...; enrichers = (id, in, out)."""
+    from flowsint_core.core.types import FlowEdge, FlowNode
+
+    nodes = [FlowNode(**_schema_node(f"{type_name}-1", "type", type_name))]
+    edges, prev, prev_out = [], f"{type_name}-1", type_name
+    for node_id, in_type, out_type in enrichers:
+        nodes.append(FlowNode(**_schema_node(node_id, "enricher", out_type, in_type)))
+        edges.append(
+            FlowEdge(
+                id=f"{prev}-{node_id}",
+                source=prev,
+                target=node_id,
+                sourceHandle=prev_out,
+                targetHandle=in_type,
+            )
+        )
+        prev, prev_out = node_id, out_type
+    return _compute_flow_branches()("sample", nodes, edges)
+
+
+def test_launch_disabled_first_enricher_same_type_next_step_runs(run_flow_with):
+    branches = _chain(
+        "Organization",
+        ("off-1", "Organization", "Organization"),
+        ("officers-1", "Organization", "Individual"),
+    )
+    org = launch_dump(Organization(name="Acme"))
+    assert "nodeType" not in org
+    r = run_flow_with(
+        {"officers": [[PERSON]]},
+        branches,
+        values=[org],
+        disabled=("off",),
+        input_types={"officers": Organization},
+    )
+    assert statuses(r) == ["skipped", "ok"]
+    (received,) = run_flow_with.script.inputs["officers"]
+    assert [type(v) for v in received] == [Organization]
+    assert received[0].name == "Acme"
+
+
+def test_launch_disabled_first_enricher_changing_type_skips_the_next(run_flow_with):
+    branches = _chain(
+        "Organization",
+        ("off-1", "Organization", "Individual"),
+        ("needs-1", "Individual", "Individual"),
+    )
+    r = run_flow_with(
+        {"needs": [[PERSON]]},
+        branches,
+        values=[launch_dump(Organization(name="Acme"))],
+        disabled=("off",),
+        input_types=NEEDS_PERSON,
+    )
+    assert [(s["source"], s["status"], s["error"]) for s in r["sources"]] == [
+        ("off", "skipped", DISABLED),
+        ("needs", "skipped", NO_TYPE),
+    ]
+    assert "needs" not in run_flow_with.script.calls
+
+
+def test_launch_resolver_disabled_then_officers_runs(run_flow_with):
+    branches = _chain(
+        "Organization",
+        ("resolver-1", "Organization", "Organization"),
+        ("officers-1", "Organization", "Individual"),
+    )
+    r = run_flow_with(
+        {"officers": [[PERSON]]},
+        branches,
+        values=[launch_dump(Organization(name="Acme"))],
+        disabled=("resolver",),
+        input_types={"officers": Organization},
+    )
+    assert statuses(r) == ["skipped", "ok"]
+    assert r["outcome"] == "complete"
+
+
+def test_unresolvable_leading_type_is_skipped(run_flow_with):
+    r = run_flow_with(
+        {"c": [[NODE]]},
+        [typed_branch("NoSuchType", "off-1", "c-1")],
+        values=[{"label": "x"}],
+        disabled=("off",),
+        input_types={"c": Individual},
+    )
+    assert statuses(r) == ["skipped", "skipped"]
+    assert r["sources"][1]["error"] == NO_TYPE
+
+
+def test_real_step_outputs_are_checked_by_isinstance_not_the_leading_type(
+    run_flow_with,
+):
+    # leading type is Organization, but the step in between produced Individuals
+    r = run_flow_with(
+        {"mid": [[Individual(full_name="Ana")]], "needs": [[NODE]]},
+        [typed_branch("Organization", "off-1", "mid-1", "needs-1")],
+        values=[launch_dump(Organization(name="Acme"))],
+        disabled=("off",),
+        input_types={"mid": Organization, "needs": Individual},
+    )
+    assert statuses(r) == ["skipped", "ok", "ok"]
