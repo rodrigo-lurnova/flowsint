@@ -118,3 +118,14 @@ async def test_secret_values_redacted_from_error():
 def test_confidence_out_of_range_rejected():
     with pytest.raises(ValidationError):
         Finding(**{**FINDING.model_dump(), "confidence": 1.2})
+
+
+async def test_secret_with_newline_redacted_raw_and_stripped():
+    schema = [
+        {"name": "KEY", "type": "vaultSecret"},
+        {"name": "BLANK", "type": "vaultSecret"},
+    ]
+    e = make_enricher(params_schema=schema, params={"KEY": "s3cr3t\n", "BLANK": "\n"})
+    e.add_failure("Illegal header value b'Bearer s3cr3t\\n'")
+    e.add_failure("sent s3cr3t\nend\nline")
+    assert e.failures == ["Illegal header value b'Bearer ***\\n'", "sent ***end\nline"]

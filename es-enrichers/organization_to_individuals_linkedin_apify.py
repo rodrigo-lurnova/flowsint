@@ -4,7 +4,6 @@ AVISO: los actores de LinkedIn rascan linkedin.com, cuyas condiciones lo prohíb
 usarlos es decisión del usuario.
 """
 
-import os
 from typing import Any, Dict, List, Optional
 
 from flowsint_core.core.enricher_base import Enricher
@@ -110,7 +109,7 @@ class EsOrgToLinkedinEmployeesEnricher(Enricher):
     async def scan(self, data: List[InputType]) -> List[OutputType]:
         apify = load("apify_actores")
         self.mapping, out = [], []
-        token = self.params.get("APIFY_TOKEN") or os.getenv("APIFY_TOKEN")
+        token = ev.clave(self, "APIFY_TOKEN")
         if not token:
             ev.sin_token(self)
             return []

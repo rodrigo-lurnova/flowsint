@@ -5,7 +5,6 @@ grafo o parámetro `empresa`): due diligence con minimización RGPD, no perfilad
 particulares. No está en los flows por defecto.
 """
 
-import os
 from typing import Any, Dict, List, Optional
 
 from flowsint_core.core.enricher_base import Enricher
@@ -109,7 +108,7 @@ class EsIndividualToSocialsEnricher(Enricher):
 
     async def scan(self, data: List[InputType]) -> List[OutputType]:
         perfiles = load("perfiles")
-        token = self.params.get("APIFY_TOKEN") or os.getenv("APIFY_TOKEN")
+        token = ev.clave(self, "APIFY_TOKEN")
         redes = [
             r.strip() for r in (self.params.get("redes") or "").split(",") if r.strip()
         ] or None

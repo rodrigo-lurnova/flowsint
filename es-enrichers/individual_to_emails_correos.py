@@ -1,6 +1,5 @@
 """Individual -> Email: correos corporativos probables (osint-es-scripts/correos.py)."""
 
-import os
 from typing import Any, Dict, List, Optional
 
 from flowsint_core.core.enricher_base import Enricher
@@ -109,7 +108,7 @@ class EsIndividualToEmailsEnricher(Enricher):
     async def scan(self, data: List[InputType]) -> List[OutputType]:
         correos = load("correos")
         self.mapping, out = [], []
-        hk = self.params.get("HUNTER_API_KEY") or os.getenv("HUNTER_API_KEY")
+        hk = ev.clave(self, "HUNTER_API_KEY")
         minc = float(self.params.get("min_confianza") or 0.4)
         maxr = int(self.params.get("max_resultados") or 3)
         for ind in data:

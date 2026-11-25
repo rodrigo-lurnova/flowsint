@@ -5,10 +5,10 @@ aquí solo: parámetros comunes, llamada no bloqueante y conversión a tipos Flo
 """
 
 import asyncio
-import os
 import re
 from typing import Any, Dict, List, Optional
 
+from flowsint_enrichers.es import _evidencias as ev
 from flowsint_enrichers.es._scripts import load
 from flowsint_types.individual import Individual
 from flowsint_types.organization import Organization
@@ -176,6 +176,22 @@ def misma_forma(a: dict, b: dict) -> bool:
     return not fa or not fb or fa.rstrip("U") == fb.rstrip("U")
 
 
+def mismas_palabras(a: str, b: str) -> bool:
+    """Mismo nombre de persona, palabra por palabra y en cualquier orden."""
+    return palabras(a) == palabras(b)
+
+
+def palabras(nombre: str) -> tuple:
+    texto = borme().norm_texto(nombre)
+    return tuple(sorted(re.sub(r"[^A-Z0-9 ]", " ", texto).split()))
+
+
+def misma_empresa(a: str, b: str) -> bool:
+    """Misma denominación base y forma jurídica compatible."""
+    na, nb = (borme().normalizar_denominacion(x or "") for x in (a, b))
+    return bool(na["base"]) and na["base"] == nb["base"] and misma_forma(na, nb)
+
+
 def url_acto(actos: List[dict], borme_ids: List[str]) -> Optional[str]:
     """URL del último de los `borme_ids` que la tenga."""
     urls = {a.get("borme_id"): a.get("url_pdf") or a.get("url_html") for a in actos}
@@ -279,4 +295,4 @@ def historial_cargos(actos: List[dict]) -> List[dict]:
 
 
 def api_key_de(enricher) -> Optional[str]:
-    return enricher.get_secret("APISPAIN_API_KEY", os.getenv("APISPAIN_API_KEY"))
+    return ev.clave(enricher, "APISPAIN_API_KEY")

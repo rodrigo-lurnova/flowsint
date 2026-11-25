@@ -88,7 +88,7 @@ def ejecutar(
 ) -> list[dict]:
     """Ejecuta un actor en modo síncrono y devuelve los items del dataset. Si agota el tiempo pero hay
     resultados parciales, los devuelve y lo anota en `errores`."""
-    token = token or os.getenv("APIFY_TOKEN")
+    token = (token or os.getenv("APIFY_TOKEN") or "").strip()
     if not token:
         raise SinToken("Falta APIFY_TOKEN: integración Apify desactivada (se omite).")
     max_usd = (

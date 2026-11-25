@@ -61,7 +61,9 @@ class Apispain:
     def __init__(
         self, api_key: str | None = None, timeout: float = 30, base: str = BASE
     ):
-        self.api_key = api_key if api_key is not None else os.getenv(ENV_KEY)
+        self.api_key = (
+            api_key if api_key is not None else os.getenv(ENV_KEY) or ""
+        ).strip()
         self.client = httpx.Client(base_url=base, headers=HEADERS, timeout=timeout)
         self.last_usage: dict = {}
 

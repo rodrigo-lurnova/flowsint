@@ -339,7 +339,10 @@ def hunter(dominio: str, nombre: str | None, client: httpx.Client, key: str) -> 
         try:
             r = client.get(
                 f"https://api.hunter.io/v2/{ruta}",
-                params={"domain": dominio, **params, "api_key": key},
+                params={"domain": dominio, **params},
+                headers={
+                    "X-API-KEY": key.strip()
+                },  # en la URL acabaría en el log de httpx
             )
             if r.status_code == 200:
                 return r.json().get("data") or {}
@@ -495,7 +498,7 @@ def analizar_dominio(
             github_commits(f'"{dominio}"', client, errores=errores) if github else []
         )
         res["github"] = [c for c in res["github"] if c["email"].endswith("@" + dominio)]
-        hk = hunter_key or os.getenv("HUNTER_API_KEY")
+        hk = (hunter_key or os.getenv("HUNTER_API_KEY") or "").strip()
         res["hunter"] = hunter(dominio, None, client, hk) if hk else None
         errores += errores_hunter(res["hunter"])
         res["patron"] = detectar_patron(res["correos_publicos"], res["github"], dominio)
@@ -541,7 +544,7 @@ def buscar_correos(
     hunter_verificacion (estado que da Hunter o None) y url (dónde se vio, si se sabe). `errores` del
     resultado son las fuentes que han fallado."""
     with httpx.Client(headers=HEADERS, timeout=20, follow_redirects=True) as c:
-        hk = hunter_key or os.getenv("HUNTER_API_KEY")
+        hk = (hunter_key or os.getenv("HUNTER_API_KEY") or "").strip()
         info = dominio_info or analizar_dominio(dominio, max_paginas, github, c, hk)
         dominio = info["dominio"]
         cands = generar_candidatos(nombre, dominio, apellidos_primero)

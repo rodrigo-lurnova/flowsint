@@ -1,9 +1,10 @@
 """Hallazgos (Finding) y fallos de fuente de los enrichers de personas."""
 
 import math
+import os
 from typing import Any, Iterable, Optional
 
-from flowsint_core.core.enricher_base import Enricher
+from flowsint_core.core.enricher_base import Enricher, mask_secret
 from flowsint_core.core.findings import Finding
 from flowsint_core.core.logger import Logger
 
@@ -80,10 +81,14 @@ def fallo(
         if isinstance(error, Exception)
         else str(error)
     )
-    if secreto:
-        detalle = detalle.replace(secreto, "***")
-    enricher.add_failure(f"{source}: {subject}: {detalle}")
+    enricher.add_failure(f"{source}: {subject}: {mask_secret(detalle, secreto)}")
     Logger.error(enricher.sketch_id, {"message": enricher.failures[-1]})
+
+
+def clave(enricher: Enricher, nombre: str) -> Optional[str]:
+    """Clave de la vault o, si falta, del entorno, sin espacios ni saltos de línea alrededor."""
+    valores = (enricher.params.get(nombre), os.getenv(nombre))
+    return next((v.strip() for v in valores if v and v.strip()), None)
 
 
 def sin_token(enricher: Enricher) -> None:

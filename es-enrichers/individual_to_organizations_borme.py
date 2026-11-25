@@ -101,6 +101,7 @@ class EsIndividualToOrgsBormeEnricher(Enricher):
         Requiere todos los documentos provinciales del rango (se cachean en SQLite).
         El BORME no publica DNI: salvo en la empresa ya vinculada a la persona en el sketch,
         la relación es POSIBLE_<CARGO> (POSIBLE_EX_<CARGO>) porque puede ser un homónimo.
+        Solo se confirma si coinciden la forma jurídica y el nombre completo del cargo.
         """
 
     async def scan(self, data: List[InputType]) -> List[OutputType]:
@@ -122,10 +123,7 @@ class EsIndividualToOrgsBormeEnricher(Enricher):
                 Exception
             ) as exc:  # sin contexto se busca igual: todo queda como posible
                 ev.fallo(self, bc.FUENTE, nombre, exc)
-                enlazadas = []
-            vinculadas = {mod.normalizar_denominacion(e)["base"] for e in enlazadas} - {
-                ""
-            }
+                enlazadas = None
             try:
                 res = await bc.buscar_persona(nombre, self.params)
             except Exception as exc:
@@ -144,7 +142,12 @@ class EsIndividualToOrgsBormeEnricher(Enricher):
             ]
             for emp, base in zip(res["empresas"], bases):
                 # Dos sociedades con la denominación vinculada: no se sabe cuál es la del sketch
-                confirmada = base in vinculadas and bases.count(base) == 1
+                directa = any(
+                    bc.misma_empresa(e, emp["empresa"] or "") for e in enlazadas or []
+                )
+                unica = directa and bases.count(base) == 1
+                # Una relación POSIBLE_ quitaría el contexto a un vínculo legítimo (o que no se ha podido leer)
+                escribir_posible = enlazadas is not None and not directa
                 org = Organization(
                     name=emp["empresa"],
                     source="BORME",
@@ -153,12 +156,16 @@ class EsIndividualToOrgsBormeEnricher(Enricher):
                     registro_mercantil=emp["provincia"],
                 )
                 out.append(org)
-                vig = {v["cargo_codigo"] for v in emp["cargos_vigentes"]}
+                vig = {
+                    (bc.palabras(v["persona"]), v["cargo_codigo"])
+                    for v in emp["cargos_vigentes"]
+                }
                 vistos = set()
                 for c in emp["cargos"]:
+                    confirmada = unica and bc.mismas_palabras(nombre, c["persona"])
                     etiqueta = (
                         c["cargo_codigo"]
-                        if c["cargo_codigo"] in vig
+                        if (bc.palabras(c["persona"]), c["cargo_codigo"]) in vig
                         else f"EX_{c['cargo_codigo']}"
                     )
                     etiqueta = etiqueta if confirmada else f"POSIBLE_{etiqueta}"
@@ -169,7 +176,8 @@ class EsIndividualToOrgsBormeEnricher(Enricher):
                         f"{c['fecha']} {c['accion']} {c['cargo']} ({c['persona']}) "
                         f"{c.get('url_pdf') or ''}"
                     ).strip()
-                    self.mapping.append((ind, org, etiqueta, resumen))
+                    if confirmada or escribir_posible:
+                        self.mapping.append((ind, org, etiqueta, resumen))
                     ev.anotar(
                         self,
                         bc.FUENTE,

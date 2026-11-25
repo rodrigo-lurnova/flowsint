@@ -13,6 +13,14 @@ from .logger import Logger
 from .vault import VaultProtocol
 
 
+def mask_secret(text: str, secret: Optional[str]) -> str:
+    """Hide a secret, both as configured and without surrounding whitespace."""
+    stripped = (secret or "").strip()
+    if not secret or not stripped:
+        return text
+    return text.replace(secret, "***").replace(stripped, "***")
+
+
 class InvalidEnricherParams(Exception):
     pass
 
@@ -433,8 +441,8 @@ class Enricher(ABC):
             if param.get("type") != "vaultSecret":
                 continue
             secret = self.params.get(param["name"])
-            if isinstance(secret, str) and secret:
-                message = message.replace(secret, "***")
+            if isinstance(secret, str):
+                message = mask_secret(message, secret)
         self.failures.append(message)
 
     def source_run(self) -> SourceRun:

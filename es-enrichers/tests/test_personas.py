@@ -1,6 +1,7 @@
 import math
 import os
 import sys
+from types import SimpleNamespace
 
 import httpx
 import pytest
@@ -41,16 +42,34 @@ def falla(*args, **kwargs):
     raise RuntimeError("fuente caída")
 
 
-def fila_empresa(nombre, *caminos):
+def nodo(nombre, tipo="organization"):
+    return {"id": f"id-{nombre}", "tipo": tipo, "name": nombre}
+
+
+def camino(relaciones, via=(), borrado=False):
     return {
-        "tipo": "organization",
-        "name": nombre,
-        "caminos": [list(c) for c in caminos],
+        "relaciones": list(relaciones),
+        "nodos": [nodo("Ana", "individual"), *(nodo(v) for v in via)],
+        "borrado": borrado,
     }
 
 
-def fila_dominio(dominio, *caminos):
-    return {"tipo": "domain", "domain": dominio, "caminos": [list(c) for c in caminos]}
+def fila_empresa(nombre, *caminos, dudosas=()):
+    return {
+        "tipo": "organization",
+        "name": nombre,
+        "caminos": [c if isinstance(c, dict) else camino(c, [nombre]) for c in caminos],
+        "dudosas": [nodo(d) for d in dudosas],
+    }
+
+
+def fila_dominio(dominio, *caminos, dudosas=()):
+    return {
+        "tipo": "domain",
+        "domain": dominio,
+        "caminos": [c if isinstance(c, dict) else camino(c) for c in caminos],
+        "dudosas": [nodo(d) for d in dudosas],
+    }
 
 
 def candidato(**kw):
@@ -82,7 +101,9 @@ def emails(monkeypatch, correr):
 
 @pytest.fixture
 def borme_persona(monkeypatch, correr, grafo):
-    def _buscar(*empresas, linked=None, cese=False):
+    def _buscar(
+        *empresas, linked=None, cese=False, entrada=ANA, rel="ADM_UNICO", otros=()
+    ):
         cargo = {
             "cargo_codigo": "ADM_UNICO",
             "cargo": "Adm. Unico",
@@ -99,7 +120,7 @@ def borme_persona(monkeypatch, correr, grafo):
                     "empresa": e,
                     "provincia": "MADRID",
                     "hoja_registral": f"M-{i}",
-                    "cargos": [cargo],
+                    "cargos": [cargo, *otros],
                     "cargos_vigentes": [] if cese else [cargo],
                 }
                 for i, e in enumerate(empresas)
@@ -111,8 +132,8 @@ def borme_persona(monkeypatch, correr, grafo):
 
         monkeypatch.setattr(bc, "buscar_persona", buscar)
         if linked:
-            grafo.filas = [fila_empresa(linked, ["ADM_UNICO"])]
-        return correr(BormePersona, [ANA])
+            grafo.filas = [fila_empresa(linked, [rel])]
+        return correr(BormePersona, [entrada])
 
     return _buscar
 
@@ -305,6 +326,55 @@ def test_hunter_reports_failures_but_not_informative_statuses():
         "k",
     )
     assert len(correos.errores_hunter(r)) == 2
+
+
+def test_hunter_key_travels_in_a_header():
+    peticiones = []
+
+    def responder(req):
+        peticiones.append(req)
+        return httpx.Response(200, json={"data": {}})
+
+    c = httpx.Client(transport=httpx.MockTransport(responder))
+    load("correos").hunter("acme.example.com", "Ana Ejemplo", c, "clave-secreta\n")
+    assert len(peticiones) == 2
+    for req in peticiones:
+        assert "clave" not in str(req.url) and "api_key" not in str(req.url)
+        assert req.headers["X-API-KEY"] == "clave-secreta"
+
+
+def test_secrets_are_stripped_where_they_are_read(monkeypatch):
+    e = SimpleNamespace(params={"K": "valor\n"})
+    e.get_secret = lambda k, d=None: e.params.get(k) or d
+    assert _evidencias.clave(e, "K") == "valor"
+    e.params = {"K": " \n"}
+    monkeypatch.setenv("K", " del-entorno\n")
+    assert _evidencias.clave(e, "K") == "del-entorno"
+    monkeypatch.setenv("K", "\n")
+    assert _evidencias.clave(e, "K") is None
+    monkeypatch.setenv("APISPAIN_API_KEY", "a\n")
+    assert bc.api_key_de(e) == "a"
+    assert load("apispain").Apispain().api_key == "a"
+    apify, cabeceras = load("apify_actores"), []
+    monkeypatch.setattr(
+        apify.httpx,
+        "post",
+        lambda url, **k: cabeceras.append(k["headers"]) or httpx.Response(201, json=[]),
+    )
+    monkeypatch.setenv("APIFY_TOKEN", "t\n")
+    apify.google(["q"])
+    apify.google(["q"], token="u\n")
+    assert [c["Authorization"] for c in cabeceras] == ["Bearer t", "Bearer u"]
+
+
+@pytest.mark.parametrize("secreto", ["clave\n", "clave"])
+def test_fallo_masks_secret_with_newline(grafo, secreto):
+    e = Correos(sketch_id="s", graph_service=grafo)
+    for texto in ("Illegal header value b'Bearer clave\\n'", "Bearer clave\n."):
+        _evidencias.fallo(e, "Correos", "Ana", texto, secreto)
+    assert "clave" not in "".join(e.failures)
+    _evidencias.fallo(e, "Correos", "Ana", "a\nb", "\n")
+    assert e.failures[-1] == "Correos: Ana: a\nb"
 
 
 def test_hunter_keeps_verification_status():
@@ -557,6 +627,82 @@ def test_person_search_company_linked_through_another_node_is_possible(
     assert borme_persona("OTRA SL").findings[0].certainty == "posible"
 
 
+def test_person_search_other_legal_form_is_possible(borme_persona):
+    e = borme_persona("ACME SA", linked="ACME SL")
+    assert [f.certainty for f in e.findings] == ["posible"]
+
+
+def test_person_search_officer_with_more_surnames_is_possible(borme_persona):
+    juan = Individual(full_name="Juan García", first_name="Juan", last_name="García")
+    otro = {
+        "cargo_codigo": "ADM_UNICO",
+        "cargo": "Adm. Unico",
+        "accion": "nombramiento",
+        "fecha": "2026-01-01",
+        "borme_id": "B",
+        "url_pdf": None,
+    }
+    e = borme_persona(
+        "ACME SL",
+        linked="ACME SL",
+        entrada=juan,
+        otros=[
+            {**otro, "persona": "GARCIA LOPEZ JUAN"},
+            {**otro, "persona": "GARCIA, JUAN", "accion": "cese"},
+        ],
+    )
+    por_persona = {
+        f.evidence[0].split("(")[1].split(")")[0]: f.certainty for f in e.findings
+    }
+    assert por_persona["GARCIA LOPEZ JUAN"] == "posible"
+    assert por_persona["GARCIA, JUAN"] == "confirmada"
+    # el cargo vigente es de otra persona: el cese de esta no puede salir como vigente
+    confirmado = next(f for f in e.findings if f.certainty == "confirmada")
+    assert confirmado.relation == "EX_ADM_UNICO"
+
+
+def test_uncertain_result_about_direct_company_writes_no_relation(borme_persona, grafo):
+    e = borme_persona("ACME SL", "ACME SA", linked="ACME SL")
+    assert [(f.object, f.certainty) for f in e.findings] == [
+        ("ACME SL", "posible"),
+        ("ACME SA", "posible"),
+    ]
+    assert [r[2] for r in grafo.relaciones] == ["ACME SA"]
+
+
+def test_works_at_does_not_confirm(borme_persona, grafo):
+    e = borme_persona("ACME SL", linked="ACME SL", rel="WORKS_AT")
+    assert [f.certainty for f in e.findings] == ["posible"]
+    ctx = _contexto.vecinos(grafo, "s", "Ana")
+    assert (ctx["empresas"], ctx["empresas_directas"]) == (["ACME SL"], [])
+
+
+def test_possible_then_plain_relation_neither_confirms_nor_gives_context(
+    borme_persona, grafo
+):
+    borme_persona("OTRA SL")
+    assert [r[1] for r in grafo.relaciones] == ["POSIBLE_ADM_UNICO"]
+    # después, una expansión de empresa escribe ADM_UNICO sobre el mismo Individual
+    grafo.filas = [
+        fila_empresa("OTRA SL", ["ADM_UNICO"], dudosas=["OTRA SL"]),
+        fila_empresa("Otra, S.L.", ["ADM_UNICO"], dudosas=["OTRA SL"]),
+        fila_dominio(
+            "otra.example.com",
+            camino(["ADM_UNICO", "WEB_PROBABLE"], ["OTRA SL"]),
+            dudosas=["OTRA SL"],
+        ),
+        fila_dominio(
+            "acme.example.com",
+            camino(["ADM_UNICO", "WEB_PROBABLE"], ["ACME SL"]),
+            dudosas=["OTRA SL"],
+        ),
+    ]
+    ctx = _contexto.vecinos(grafo, "s", "Ana")
+    assert (ctx["empresas"], ctx["empresas_directas"]) == ([], [])
+    assert ctx["dominios"] == ["acme.example.com"]
+    assert [f.certainty for f in borme_persona("OTRA SL").findings] == ["posible"]
+
+
 def test_borme_persona_source_error_calls_add_failure(monkeypatch, correr):
     monkeypatch.setattr(bc, "buscar_persona", falla)
     e = correr(BormePersona, [ANA])
@@ -571,6 +717,7 @@ def test_borme_persona_graph_error_keeps_searching(borme_persona, grafo):
     e = borme_persona("ACME SL")
     assert "grafo caído" in e.failures[0]
     assert [f.certainty for f in e.findings] == ["posible"]
+    assert grafo.relaciones == []  # sin contexto no se sabe si la empresa es directa
 
 
 # ------------------------------------------------------------------ BORME: empresa -> personas
@@ -656,6 +803,24 @@ def test_context_ignores_possible_relations(grafo):
         "dominios": ["acme.example.com"],
         "linkedin": [],
     }
+
+
+def test_context_ignores_soft_deleted_data(grafo):
+    cypher = " ".join(_contexto.CYPHER.split())
+    antes_del_limite = cypher[: cypher.index("LIMIT")]
+    for condicion in (
+        "i.deleted_at IS NULL",
+        "d.deleted_at IS NULL",
+        "ALL(x IN nodes(p) WHERE x.deleted_at IS NULL",
+        "ALL(r IN relationships(p) WHERE r.deleted_at IS NULL",
+    ):
+        assert condicion in antes_del_limite
+    grafo.filas = [
+        fila_empresa("ACME SL", camino(["ADM_UNICO"], ["ACME SL"], borrado=True)),
+        fila_empresa("OTRA SL", {"relaciones": ["ADM_UNICO"], "nodos": []}),
+        fila_empresa("VIVA SL", ["ADM_UNICO"]),
+    ]
+    assert _contexto.vecinos(grafo, "s", "Ana")["empresas"] == ["VIVA SL"]
 
 
 def test_context_errors_reach_the_caller(grafo):
