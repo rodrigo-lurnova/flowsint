@@ -7,6 +7,7 @@ from pydantic.config import ConfigDict
 from flowsint_types import FlowsintType
 
 from ..utils import resolve_type
+from .findings import Finding, SourceRun
 from .graph import GraphService, create_graph_service
 from .logger import Logger
 from .vault import VaultProtocol
@@ -127,6 +128,9 @@ class Enricher(ABC):
         self.params_schema = params_schema or []
         self.ParamsModel = build_params_model(self.params_schema)
         self.params: Dict[str, Any] = params or {}
+        self.findings: List[Finding] = []
+        self.failures: List[str] = []
+        self.coverage: Optional[str] = None
 
         # Initialize graph service (uses singleton connection by default)
         if graph_service:
@@ -420,7 +424,33 @@ class Enricher(ABC):
     ) -> List[Dict[str, Any]]:
         return results
 
+    def add_finding(self, f: Finding) -> None:
+        self.findings.append(f)
+
+    def add_failure(self, message: str) -> None:
+        """Record a source failure, hiding the values of vault-secret params."""
+        for param in self.params_schema:
+            if param.get("type") != "vaultSecret":
+                continue
+            secret = self.params.get(param["name"])
+            if isinstance(secret, str) and secret:
+                message = message.replace(secret, "***")
+        self.failures.append(message)
+
+    def source_run(self) -> SourceRun:
+        error = "; ".join(self.failures)[:300] if self.failures else None
+        return SourceRun(
+            source=self.name(),
+            status="failed" if self.failures else "ok",
+            error=error,
+            coverage=self.coverage,
+            findings=len(self.findings),
+        )
+
     async def execute(self, values: List[Any]) -> List[Dict[str, Any]]:
+        self.findings = []
+        self.failures = []
+        self.coverage = None
         if self.name() != "enricher_orchestrator":
             Logger.info(self.sketch_id, {"message": f"Enricher {self.name()} started."})
         try:
@@ -440,10 +470,11 @@ class Enricher(ABC):
             return processed
 
         except Exception as e:
+            self.add_failure(str(e))
             if self.name() != "enricher_orchestrator":
                 Logger.error(
                     self.sketch_id,
-                    {"message": f"Enricher {self.name()} errored: {str(e)}"},
+                    {"message": f"Enricher {self.name()} errored: {self.failures[-1]}"},
                 )
             return []
 
