@@ -315,6 +315,7 @@ class TypeRegistryService(BaseService):
                     ("DNSRecord", "name", "dnsrecord"),
                     ("SSLCertificate", "subject", "sslcertificate"),
                     ("WebTracker", "name", "webtracker"),
+                    ("AiAgent", "url", "technology"),
                 ],
             },
             {
@@ -330,6 +331,7 @@ class TypeRegistryService(BaseService):
                     ("Device", "device_id", "device"),
                     ("Malware", "name", "malware"),
                     ("Weapon", "name", "weapon"),
+                    ("Secret", "fingerprint", "credential"),
                 ],
             },
             {
@@ -342,6 +344,7 @@ class TypeRegistryService(BaseService):
                 "children": [
                     ("Document", "title", "document"),
                     ("File", "filename", "file"),
+                    ("Repository", "url", "file"),
                 ],
             },
             {

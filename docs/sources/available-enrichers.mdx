@@ -55,6 +55,12 @@ Tools/APIs: [WhoisXML API](https://whois.whoisxmlapi.com/)
 **domain_to_dehashed**: Get breach intelligence (credentials, related individuals) associated with a domain.
 Tools/APIs: [DeHashed API](https://www.dehashed.com/docs)
 
+**domain_to_harvester**: Harvest email addresses exposed for a domain across search engines, certificate transparency and threat-intel feeds.
+Tools/APIs: [theHarvester](https://github.com/laramies/theHarvester) (CLI, keyless sources)
+
+**domain_to_copilot_agents**: Discover exposed Microsoft Copilot Studio bots for a domain (open web-chat, extracted knowledge sources).
+Tools/APIs: [power-pwn](https://github.com/mbrg/power-pwn) Copilot Studio Hunter (Docker image; needs ffuf + Node/Puppeteer)
+
 ### Email
 **email_to_breaches**: Check whether an email appears in known breaches.
 Tools/APIs: [Have I Been Pwned API](https://haveibeenpwned.com/API/v3)
@@ -76,6 +82,9 @@ Tools/APIs: [DeHashed API](https://www.dehashed.com/docs)
 
 **email_to_device_hudsonrock**: Look up devices compromised by infostealers and associated with an email.
 Tools/APIs: [HudsonRock API](https://www.hudsonrock.com/)
+
+**email_to_holehe**: Discover which websites/services an email is registered on (account existence), plus any masked recovery email/phone those sites leak.
+Tools/APIs: [holehe](https://github.com/megadose/holehe) (library)
 
 ### Individual
 **individual_to_domains**: Find domains registered by a specific person; extract related contacts and attributes.
@@ -127,7 +136,7 @@ Tools/APIs: [HudsonRock API](https://www.hudsonrock.com/)
 **username_to_socials_sherlock**: Enumerate social accounts for a username using Sherlock.
 Tools/Pivots: [sherlock](https://github.com/sherlock-project/sherlock) (CLI)
 
-**username_to_socials_maigret**: Enumerate social accounts for a username using Maigret and parse rich metadata.
+**username_to_socials_maigret**: Enumerate social accounts for a username using Maigret and parse rich metadata. Params: `top_sites` (default 500, or `all`), `tags`, `timeout`.
 Tools/Pivots: [maigret](https://github.com/soxoj/maigret) (CLI)
 
 **username_to_dehashed**: Get breach intelligence (credentials, related individuals) associated with a username.
@@ -155,9 +164,14 @@ Tools/APIs: HTTP GET, [BeautifulSoup](https://www.crummy.com/software/BeautifulS
 **website_to_webtrackers**: Extract analytics/ads tracking codes from a website.
 Tools/APIs: recontrack TrackingCodeExtractor
 
+### Repository
+**repository_to_secrets**: Scan a git repository for leaked, optionally verified secrets (API keys, tokens, credentials).
+Tools/APIs: [trufflehog](https://github.com/trufflesecurity/trufflehog) (official Docker image)
+
 ---
 
 Notes
 - Some enrichers optionally depend on docker binaries: `subfinder`, `asnmap`, `dnsx`, `naabu`, `httpx`, and `jq` which are installed in the docker container.
+- Docker-in-Docker enrichers run official images pulled on demand: `trufflesecurity/trufflehog` (`repository_to_secrets`). `domain_to_copilot_agents` needs a **powerpwn** image built from [power-pwn](https://github.com/mbrg/power-pwn)'s Dockerfile (no official image is published); set `POWERPWN_IMAGE` to its `repo:tag`.
 - API-keyed enrichers read keys from params or environment (e.g., `HIBP_API_KEY`, `ETHERSCAN_API_KEY`, `WHOXY_API_KEY`, `WHOISXML_API_KEY`, `DEHASHED_API_KEY`, `SCAMALYTICS_API_KEY`, `VERIPHONE_API_KEY`, `C99_API_KEY`).
 - Internal/test enrichers (`domain_to_dummy`, `ip_to_dummy_domains`, `n8n_connector`) are not listed here — they exist in the codebase but are not part of the public catalog.

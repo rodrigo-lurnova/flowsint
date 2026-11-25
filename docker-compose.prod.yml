@@ -63,6 +63,24 @@ services:
       retries: 10
       start_period: 30s
 
+  searxng:
+    # Used by es-enrichers (perfiles.py). Internal only: no published ports.
+    image: searxng/searxng:2026.3.24-c4f51aa4a
+    container_name: flowsint-searxng-prod
+    restart: always
+    environment:
+      - SEARXNG_SECRET=${SEARXNG_SECRET:-flowsint-internal-only}
+    volumes:
+      - ./searxng/settings.yml:/etc/searxng/settings.yml:ro
+    networks:
+      - flowsint_network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
   api:
     image: ghcr.io/reconurge/flowsint-api:${FLOWSINT_VERSION:-latest}
     container_name: flowsint-api-prod
@@ -75,6 +93,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       # Community enricher (ozeliurs/flowsint-enrichers), reviewed before mounting
       - ./community-enrichers/ozeliurs/ip/to_asn_cymru.py:/app/flowsint-enrichers/src/flowsint_enrichers/ip/to_asn_cymru.py:ro
+      - ./flowsint-enrichers/src/flowsint_enrichers/social/to_maigret.py:/app/flowsint-enrichers/src/flowsint_enrichers/social/to_maigret.py:ro
       - ./es-enrichers:/app/flowsint-enrichers/src/flowsint_enrichers/es:ro
       - ./osint-es-scripts:/opt/osint-es-scripts:ro
       - ./.osint-es-cache:/data/osint-es
@@ -91,7 +110,7 @@ services:
       - BRAVE_API_KEY=${BRAVE_API_KEY:-}
       - BORME_DB=/data/osint-es/borme.sqlite
       - OSINT_ES_CACHE=/data/osint-es
-      - SEARXNG_URL=${SEARXNG_URL:-http://host.docker.internal:9000}
+      - SEARXNG_URL=${SEARXNG_URL:-http://searxng:8080}
       - REDIS_URL=redis://redis:6379/0
       - FLOWSINT_DISABLED_ENRICHERS=${FLOWSINT_DISABLED_ENRICHERS:-}
     depends_on:
@@ -130,6 +149,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       # Community enricher (ozeliurs/flowsint-enrichers), reviewed before mounting
       - ./community-enrichers/ozeliurs/ip/to_asn_cymru.py:/app/flowsint-enrichers/src/flowsint_enrichers/ip/to_asn_cymru.py:ro
+      - ./flowsint-enrichers/src/flowsint_enrichers/social/to_maigret.py:/app/flowsint-enrichers/src/flowsint_enrichers/social/to_maigret.py:ro
       - ./es-enrichers:/app/flowsint-enrichers/src/flowsint_enrichers/es:ro
       - ./osint-es-scripts:/opt/osint-es-scripts:ro
       - ./.osint-es-cache:/data/osint-es
@@ -145,7 +165,7 @@ services:
       - BRAVE_API_KEY=${BRAVE_API_KEY:-}
       - BORME_DB=/data/osint-es/borme.sqlite
       - OSINT_ES_CACHE=/data/osint-es
-      - SEARXNG_URL=${SEARXNG_URL:-http://host.docker.internal:9000}
+      - SEARXNG_URL=${SEARXNG_URL:-http://searxng:8080}
       - REDIS_URL=redis://redis:6379/0
       - FLOWSINT_DISABLED_ENRICHERS=${FLOWSINT_DISABLED_ENRICHERS:-}
       - SKIP_MIGRATIONS=true

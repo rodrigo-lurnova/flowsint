@@ -1418,3 +1418,42 @@ def test_test_files_are_not_loaded_as_enrichers(monkeypatch):
     registry.load_all_enrichers()
     assert importados and not [m for m in importados if "tests" in m or "conftest" in m]
     assert set(sys.modules) == antes
+
+
+def test_brave_key_travels_in_a_header_and_is_not_forwarded():
+    import httpx
+
+    from flowsint_enrichers.es._scripts import load
+
+    perfiles, vistas = load("perfiles"), []
+
+    def responde(req):
+        vistas.append(req)
+        return httpx.Response(302, headers={"location": "https://otro.example/x"})
+
+    with httpx.Client(
+        transport=httpx.MockTransport(responde), follow_redirects=True
+    ) as c:
+        with pytest.raises(httpx.HTTPStatusError):
+            perfiles.brave("Ana", c, "clave-ficticia")
+    assert [r.url.host for r in vistas] == ["api.search.brave.com"]
+    assert vistas[0].headers["x-subscription-token"] == "clave-ficticia"
+    assert "clave-ficticia" not in str(vistas[0].url)
+
+
+def test_brave_failure_is_a_source_error(monkeypatch):
+    from flowsint_enrichers.es._scripts import load
+
+    perfiles = load("perfiles")
+
+    def falla(*_):
+        raise RuntimeError("clave-ficticia")
+
+    monkeypatch.setattr(perfiles, "brave", falla)
+    monkeypatch.setattr(perfiles.time, "sleep", lambda _: None)
+    res = perfiles.buscar_perfiles(
+        "Ana", "ACME SL", redes=["x"], brave_key="clave-ficticia\n"
+    )
+    assert res["errores"]
+    assert all(e.startswith("Brave") for e in res["errores"])
+    assert "clave-ficticia" not in str(res)

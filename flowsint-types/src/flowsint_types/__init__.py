@@ -12,6 +12,7 @@ from pydantic import BaseModel
 
 from .address import Location
 from .affiliation import Affiliation
+from .ai_agent import AiAgent
 from .alias import Alias
 from .asn import ASN
 from .bank_account import BankAccount
@@ -37,9 +38,11 @@ from .phone import Phone
 from .phrase import Phrase
 from .port import Port
 from .registry import TYPE_REGISTRY, flowsint_type, get_type, load_all_types
+from .repository import Repository
 from .reputation_score import ReputationScore
 from .risk_profile import RiskProfile
 from .script import Script
+from .secret import Secret
 from .session import Session
 from .social_account import SocialAccount
 from .ssl_certificate import SSLCertificate
@@ -59,6 +62,7 @@ __author__ = "dextmorgn <contact@flowsint.io>"
 __all__ = [
     "Location",
     "Affiliation",
+    "AiAgent",
     "Alias",
     "ASN",
     "BankAccount",
@@ -84,7 +88,9 @@ __all__ = [
     "Port",
     "ReputationScore",
     "RiskProfile",
+    "Repository",
     "Script",
+    "Secret",
     "Session",
     "SocialAccount",
     "SSLCertificate",
@@ -139,6 +145,7 @@ TYPE_TO_MODEL: Dict[str, Type[BaseModel]] = {
     "technology": Technology,
     "location": Location,
     "affiliation": Affiliation,
+    "aiagent": AiAgent,
     "alias": Alias,
     "bankaccount": BankAccount,
     "creditcard": CreditCard,
@@ -148,7 +155,9 @@ TYPE_TO_MODEL: Dict[str, Type[BaseModel]] = {
     "message": Message,
     "reputationscore": ReputationScore,
     "riskprofile": RiskProfile,
+    "repository": Repository,
     "script": Script,
+    "secret": Secret,
     "session": Session,
     "webtracker": WebTracker,
     "weapon": Weapon,

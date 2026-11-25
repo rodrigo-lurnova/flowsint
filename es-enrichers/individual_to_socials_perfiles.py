@@ -76,6 +76,12 @@ class EsIndividualToSocialsEnricher(Enricher):
                 "description": "Añadir Google vía Apify (de pago, ~0,005 $ por consulta).",
             },
             {
+                "name": "BRAVE_API_KEY",
+                "type": "vaultSecret",
+                "required": False,
+                "description": "Brave Search (si no está en la vault ni en el entorno se usa SearXNG).",
+            },
+            {
                 "name": "APIFY_TOKEN",
                 "type": "vaultSecret",
                 "required": False,
@@ -100,7 +106,7 @@ class EsIndividualToSocialsEnricher(Enricher):
         return """
         OPCIONAL. Busca perfiles públicos (LinkedIn, X, Instagram, Facebook, TikTok,
         YouTube, GitHub, Medium) de una persona vinculada a la empresa investigada,
-        con búsquedas `site:` en el SearXNG local (yandex/seznam; SEARXNG_URL) y la
+        con búsquedas `site:` en Brave (BRAVE_API_KEY; sin clave, SearXNG local) y la
         API de GitHub; Google vía Apify si usar_apify=true. No entra en las redes.
         El nombre debe aparecer en el título del resultado; la empresa o el dominio
         suben la confianza. Sin empresa vinculada no hace nada.
@@ -109,6 +115,7 @@ class EsIndividualToSocialsEnricher(Enricher):
     async def scan(self, data: List[InputType]) -> List[OutputType]:
         perfiles = load("perfiles")
         token = ev.clave(self, "APIFY_TOKEN")
+        brave_key = ev.clave(self, "BRAVE_API_KEY")
         redes = [
             r.strip() for r in (self.params.get("redes") or "").split(",") if r.strip()
         ] or None
@@ -144,6 +151,7 @@ class EsIndividualToSocialsEnricher(Enricher):
                     apify,
                     minc,
                     apify_token=token,
+                    brave_key=brave_key,
                 )
             except Exception as exc:
                 ev.fallo(self, FUENTE, nombre, exc, token)
