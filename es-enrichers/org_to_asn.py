@@ -131,14 +131,18 @@ class EsOrgToAsnEnricher(Enricher):
                         found.setdefault(number, {"label": label, "sources": set()})
                         found[number]["sources"].add(source)
                 except Exception as exc:
-                    Logger.warn(self.sketch_id, {"message": f"[{source}] {org.name}: {exc}"})
+                    Logger.warn(
+                        self.sketch_id, {"message": f"[{source}] {org.name}: {exc}"}
+                    )
             if pdcp_key:
                 try:
                     for number, label in self._asnmap(org.name, pdcp_key):
                         found.setdefault(number, {"label": label, "sources": set()})
                         found[number]["sources"].add("asnmap")
                 except Exception as exc:
-                    Logger.warn(self.sketch_id, {"message": f"[asnmap] {org.name}: {exc}"})
+                    Logger.warn(
+                        self.sketch_id, {"message": f"[asnmap] {org.name}: {exc}"}
+                    )
 
             matched = [
                 (n, info)
@@ -193,7 +197,9 @@ class EsOrgToAsnEnricher(Enricher):
         return r.json()
 
     def _peeringdb(self, name: str):
-        data = self._get(PEERINGDB_URL, {"name__contains": name, "fields": "asn,name,aka"})
+        data = self._get(
+            PEERINGDB_URL, {"name__contains": name, "fields": "asn,name,aka"}
+        )
         for net in data.get("data", []):
             if net.get("asn"):
                 label = net.get("name") or ""

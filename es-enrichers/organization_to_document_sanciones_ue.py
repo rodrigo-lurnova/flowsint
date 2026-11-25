@@ -13,9 +13,19 @@ class OrgToSancionesUe(OrgEsEnricher):
 
     FUENTE = "[SANCIONES UE]"
     MAX_DEFECTO = 10
-    PARAMS = [{"name": "incluir_parciales", "type": "select", "default": "false", "required": False,
-               "description": "Incluir coincidencias parciales (todas las palabras del nombre) como POSIBLE_COINCIDENCIA_SANCIONES.",
-               "options": [{"label": "No", "value": "false"}, {"label": "Sí", "value": "true"}]}]
+    PARAMS = [
+        {
+            "name": "incluir_parciales",
+            "type": "select",
+            "default": "false",
+            "required": False,
+            "description": "Incluir coincidencias parciales (todas las palabras del nombre) como POSIBLE_COINCIDENCIA_SANCIONES.",
+            "options": [
+                {"label": "No", "value": "false"},
+                {"label": "Sí", "value": "true"},
+            ],
+        }
+    ]
 
     @classmethod
     def name(cls) -> str:
@@ -42,21 +52,36 @@ class OrgToSancionesUe(OrgEsEnricher):
             vistos = set()
             for q in consultas:
                 for e in san.buscar(c, q, self.max_resultados)["resultados"]:
-                    if e["referencia_ue"] in vistos or (e["coincidencia"] == "contiene" and not parciales):
+                    if e["referencia_ue"] in vistos or (
+                        e["coincidencia"] == "contiene" and not parciales
+                    ):
                         continue
                     vistos.add(e["referencia_ue"])
                     url = next((r["url"] for r in e["reglamentos"] if r["url"]), None)
-                    doc = documento(f"Sanciones UE {e['referencia_ue']} · {e['nombres'][0] if e['nombres'] else ''}",
-                                    doc_type="sanción UE", source="EU Financial Sanctions Files", source_url=url,
-                                    created_date=e["fecha_designacion"], author="Consejo de la UE",
-                                    subject=", ".join(e["programas"]),
-                                    description=f"Coincidencia: {e['coincidencia']}. Tipo: {e['tipo']}. "
-                                                f"Nombres: {' | '.join(e['nombres'][:5])}. "
-                                                f"Direcciones: {' | '.join(e['direcciones'][:3])}",
-                                    keywords=e["programas"] or None, referencia_ue=e["referencia_ue"],
-                                    coincidencia=e["coincidencia"],
-                                    identificadores=[f"{i['tipo']}: {i['numero']}" for i in e["identificadores"]] or None)
-                    rel = "POSIBLE_COINCIDENCIA_SANCIONES" if e["coincidencia"] == "contiene" else "SANCIONADA"
+                    doc = documento(
+                        f"Sanciones UE {e['referencia_ue']} · {e['nombres'][0] if e['nombres'] else ''}",
+                        doc_type="sanción UE",
+                        source="EU Financial Sanctions Files",
+                        source_url=url,
+                        created_date=e["fecha_designacion"],
+                        author="Consejo de la UE",
+                        subject=", ".join(e["programas"]),
+                        description=f"Coincidencia: {e['coincidencia']}. Tipo: {e['tipo']}. "
+                        f"Nombres: {' | '.join(e['nombres'][:5])}. "
+                        f"Direcciones: {' | '.join(e['direcciones'][:3])}",
+                        keywords=e["programas"] or None,
+                        referencia_ue=e["referencia_ue"],
+                        coincidencia=e["coincidencia"],
+                        identificadores=[
+                            f"{i['tipo']}: {i['numero']}" for i in e["identificadores"]
+                        ]
+                        or None,
+                    )
+                    rel = (
+                        "POSIBLE_COINCIDENCIA_SANCIONES"
+                        if e["coincidencia"] == "contiene"
+                        else "SANCIONADA"
+                    )
                     out.append(Hallazgo(doc, rel))
         return out
 

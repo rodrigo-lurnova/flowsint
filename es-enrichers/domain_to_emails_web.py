@@ -1,10 +1,11 @@
 """Domain -> Email: correos publicados en la propia web del dominio (osint-es-scripts/correos.py)."""
+
 from typing import Any, Dict, List, Optional
 
 from flowsint_core.core.enricher_base import Enricher
 from flowsint_core.core.logger import Logger
-from flowsint_enrichers.registry import flowsint_enricher
 from flowsint_enrichers.es._scripts import load
+from flowsint_enrichers.registry import flowsint_enricher
 from flowsint_types.domain import Domain
 from flowsint_types.email import Email
 
@@ -16,16 +17,35 @@ class EsDomainToWebEmailsEnricher(Enricher):
     InputType = Domain
     OutputType = Email
 
-    def __init__(self, sketch_id: Optional[str] = None, scan_id: Optional[str] = None,
-                 vault=None, params: Optional[Dict[str, Any]] = None, graph_service=None):
-        super().__init__(sketch_id=sketch_id, scan_id=scan_id, params_schema=self.get_params_schema(),
-                         vault=vault, params=params, graph_service=graph_service)
+    def __init__(
+        self,
+        sketch_id: Optional[str] = None,
+        scan_id: Optional[str] = None,
+        vault=None,
+        params: Optional[Dict[str, Any]] = None,
+        graph_service=None,
+    ):
+        super().__init__(
+            sketch_id=sketch_id,
+            scan_id=scan_id,
+            params_schema=self.get_params_schema(),
+            vault=vault,
+            params=params,
+            graph_service=graph_service,
+        )
         self.mapping: List[tuple] = []
 
     @classmethod
     def get_params_schema(cls) -> List[Dict[str, Any]]:
-        return [{"name": "max_paginas", "type": "string", "default": "12", "required": False,
-                 "description": "Páginas del sitio a visitar (contacto, aviso legal, privacidad, equipo...)."}]
+        return [
+            {
+                "name": "max_paginas",
+                "type": "string",
+                "default": "12",
+                "required": False,
+                "description": "Páginas del sitio a visitar (contacto, aviso legal, privacidad, equipo...).",
+            }
+        ]
 
     @classmethod
     def name(cls) -> str:
@@ -53,7 +73,9 @@ class EsDomainToWebEmailsEnricher(Enricher):
         self.mapping, out = [], []
         for dom in data:
             try:
-                encontrados = correos.correos_web(dom.domain, max_paginas=int(self.params.get("max_paginas") or 12))
+                encontrados = correos.correos_web(
+                    dom.domain, max_paginas=int(self.params.get("max_paginas") or 12)
+                )
             except Exception as exc:
                 Logger.error(self.sketch_id, {"message": f"[WEB] {dom.domain}: {exc}"})
                 continue
@@ -63,7 +85,9 @@ class EsDomainToWebEmailsEnricher(Enricher):
                 self.mapping.append((dom, email, c))
         return out
 
-    def postprocess(self, results: List[OutputType], original_input: List[InputType] = None) -> List[OutputType]:
+    def postprocess(
+        self, results: List[OutputType], original_input: List[InputType] = None
+    ) -> List[OutputType]:
         for dom, email, c in self.mapping:
             self.create_node(dom)
             self.create_node(email)

@@ -3,7 +3,13 @@ from typing import Dict, List, Optional
 
 import httpx
 
-from flowsint_enrichers.es._org import Hallazgo, OrgEsEnricher, documento, nombre_por_nif, recorta
+from flowsint_enrichers.es._org import (
+    Hallazgo,
+    OrgEsEnricher,
+    documento,
+    nombre_por_nif,
+    recorta,
+)
 from flowsint_enrichers.es._scripts import load
 from flowsint_enrichers.registry import flowsint_enricher
 
@@ -37,11 +43,16 @@ class OrgToSentenciasCendoj(OrgEsEnricher):
         cendoj = load("cendoj")
         base = ids["base"] or (nombre_por_nif(ids["nif"]) if ids["nif"] else "")
         if not base:
-            self.log("Sin denominación para buscar en el CENDOJ (no se busca por NIF)", error=True)
+            self.log(
+                "Sin denominación para buscar en el CENDOJ (no se busca por NIF)",
+                error=True,
+            )
             return []
         texto = f'"{base}"' if " " in base else base
         tope = min(self.max_resultados, TOPE_CENDOJ)
-        with httpx.Client(headers=cendoj.HEADERS, timeout=40, follow_redirects=True) as c:
+        with httpx.Client(
+            headers=cendoj.HEADERS, timeout=40, follow_redirects=True
+        ) as c:
             c.get(cendoj.BASE + "indexAN.jsp")
             total, items = cendoj.pagina(c, texto, 1)
             while len(items) < min(tope, total):
@@ -50,15 +61,26 @@ class OrgToSentenciasCendoj(OrgEsEnricher):
                 if not more:
                     break
                 items.extend(more)
-        self.log(f"«{texto}»: {total} resoluciones en total (se toman {min(tope, len(items))})")
+        self.log(
+            f"«{texto}»: {total} resoluciones en total (se toman {min(tope, len(items))})"
+        )
         out = []
         for i in items[:tope]:
-            doc = documento(f"CENDOJ {i.get('roj') or recorta(i['titulo'], 80)} ({i['fecha']})",
-                            doc_type="resolución judicial", source="CENDOJ", source_url=i["url"],
-                            created_date=i["fecha"], author=i.get("Órgano") or i.get("Municipio"),
-                            subject=i["titulo"], description=recorta(i.get("resumen"), 600),
-                            ecli=i.get("ecli"), roj=i.get("roj"), ponente=i.get("Ponente"),
-                            recurso=i.get("Nº Recurso"), consulta=texto)
+            doc = documento(
+                f"CENDOJ {i.get('roj') or recorta(i['titulo'], 80)} ({i['fecha']})",
+                doc_type="resolución judicial",
+                source="CENDOJ",
+                source_url=i["url"],
+                created_date=i["fecha"],
+                author=i.get("Órgano") or i.get("Municipio"),
+                subject=i["titulo"],
+                description=recorta(i.get("resumen"), 600),
+                ecli=i.get("ecli"),
+                roj=i.get("roj"),
+                ponente=i.get("Ponente"),
+                recurso=i.get("Nº Recurso"),
+                consulta=texto,
+            )
             out.append(Hallazgo(doc, "MENCIONADA_EN_SENTENCIA"))
         return out
 

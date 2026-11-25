@@ -33,16 +33,27 @@ class OrgToRegistrosCnmv(OrgEsEnricher):
         out: List[Hallazgo] = []
         with httpx.Client(headers=cnmv.HEADERS, timeout=40, follow_redirects=True) as c:
             if ids["nif"]:
-                nifs = [f"{ids['nif'][0]}-{ids['nif'][1:]}"]  # la ficha solo responde con guion
+                nifs = [
+                    f"{ids['nif'][0]}-{ids['nif'][1:]}"
+                ]  # la ficha solo responde con guion
             else:
-                nifs = [e["nif"] for e in cnmv.buscar(c, ids["nombre"])
-                        if res.coincidencia(ids["nombre"], e["nombre"]) != "parcial"][:3]
+                nifs = [
+                    e["nif"]
+                    for e in cnmv.buscar(c, ids["nombre"])
+                    if res.coincidencia(ids["nombre"], e["nombre"]) != "parcial"
+                ][:3]
             for nif in nifs:
                 f = cnmv.ficha(c, nif)
                 for s in f["secciones"]:
-                    doc = documento(f"CNMV {nif} · {s['seccion']}", doc_type="registro CNMV", source="CNMV",
-                                    source_url=s["url"], author="Comisión Nacional del Mercado de Valores",
-                                    description=f"{f['nombre']} — {s['seccion']}", ficha_url=f["url"])
+                    doc = documento(
+                        f"CNMV {nif} · {s['seccion']}",
+                        doc_type="registro CNMV",
+                        source="CNMV",
+                        source_url=s["url"],
+                        author="Comisión Nacional del Mercado de Valores",
+                        description=f"{f['nombre']} — {s['seccion']}",
+                        ficha_url=f["url"],
+                    )
                     out.append(Hallazgo(doc, "REGISTRO_CNMV"))
         return out
 

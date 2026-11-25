@@ -5,6 +5,7 @@ No es un enricher (el cargador ignora los ficheros que empiezan por "_"). Cada s
 implementa `consultar(ids)` (síncrono, se ejecuta en un hilo) y devuelve una lista de
 `Hallazgo`; la base se encarga del bucle, los límites, los errores y del grafo.
 """
+
 import asyncio
 import re
 from dataclasses import dataclass, field
@@ -12,10 +13,9 @@ from typing import Any, Dict, List, Optional
 
 from flowsint_core.core.enricher_base import Enricher
 from flowsint_core.core.logger import Logger
+from flowsint_enrichers.es._scripts import load
 from flowsint_types.document import Document
 from flowsint_types.organization import Organization
-
-from flowsint_enrichers.es._scripts import load
 
 MAX_DURO = 100  # tope absoluto de nodos por organización, se pida lo que se pida
 
@@ -23,6 +23,7 @@ MAX_DURO = 100  # tope absoluto de nodos por organización, se pida lo que se pi
 @dataclass
 class Hallazgo:
     """Un nodo principal enlazado a la organización de entrada, y relaciones secundarias opcionales."""
+
     nodo: Any
     relacion: str
     extra: List[tuple] = field(default_factory=list)  # (desde, hacia, etiqueta)
@@ -42,16 +43,23 @@ def org_ids(org: Organization) -> Dict[str, Optional[str]]:
     if lei and not re.fullmatch(r"[A-Z0-9]{18}\d{2}", lei):
         lei = None
     nombre = str(org.nom_raison_sociale or org.name or "").strip()
-    nombre = re.sub(r"\s*[\[(][A-Z0-9]{9,11}[\])]\s*$", "", nombre)  # "EMPRESA SL (B12345678)" -> "EMPRESA SL"
+    nombre = re.sub(
+        r"\s*[\[(][A-Z0-9]{9,11}[\])]\s*$", "", nombre
+    )  # "EMPRESA SL (B12345678)" -> "EMPRESA SL"
     if not nif and res.parece_nif(nombre):
         nif, nombre = res.limpiar_nif(nombre), ""
-    return {"nif": nif, "lei": lei, "nombre": nombre,
-            "base": res.normalizar(nombre)["base"] if nombre else ""}
+    return {
+        "nif": nif,
+        "lei": lei,
+        "nombre": nombre,
+        "base": res.normalizar(nombre)["base"] if nombre else "",
+    }
 
 
 def nombre_por_nif(nif: str) -> str:
     """Denominación base para un NIF (vía BDNS), para las fuentes que solo buscan por texto."""
     import httpx
+
     res = load("resolver_empresa")
     with httpx.Client(headers=res.HEADERS, timeout=30) as c:
         cands = [x for x in res.desde_bdns(c, nif) if x["nif"] == nif]
@@ -84,10 +92,22 @@ class OrgEsEnricher(Enricher):
     MAX_DEFECTO = 25
     PARAMS: List[Dict[str, Any]] = []
 
-    def __init__(self, sketch_id: Optional[str] = None, scan_id: Optional[str] = None, vault=None,
-                 params: Optional[Dict[str, Any]] = None, graph_service=None) -> None:
-        super().__init__(sketch_id=sketch_id, scan_id=scan_id, params_schema=self.get_params_schema(),
-                         vault=vault, params=params, graph_service=graph_service)
+    def __init__(
+        self,
+        sketch_id: Optional[str] = None,
+        scan_id: Optional[str] = None,
+        vault=None,
+        params: Optional[Dict[str, Any]] = None,
+        graph_service=None,
+    ) -> None:
+        super().__init__(
+            sketch_id=sketch_id,
+            scan_id=scan_id,
+            params_schema=self.get_params_schema(),
+            vault=vault,
+            params=params,
+            graph_service=graph_service,
+        )
         self.hallazgos: List[tuple] = []
 
     @classmethod
@@ -101,9 +121,15 @@ class OrgEsEnricher(Enricher):
     @classmethod
     def get_params_schema(cls) -> List[Dict[str, Any]]:
         # build_params_model trata todos los params no-vault como str: defaults en texto.
-        return [{"name": "max_resultados", "type": "string", "required": False,
-                 "default": str(cls.MAX_DEFECTO),
-                 "description": f"Máximo de nodos por organización (tope {MAX_DURO})."}] + cls.PARAMS
+        return [
+            {
+                "name": "max_resultados",
+                "type": "string",
+                "required": False,
+                "default": str(cls.MAX_DEFECTO),
+                "description": f"Máximo de nodos por organización (tope {MAX_DURO}).",
+            }
+        ] + cls.PARAMS
 
     # -- parámetros --------------------------------------------------------------------
     def p_int(self, nombre: str, defecto: int) -> int:
@@ -115,7 +141,11 @@ class OrgEsEnricher(Enricher):
 
     def p_bool(self, nombre: str, defecto: bool) -> bool:
         v = self.params.get(nombre)
-        return defecto if v in (None, "") else str(v).strip().lower() in ("true", "1", "si", "sí", "yes")
+        return (
+            defecto
+            if v in (None, "")
+            else str(v).strip().lower() in ("true", "1", "si", "sí", "yes")
+        )
 
     @property
     def max_resultados(self) -> int:
@@ -127,7 +157,9 @@ class OrgEsEnricher(Enricher):
 
     # -- ejecución ---------------------------------------------------------------------
     def log(self, msg: str, error: bool = False) -> None:
-        (Logger.error if error else Logger.info)(self.sketch_id, {"message": f"{self.FUENTE} {msg}"})
+        (Logger.error if error else Logger.info)(
+            self.sketch_id, {"message": f"{self.FUENTE} {msg}"}
+        )
 
     async def scan(self, data: List[Organization]) -> List[Any]:
         self.hallazgos = []
@@ -140,7 +172,10 @@ class OrgEsEnricher(Enricher):
             try:
                 items = await asyncio.to_thread(self.consultar, ids)
             except Exception as e:  # la fuente puede caer o cambiar: no tumbar el resto
-                self.log(f"Error consultando {ids['nif'] or ids['nombre']}: {type(e).__name__}: {e}", error=True)
+                self.log(
+                    f"Error consultando {ids['nif'] or ids['nombre']}: {type(e).__name__}: {e}",
+                    error=True,
+                )
                 continue
             items = items[: self.max_resultados]
             self.log(f"{ids['nif'] or ids['nombre']}: {len(items)} resultados")
@@ -149,7 +184,9 @@ class OrgEsEnricher(Enricher):
                 results.append(h.nodo)
         return results
 
-    def postprocess(self, results: List[Any], input_data: List[Organization] = None) -> List[Any]:
+    def postprocess(
+        self, results: List[Any], input_data: List[Organization] = None
+    ) -> List[Any]:
         if not self._graph_service:
             return results
         for org, h in self.hallazgos:
@@ -160,5 +197,7 @@ class OrgEsEnricher(Enricher):
                 self.create_node(desde)
                 self.create_node(hacia)
                 self.create_relationship(desde, hacia, etiqueta)
-            self.log_graph_message(f"{org.nodeLabel}: {h.relacion} -> {h.nodo.nodeLabel}")
+            self.log_graph_message(
+                f"{org.nodeLabel}: {h.relacion} -> {h.nodo.nodeLabel}"
+            )
         return results

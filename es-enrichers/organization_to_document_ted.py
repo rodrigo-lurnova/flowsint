@@ -16,10 +16,22 @@ class OrgToContratosTed(OrgEsEnricher):
 
     FUENTE = "[TED]"
     PARAMS = [
-        {"name": "solo_espana", "type": "select", "default": "true", "required": False,
-         "description": "Solo compradores españoles.", "options": SI_NO},
-        {"name": "incluir_compradores", "type": "select", "default": "true", "required": False,
-         "description": "Crear el poder adjudicador como Organization.", "options": SI_NO},
+        {
+            "name": "solo_espana",
+            "type": "select",
+            "default": "true",
+            "required": False,
+            "description": "Solo compradores españoles.",
+            "options": SI_NO,
+        },
+        {
+            "name": "incluir_compradores",
+            "type": "select",
+            "default": "true",
+            "required": False,
+            "description": "Crear el poder adjudicador como Organization.",
+            "options": SI_NO,
+        },
     ]
 
     @classmethod
@@ -41,20 +53,41 @@ class OrgToContratosTed(OrgEsEnricher):
         ted = load("ted")
         res = load("resolver_empresa")
         with httpx.Client(headers=ted.HEADERS, timeout=60) as c:
-            r = ted.buscar(c, ids["nif"] or ids["nombre"], self.max_resultados, self.p_bool("solo_espana", True))
+            r = ted.buscar(
+                c,
+                ids["nif"] or ids["nombre"],
+                self.max_resultados,
+                self.p_bool("solo_espana", True),
+            )
         self.log(f"{r['consulta']}: {r['total']} anuncios")
         out = []
         for i in r["resultados"]:
-            if not ids["nif"] and all(res.coincidencia(ids["nombre"], n) == "parcial" for n in i["adjudicatarios"]):
+            if not ids["nif"] and all(
+                res.coincidencia(ids["nombre"], n) == "parcial"
+                for n in i["adjudicatarios"]
+            ):
                 continue
-            imp = (eur(i["importe"]) if (i["moneda"] or "EUR") == "EUR" else f"{i['importe']} {i['moneda']}")
-            doc = documento(f"TED {i['publicacion']} · {recorta(i['titulo'], 80)}",
-                            doc_type="contrato público (TED)", source="TED", source_url=i["url"],
-                            created_date=i["fecha"], author=i["comprador"], subject=i["titulo"],
-                            description=f"{imp} · adjudicatario: {', '.join(i['adjudicatarios'])} "
-                                        f"{', '.join(i['identificadores'])}",
-                            keywords=i["cpv"] or None, importe=i["importe"], moneda=i["moneda"],
-                            publicacion=i["publicacion"], pdf=i["pdf"])
+            imp = (
+                eur(i["importe"])
+                if (i["moneda"] or "EUR") == "EUR"
+                else f"{i['importe']} {i['moneda']}"
+            )
+            doc = documento(
+                f"TED {i['publicacion']} · {recorta(i['titulo'], 80)}",
+                doc_type="contrato público (TED)",
+                source="TED",
+                source_url=i["url"],
+                created_date=i["fecha"],
+                author=i["comprador"],
+                subject=i["titulo"],
+                description=f"{imp} · adjudicatario: {', '.join(i['adjudicatarios'])} "
+                f"{', '.join(i['identificadores'])}",
+                keywords=i["cpv"] or None,
+                importe=i["importe"],
+                moneda=i["moneda"],
+                publicacion=i["publicacion"],
+                pdf=i["pdf"],
+            )
             extra = []
             if self.p_bool("incluir_compradores", True) and i["comprador"]:
                 extra.append((doc, Organization(name=i["comprador"]), "LICITADO_POR"))
