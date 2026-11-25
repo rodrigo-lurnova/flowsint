@@ -1,3 +1,4 @@
+import os
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -19,6 +20,16 @@ from flowsint_core.core.services import (
 router = APIRouter()
 
 
+def registration_open() -> None:
+    """Reject sign-ups when FLOWSINT_DISABLE_REGISTRATION is true/1/yes.
+
+    Read at request time, and run before the database dependency is resolved.
+    """
+    value = os.getenv("FLOWSINT_DISABLE_REGISTRATION", "").strip().lower()
+    if value in {"true", "1", "yes"}:
+        raise HTTPException(status_code=403, detail="Registration is disabled")
+
+
 @router.post("/token")
 def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
@@ -33,7 +44,7 @@ def login_for_access_token(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.post("/register", status_code=201)
+@router.post("/register", status_code=201, dependencies=[Depends(registration_open)])
 def register(user: ProfileCreate, db: Session = Depends(get_db)):
     service = create_auth_service(db)
     try:

@@ -4,14 +4,14 @@ Authentication service for user login and registration.
 
 from typing import Any, Dict
 
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from ..auth import create_access_token, get_password_hash, verify_password
 from ..models import Profile
 from ..repositories import ProfileRepository
 from .base import BaseService
-from .exceptions import AuthenticationError, ConflictError
+from .exceptions import AuthenticationError, ConflictError, DatabaseError
 
 
 class AuthService(BaseService):
@@ -55,7 +55,15 @@ class AuthService(BaseService):
 
         try:
             self._profile_repo.add(new_user)
-            self._commit()
+            try:
+                # Not self._commit(): it wraps every SQLAlchemyError (including
+                # the IntegrityError of a concurrent registration) in DatabaseError.
+                self._db.commit()
+            except IntegrityError:
+                raise
+            except SQLAlchemyError as e:
+                self._db.rollback()
+                raise DatabaseError(f"Database error: {e}")
             self._refresh(new_user)
 
             return {

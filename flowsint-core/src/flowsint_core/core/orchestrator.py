@@ -5,7 +5,7 @@ import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Set, Union
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from flowsint_enrichers import ENRICHER_REGISTRY
 
@@ -17,6 +17,33 @@ from .types import FlowBranch, FlowStep
 from .vault import VaultProtocol
 
 DISABLED = "desactivado en este servidor"
+NO_INPUT_TYPE = "sin datos del tipo necesario: paso anterior desactivado"
+
+
+def data_fits_input_type(data: Any, input_type: Any) -> bool:
+    """Whether the data a step would receive is really of the enricher's InputType.
+
+    Checked on the actual data, never through pydantic coercion (which would turn
+    an Organization into an Individual named like the company): model instances by
+    isinstance, dicts by their nodeType. Anything that cannot be determined (strings,
+    dicts without nodeType, no usable InputType, empty data) does not fit.
+    """
+    if not isinstance(input_type, type) or not isinstance(data, (list, tuple)):
+        return False
+    if not data:
+        return False
+    expected = input_type.__name__.lower()
+    for item in data:
+        if isinstance(item, BaseModel):
+            if not isinstance(item, input_type):
+                return False
+        elif isinstance(item, dict):
+            node_type = item.get("nodeType")
+            if not isinstance(node_type, str) or node_type.strip().lower() != expected:
+                return False
+        else:
+            return False
+    return True
 
 
 class FlowOrchestrator(Enricher):
@@ -433,6 +460,11 @@ class FlowOrchestrator(Enricher):
             }
             # Set once a step failed with no outputs: the rest of the branch is skipped.
             branch_failed = False
+            # A disabled node left the data of an earlier step (or the initial
+            # values) in place: until a real step runs, check it before using it.
+            after_disabled = False
+            # Set once a step cannot get data of its type: the rest is skipped.
+            type_blocked = False
 
             # Process each step in the branch
             enricher_inputs = values
@@ -453,6 +485,23 @@ class FlowOrchestrator(Enricher):
                             "enricher": enricher_name,
                             "status": "skipped",
                             "error": DISABLED,
+                        }
+                    )
+                    after_disabled = True
+                    continue
+
+                if after_disabled and not branch_failed and not type_blocked:
+                    type_blocked = enricher is not None and not data_fits_input_type(
+                        enricher_inputs, getattr(enricher, "InputType", None)
+                    )
+                if type_blocked:
+                    add_skipped_run(node_id, enricher_name, NO_INPUT_TYPE)
+                    branch_results["steps"].append(
+                        {
+                            "nodeId": node_id,
+                            "enricher": enricher_name,
+                            "status": "skipped",
+                            "error": NO_INPUT_TYPE,
                         }
                     )
                     continue
@@ -569,6 +618,7 @@ class FlowOrchestrator(Enricher):
                     # Also store the raw outputs in the main results
                     results["results"][node_id] = outputs
                     enricher_inputs = outputs
+                    after_disabled = False  # real outputs from here on
 
                     if run.status == "failed" and not outputs:
                         branch_failed = True

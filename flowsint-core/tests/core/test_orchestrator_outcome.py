@@ -16,6 +16,7 @@ from flowsint_core.core.findings import (
 )
 from flowsint_core.core.orchestrator import FlowOrchestrator
 from flowsint_core.core.types import FlowBranch, FlowStep
+from flowsint_types import Individual, Organization
 
 NODE = {"label": "node"}
 
@@ -88,10 +89,11 @@ class Script:
 
 
 class FakeRegistry:
-    def __init__(self, script: Script, disabled=(), unknown=()):
+    def __init__(self, script: Script, disabled=(), unknown=(), input_types=None):
         self.script = script
         self.disabled = disabled
         self.unknown = unknown
+        self.input_types = input_types or {}
 
     def enricher_exists(self, name: str) -> bool:
         return name not in self.disabled and name not in self.unknown
@@ -101,8 +103,11 @@ class FakeRegistry:
 
     def get_enricher(self, name, sketch_id, scan_id, vault=None, params=None):
         script = self.script
+        input_type = self.input_types.get(name, NotImplemented)
 
         class Fake(Enricher):
+            InputType = input_type
+
             @classmethod
             def name(cls):
                 return name
@@ -160,10 +165,20 @@ def run_flow_with(monkeypatch, tmp_path):
     monkeypatch.setattr(orch_module, "Logger", _RecordingLogger())
     monkeypatch.setattr(enricher_base_module, "Logger", _RecordingLogger())
 
-    def runner(behaviours, branches, values=None, hook=None, disabled=(), unknown=()):
+    def runner(
+        behaviours,
+        branches,
+        values=None,
+        hook=None,
+        disabled=(),
+        unknown=(),
+        input_types=None,
+    ):
         script = Script(behaviours)
         monkeypatch.setattr(
-            orch_module, "ENRICHER_REGISTRY", FakeRegistry(script, disabled, unknown)
+            orch_module,
+            "ENRICHER_REGISTRY",
+            FakeRegistry(script, disabled, unknown, input_types),
         )
         flow = FlowOrchestrator("sketch", "scan", branches)
         if hook:
@@ -382,16 +397,18 @@ DISABLED = "desactivado en este servidor"
 
 def test_disabled_enricher_is_skipped_and_the_branch_goes_on(run_flow_with):
     r = run_flow_with(
-        {"a": [[{"label": "a"}]], "c": [[NODE]]},
+        {"a": [[PERSON]], "c": [[NODE]]},
         [branch("one", "a-1", "off-1", "c-1")],
         disabled=("off",),
+        input_types={"c": Individual},
     )
     assert [(s["source"], s["status"], s["error"]) for s in r["sources"]] == [
         ("a", "ok", None),
         ("off", "skipped", DISABLED),
         ("c", "ok", None),
     ]
-    assert run_flow_with.script.inputs["c"] == [[{"label": "a"}]]
+    (received,) = run_flow_with.script.inputs["c"]
+    assert [v.full_name for v in received] == ["Ana"]
     assert r["outcome"] == "complete"
     assert "off" not in run_flow_with.script.calls
 
@@ -400,7 +417,9 @@ def test_disabled_enricher_in_two_branches_is_one_skipped_run(run_flow_with):
     r = run_flow_with(
         {"c": [[NODE]]},
         [branch("one", "off-1", "c-1"), branch("two", "off-1")],
+        values=[PERSON],
         disabled=("off",),
+        input_types={"c": Individual},
     )
     assert statuses(r) == ["skipped", "ok"]
 
@@ -510,3 +529,153 @@ def test_orchestrator_error_hides_secrets(run_flow_with, monkeypatch):
     r = run_flow_with({"a": [[NODE]]}, [branch("one", "a-1")], hook=hook)
     assert statuses(r) == ["failed"]
     assert "token-secreto" not in json.dumps(r, default=str)
+
+
+# --- a step after a disabled node ------------------------------------------
+
+NO_TYPE = "sin datos del tipo necesario: paso anterior desactivado"
+ORG = {"nodeType": "organization", "nodeLabel": "Acme", "name": "Acme"}
+PERSON = {"nodeType": "individual", "nodeLabel": "Ana", "full_name": "Ana"}
+NEEDS_PERSON = {"needs": Individual}
+
+
+def test_step_after_disabled_node_with_other_input_type_is_skipped(run_flow_with):
+    r = run_flow_with(
+        {"a": [[ORG]], "needs": [[PERSON]]},
+        [branch("one", "a-1", "off-1", "needs-1")],
+        disabled=("off",),
+        input_types=NEEDS_PERSON,
+    )
+    assert [(s["source"], s["status"], s["error"]) for s in r["sources"]] == [
+        ("a", "ok", None),
+        ("off", "skipped", DISABLED),
+        ("needs", "skipped", NO_TYPE),
+    ]
+    assert "needs" not in run_flow_with.script.calls  # scan never ran
+    assert r["outcome"] == "complete"  # nothing failed because of it
+    steps = r["branches"][0]["steps"]
+    assert [(s["status"], s["error"]) for s in steps[1:]] == [
+        ("skipped", DISABLED),
+        ("skipped", NO_TYPE),
+    ]
+
+
+def test_step_after_disabled_node_with_matching_dict_type_runs(run_flow_with):
+    r = run_flow_with(
+        {"a": [[PERSON]], "needs": [[NODE]]},
+        [branch("one", "a-1", "off-1", "needs-1")],
+        disabled=("off",),
+        input_types=NEEDS_PERSON,
+    )
+    assert statuses(r) == ["ok", "skipped", "ok"]
+    (received,) = run_flow_with.script.inputs["needs"]
+    assert [v.full_name for v in received] == ["Ana"]
+
+
+def test_pydantic_instances_are_checked_with_isinstance(run_flow_with):
+    org, person = Organization(name="Acme"), Individual(full_name="Ana")
+    for data, expected in (([org], "skipped"), ([person], "ok")):
+        r = run_flow_with(
+            {"a": [data], "needs": [[NODE]]},
+            [branch("one", "a-1", "off-1", "needs-1")],
+            disabled=("off",),
+            input_types=NEEDS_PERSON,
+        )
+        assert statuses(r)[-1] == expected
+
+
+def test_strings_after_a_disabled_node_cannot_be_checked_and_are_skipped(
+    run_flow_with,
+):
+    r = run_flow_with(
+        {"needs": [[NODE]]},
+        [branch("one", "off-1", "needs-1")],
+        values=["Acme"],
+        disabled=("off",),
+        input_types=NEEDS_PERSON,
+    )
+    assert statuses(r) == ["skipped", "skipped"]
+    assert r["sources"][1]["error"] == NO_TYPE
+    assert "needs" not in run_flow_with.script.calls
+
+
+def test_undeterminable_input_type_is_skipped(run_flow_with):
+    r = run_flow_with(  # the enricher declares no InputType
+        {"a": [[PERSON]], "c": [[NODE]]},
+        [branch("one", "a-1", "off-1", "c-1")],
+        disabled=("off",),
+    )
+    assert statuses(r) == ["ok", "skipped", "skipped"]
+    assert r["sources"][2]["error"] == NO_TYPE
+
+
+def test_dict_without_node_type_is_skipped(run_flow_with):
+    r = run_flow_with(
+        {"a": [[{"full_name": "Ana"}]], "needs": [[NODE]]},
+        [branch("one", "a-1", "off-1", "needs-1")],
+        disabled=("off",),
+        input_types=NEEDS_PERSON,
+    )
+    assert statuses(r)[-1] == "skipped"
+
+
+def test_every_later_step_in_the_branch_is_skipped(run_flow_with):
+    r = run_flow_with(
+        {"a": [[ORG]], "needs": [[PERSON]], "d": [[NODE]]},
+        [branch("one", "a-1", "off-1", "needs-1", "d-1")],
+        disabled=("off",),
+        input_types={"needs": Individual, "d": Organization},  # d would match
+    )
+    assert statuses(r) == ["ok", "skipped", "skipped", "skipped"]
+    assert r["sources"][3]["error"] == NO_TYPE
+    assert "d" not in run_flow_with.script.calls
+    assert r["branches"][0]["steps"][3]["status"] == "skipped"
+
+
+def test_other_branches_are_unaffected(run_flow_with):
+    r = run_flow_with(
+        {"a": [[ORG]], "needs": [[PERSON]], "b": [[PERSON]]},
+        [branch("one", "a-1", "off-1", "needs-1"), branch("two", "b-1", "needs-2")],
+        disabled=("off",),
+        input_types=NEEDS_PERSON,
+    )
+    # needs-1 is skipped in branch one, but really runs in branch two
+    by_source = {s["source"]: s for s in r["sources"]}
+    assert by_source["needs"]["status"] == "ok"
+    assert run_flow_with.script.calls["needs"] == 1
+
+
+def test_skipped_run_is_one_per_node_id(run_flow_with):
+    r = run_flow_with(
+        {"a": [[ORG]], "needs": [[PERSON]]},
+        [
+            branch("one", "a-1", "off-1", "needs-1"),
+            branch("two", "a-1", "off-1", "needs-1"),
+        ],
+        disabled=("off",),
+        input_types=NEEDS_PERSON,
+    )
+    assert statuses(r) == ["ok", "skipped", "skipped"]
+
+
+def test_a_real_step_after_the_disabled_node_restores_normal_chaining(run_flow_with):
+    r = run_flow_with(
+        {"a": [[PERSON]], "b": [[{"x": 1}]], "c": [[NODE]]},
+        [branch("one", "a-1", "off-1", "b-1", "c-1")],
+        disabled=("off",),
+        input_types={"b": Individual, "c": Individual},
+    )
+    # c receives b's raw outputs, as it does without any disabled node
+    assert statuses(r) == ["ok", "skipped", "ok", "ok"]
+
+
+def test_branches_without_a_disabled_node_keep_string_inputs(run_flow_with):
+    r = run_flow_with(
+        {"needs": [[NODE]]},
+        [branch("one", "needs-1")],
+        values=["Ana"],
+        input_types=NEEDS_PERSON,
+    )
+    assert statuses(r) == ["ok"]
+    (received,) = run_flow_with.script.inputs["needs"]
+    assert [type(v) for v in received] == [Individual]  # coerced as always
