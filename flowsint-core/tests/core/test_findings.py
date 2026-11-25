@@ -129,3 +129,57 @@ async def test_secret_with_newline_redacted_raw_and_stripped():
     e.add_failure("Illegal header value b'Bearer s3cr3t\\n'")
     e.add_failure("sent s3cr3t\nend\nline")
     assert e.failures == ["Illegal header value b'Bearer ***\\n'", "sent ***end\nline"]
+
+
+async def test_warnings_do_not_change_the_status_and_reset_per_run():
+    e = make_enricher()
+    await e.execute(["x"])
+    e.add_warning("sin respuesta")
+    run = e.source_run()
+    assert (run.status, run.error, run.errors) == ("ok", None, [])
+    assert run.warnings == ["sin respuesta"]
+    await e.execute(["x"])
+    assert e.source_run().warnings == []
+
+
+def test_warnings_are_masked_like_failures():
+    schema = [{"name": "KEY", "type": "vaultSecret"}]
+    e = make_enricher(params_schema=schema, params={"KEY": "s3cr3t\n"})
+    e.add_warning("sent s3cr3t to x")
+    assert e.source_run().warnings == ["sent *** to x"]
+
+
+def test_errors_keep_each_failure_capped():
+    e = make_enricher()
+    e.add_failure("x" * 1000)
+    e.add_failure("segundo")
+    e.add_warning("y" * 1000)
+    run = e.source_run()
+    assert run.errors == ["x" * 300, "segundo"]
+    assert len(run.error) == 300 and run.warnings == ["y" * 300]
+
+
+def test_error_and_warning_lists_are_bounded():
+    e = make_enricher()
+    for i in range(60):
+        e.add_failure(f"f{i}")
+        e.add_warning(f"w{i}")
+    run = e.source_run()
+    assert run.errors[49:] == ["f49", "y 10 más"]
+    assert run.warnings[49:] == ["w49", "y 10 más"]
+
+
+@pytest.mark.parametrize("error", [RuntimeError(), RuntimeError(" \n")])
+async def test_error_without_text_uses_the_exception_name(error):
+    e = make_enricher(scan_raises=error)
+    await e.execute(["x"])
+    run = e.source_run()
+    assert run.status == "failed" and run.error == "RuntimeError"
+    assert run.errors == ["RuntimeError"]
+
+
+def test_empty_failure_message_is_not_an_empty_error():
+    e = make_enricher()
+    e.add_failure("")
+    run = e.source_run()
+    assert run.status == "failed" and run.error and all(run.errors)

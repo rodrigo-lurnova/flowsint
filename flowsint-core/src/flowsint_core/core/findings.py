@@ -18,14 +18,38 @@ class Finding(BaseModel):
     url: Optional[str] = None
 
 
+MAX_MESSAGE = 300
+MAX_MESSAGES = 50
+
+
+def bounded(messages: List[str]) -> List[str]:
+    """Cap each message, and keep the first ones plus a final "y N más"."""
+    kept = [m[:MAX_MESSAGE] for m in messages[:MAX_MESSAGES]]
+    rest = len(messages) - len(kept)
+    return [*kept, f"y {rest} más"] if rest > 0 else kept
+
+
 class SourceRun(BaseModel):
     """Outcome of one source lookup (one enricher execution)."""
 
     source: str
     status: Literal["ok", "failed", "skipped"]
     error: Optional[str] = None
+    # Every failure, and every notice that does not make the run fail.
+    errors: List[str] = Field(default_factory=list)
+    warnings: List[str] = Field(default_factory=list)
     coverage: Optional[str] = None
     findings: int = 0
+
+    def with_failure(self, message: str) -> "SourceRun":
+        """Copy of this run, marked as failed, with one more error."""
+        return self.model_copy(
+            update={
+                "status": "failed",
+                "error": "; ".join(x for x in (self.error, message) if x)[:MAX_MESSAGE],
+                "errors": bounded([*self.errors, message]),
+            }
+        )
 
 
 Outcome = Literal["complete", "partial", "failed"]

@@ -58,6 +58,10 @@ class EnricherRegistry:
     def enricher_exists(self, name: str) -> bool:
         return name in self._enrichers
 
+    def is_disabled(self, name: str) -> bool:
+        """True if the deployment removed this enricher (FLOWSINT_DISABLED_ENRICHERS)."""
+        return name in self._disabled
+
     def get_enricher(
         self, name: str, sketch_id: str, scan_id: str, **kwargs
     ) -> Enricher:

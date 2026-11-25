@@ -3,7 +3,7 @@ import json
 import os
 import time
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Set, Union
 
 from pydantic import ValidationError
 
@@ -15,6 +15,8 @@ from .findings import Finding, SourceRun, compute_outcome, dedupe_findings
 from .logger import Logger
 from .types import FlowBranch, FlowStep
 from .vault import VaultProtocol
+
+DISABLED = "desactivado en este servidor"
 
 
 class FlowOrchestrator(Enricher):
@@ -32,6 +34,7 @@ class FlowOrchestrator(Enricher):
         super().__init__(sketch_id, scan_id, vault=vault)
         self.enricher_branches = enricher_branches
         self.enrichers: Dict[str, Enricher] = {}  # Map of nodeId -> enricher instance
+        self.disabled_nodes: Set[str] = set()  # nodeIds disabled on this server
         self.execution_log_file: Optional[str] = None  # Path to the execution log file
         self._create_execution_log()
         self._load_enrichers()
@@ -238,7 +241,11 @@ class FlowOrchestrator(Enricher):
             enricher_name = node_id.split("-")[0]
 
             if not ENRICHER_REGISTRY.enricher_exists(enricher_name):
-                raise ValueError(f"Enricher '{enricher_name}' not found in registry")
+                # Neither case aborts the flow: the scan reports the node as
+                # skipped (disabled on this server) or failed (unknown).
+                if ENRICHER_REGISTRY.is_disabled(enricher_name):
+                    self.disabled_nodes.add(node_id)
+                continue
 
             # Pass the step params to the enricher instance
             enricher_params = (
@@ -396,11 +403,21 @@ class FlowOrchestrator(Enricher):
             ]
             run_entries.append({"node_id": node_id, "run": run})
 
-        def add_skipped_run(node_id: str, source: str) -> None:
+        def replace_run(old: SourceRun, new: SourceRun) -> None:
+            for entry in run_entries:
+                if entry["run"] is old:
+                    entry["run"] = new
+
+        def add_skipped_run(
+            node_id: str, source: str, reason: Optional[str] = None
+        ) -> None:
             if any(e["node_id"] == node_id for e in run_entries):
                 return
             run_entries.append(
-                {"node_id": node_id, "run": SourceRun(source=source, status="skipped")}
+                {
+                    "node_id": node_id,
+                    "run": SourceRun(source=source, status="skipped", error=reason),
+                }
             )
 
         completed_steps = 0
@@ -427,13 +444,26 @@ class FlowOrchestrator(Enricher):
                 enricher = self.enrichers.get(node_id)
                 enricher_name = enricher.name() if enricher else node_id.split("-")[0]
 
+                if node_id in self.disabled_nodes:
+                    # The branch goes on with the inputs this node would have had
+                    add_skipped_run(node_id, enricher_name, DISABLED)
+                    branch_results["steps"].append(
+                        {
+                            "nodeId": node_id,
+                            "enricher": enricher_name,
+                            "status": "skipped",
+                            "error": DISABLED,
+                        }
+                    )
+                    continue
+
                 if not enricher:
                     error_msg = f"Enricher not found for node {node_id}"
                     Logger.error(self.sketch_id, {"message": error_msg})
                     add_real_run(
                         node_id,
-                        SourceRun(
-                            source=enricher_name, status="failed", error=error_msg
+                        SourceRun(source=enricher_name, status="ok").with_failure(
+                            error_msg
                         ),
                     )
                     results["results"][node_id] = {"error": error_msg}
@@ -471,6 +501,9 @@ class FlowOrchestrator(Enricher):
                     "execution_time_ms": 0,
                 }
 
+                run: Optional[SourceRun] = None  # set once the enricher has run
+                cache_hit, cache_key, outputs = False, "", None
+
                 try:
                     # Update status for current step
                     completed_steps += 1
@@ -500,14 +533,19 @@ class FlowOrchestrator(Enricher):
                     else:
                         # Execute the enricher
                         outputs = await enricher.execute(enricher_inputs)
-                        if not isinstance(outputs, (dict, list)):
-                            raise ValueError(
-                                f"Enricher '{enricher_name}' returned unsupported output format"
-                            )
-                        # The same instance may run again with other inputs:
-                        # its run and findings must be read right now.
+                        # The same instance may run again with other inputs: its
+                        # run and findings must be read right now. They are also
+                        # committed before anything else can fail, so that this
+                        # (maybe paid) lookup is neither lost nor repeated.
                         run = enricher.source_run()
+                        add_real_run(node_id, run)
+                        all_findings.extend(enricher.findings)
+                        enricher_results_cache[cache_key] = (outputs, run)
                         log_entry["cache_hit"] = False
+                    if not isinstance(outputs, (dict, list)):
+                        raise ValueError(
+                            f"Enricher '{enricher_name}' returned unsupported output format"
+                        )
 
                     # Store the outputs in the step result (serialize to avoid JSON issues)
                     step_result["outputs"] = to_json_serializable(outputs)
@@ -532,11 +570,6 @@ class FlowOrchestrator(Enricher):
                     results["results"][node_id] = outputs
                     enricher_inputs = outputs
 
-                    # Commit to the aggregate only once the step went through
-                    if not cache_hit:
-                        enricher_results_cache[cache_key] = (outputs, run)
-                        add_real_run(node_id, run)
-                        all_findings.extend(enricher.findings)
                     if run.status == "failed" and not outputs:
                         branch_failed = True
 
@@ -546,14 +579,23 @@ class FlowOrchestrator(Enricher):
                         if isinstance(e, ValidationError)
                         else "Error during scan"
                     )
-                    error_msg = f"{prefix}: {str(e)}"
-                    Logger.error(self.sketch_id, {"message": error_msg})
-                    add_real_run(
-                        node_id,
-                        SourceRun(
-                            source=enricher_name, status="failed", error=error_msg[:300]
-                        ),
+                    error_msg = enricher.hide_secrets(
+                        f"{prefix}: {str(e).strip() or type(e).__name__}"
                     )
+                    Logger.error(self.sketch_id, {"message": error_msg})
+                    if run is None:
+                        add_real_run(
+                            node_id,
+                            SourceRun(source=enricher_name, status="ok").with_failure(
+                                error_msg
+                            ),
+                        )
+                    elif not cache_hit or run.status != "failed":
+                        # Keep its findings; a cached failure is already recorded
+                        failed_run = run.with_failure(error_msg)
+                        replace_run(run, failed_run)
+                        enricher_results_cache[cache_key] = (outputs, failed_run)
+                    step_result["status"] = "error"
                     step_result["error"] = error_msg
                     log_entry["status"] = "error"
                     log_entry["error"] = error_msg

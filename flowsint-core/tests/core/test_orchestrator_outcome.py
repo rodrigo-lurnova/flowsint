@@ -88,11 +88,16 @@ class Script:
 
 
 class FakeRegistry:
-    def __init__(self, script: Script):
+    def __init__(self, script: Script, disabled=(), unknown=()):
         self.script = script
+        self.disabled = disabled
+        self.unknown = unknown
 
     def enricher_exists(self, name: str) -> bool:
-        return True
+        return name not in self.disabled and name not in self.unknown
+
+    def is_disabled(self, name: str) -> bool:
+        return name in self.disabled
 
     def get_enricher(self, name, sketch_id, scan_id, vault=None, params=None):
         script = self.script
@@ -118,6 +123,8 @@ class FakeRegistry:
                 if isinstance(behaviour, dict):
                     for message in behaviour.get("failures", []):
                         self.add_failure(message)
+                    for message in behaviour.get("warnings", []):
+                        self.add_warning(message)
                     for f in behaviour.get("findings", []):
                         self.add_finding(f)
                     return behaviour["results"]
@@ -153,9 +160,11 @@ def run_flow_with(monkeypatch, tmp_path):
     monkeypatch.setattr(orch_module, "Logger", _RecordingLogger())
     monkeypatch.setattr(enricher_base_module, "Logger", _RecordingLogger())
 
-    def runner(behaviours, branches, values=None, hook=None):
+    def runner(behaviours, branches, values=None, hook=None, disabled=(), unknown=()):
         script = Script(behaviours)
-        monkeypatch.setattr(orch_module, "ENRICHER_REGISTRY", FakeRegistry(script))
+        monkeypatch.setattr(
+            orch_module, "ENRICHER_REGISTRY", FakeRegistry(script, disabled, unknown)
+        )
         flow = FlowOrchestrator("sketch", "scan", branches)
         if hook:
             hook(flow)
@@ -349,3 +358,155 @@ def test_failed_run_without_outputs_still_skips_the_rest(run_flow_with):
     )
     assert statuses(r) == ["failed", "skipped"]
     assert r["outcome"] == "failed"
+
+
+def test_warnings_and_errors_reach_the_sources(run_flow_with):
+    r = run_flow_with(
+        {"a": [{"results": [NODE], "failures": ["x", "y"], "warnings": ["w"]}]},
+        [branch("one", "a-1")],
+    )
+    assert r["sources"][0]["errors"] == ["x", "y"]
+    assert r["sources"][0]["warnings"] == ["w"]
+    assert r["sources"][0]["error"] == "x; y"
+
+
+def test_a_warning_alone_is_a_complete_flow(run_flow_with):
+    r = run_flow_with(
+        {"a": [{"results": [NODE], "warnings": ["w"]}]}, [branch("one", "a-1")]
+    )
+    assert r["outcome"] == "complete" and statuses(r) == ["ok"]
+
+
+DISABLED = "desactivado en este servidor"
+
+
+def test_disabled_enricher_is_skipped_and_the_branch_goes_on(run_flow_with):
+    r = run_flow_with(
+        {"a": [[{"label": "a"}]], "c": [[NODE]]},
+        [branch("one", "a-1", "off-1", "c-1")],
+        disabled=("off",),
+    )
+    assert [(s["source"], s["status"], s["error"]) for s in r["sources"]] == [
+        ("a", "ok", None),
+        ("off", "skipped", DISABLED),
+        ("c", "ok", None),
+    ]
+    assert run_flow_with.script.inputs["c"] == [[{"label": "a"}]]
+    assert r["outcome"] == "complete"
+    assert "off" not in run_flow_with.script.calls
+
+
+def test_disabled_enricher_in_two_branches_is_one_skipped_run(run_flow_with):
+    r = run_flow_with(
+        {"c": [[NODE]]},
+        [branch("one", "off-1", "c-1"), branch("two", "off-1")],
+        disabled=("off",),
+    )
+    assert statuses(r) == ["skipped", "ok"]
+
+
+def test_flow_with_only_disabled_enrichers_does_not_raise(run_flow_with):
+    r = run_flow_with({}, [branch("one", "off-1")], disabled=("off",))
+    assert statuses(r) == ["skipped"] and r["outcome"] == "failed"
+
+
+def test_disabled_after_a_failed_step_keeps_the_disabled_reason(run_flow_with):
+    r = run_flow_with(
+        {"a": [RuntimeError("caída")]},
+        [branch("one", "a-1", "off-1", "c-1")],
+        disabled=("off",),
+    )
+    assert statuses(r) == ["failed", "skipped", "skipped"]
+    assert r["sources"][1]["error"] == DISABLED
+
+
+def test_unknown_enricher_is_a_failed_source_and_other_branches_run(run_flow_with):
+    r = run_flow_with(
+        {"b": [[NODE]]},
+        [branch("one", "nope-1", "c-1"), branch("two", "b-1")],
+        unknown=("nope",),
+    )
+    assert statuses(r) == ["failed", "skipped", "ok"]
+    assert "nope" in r["sources"][0]["error"]
+    assert r["sources"][0]["errors"] == [r["sources"][0]["error"]]
+    assert r["outcome"] == "partial"
+
+
+class BadOutputs(list):
+    """List whose serialization fails."""
+
+
+@pytest.fixture(params=["serialization", "mapping"])
+def broken_after_execute(request, monkeypatch):
+    if request.param == "mapping":
+
+        def boom(self, outputs, step_outputs, results_mapping):
+            raise KeyError("boom")
+
+        monkeypatch.setattr(FlowOrchestrator, "update_results_mapping", boom)
+    else:
+        real = orch_module.to_json_serializable
+
+        def serialize(obj):
+            if isinstance(obj, BadOutputs):
+                raise ValueError("boom")
+            return real(obj)
+
+        monkeypatch.setattr(orch_module, "to_json_serializable", serialize)
+
+
+def test_failure_after_execute_keeps_findings_and_is_not_paid_twice(
+    run_flow_with, broken_after_execute
+):
+    r = run_flow_with(
+        {
+            "a": [
+                {
+                    "results": BadOutputs([NODE]),
+                    "findings": [_finding()],
+                    "warnings": ["w"],
+                    "failures": ["previo"],
+                }
+            ]
+        },
+        [branch("one", "a-1", "c-1"), branch("two", "a-1")],
+    )
+    assert run_flow_with.script.calls["a"] == 1
+    assert len(r["findings"]) == 1
+    assert statuses(r) == ["failed", "skipped"]
+    run = r["sources"][0]
+    assert run["findings"] == 1 and run["warnings"] == ["w"]
+    assert run["errors"][0] == "previo" and "boom" in run["errors"][1]
+    assert run["error"].startswith("previo; ") and "boom" in run["error"]
+    assert r["outcome"] == "partial"
+    assert r["results"]["a-1"]["error"]
+
+
+def test_unsupported_output_is_not_paid_twice(run_flow_with):
+    r = run_flow_with(
+        {"a": [{"results": "texto", "findings": [_finding()]}]},
+        [branch("one", "a-1"), branch("two", "a-1")],
+    )
+    assert run_flow_with.script.calls["a"] == 1
+    assert statuses(r) == ["failed"] and len(r["findings"]) == 1
+    assert "unsupported output" in r["sources"][0]["error"]
+
+
+def test_orchestrator_error_hides_secrets(run_flow_with, monkeypatch):
+    def boom(self, outputs, step_outputs, results_mapping):
+        raise KeyError("token-secreto")
+
+    monkeypatch.setattr(FlowOrchestrator, "update_results_mapping", boom)
+
+    def hook(flow):
+        e = flow.enrichers["a-1"]
+        e.params_schema = [{"name": "K", "type": "vaultSecret"}]
+
+        async def init():
+            e.params = {"K": "token-secreto"}
+
+        e.async_init = init
+
+    r = run_flow_with({"a": [[NODE]]}, [branch("one", "a-1")], hook=hook)
+    assert statuses(r) == ["failed"]
+    assert "token-secreto" not in json.dumps(r, default=str)

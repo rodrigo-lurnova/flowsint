@@ -63,3 +63,11 @@ def test_disabled_name_stays_out_on_late_register(clean_registry, monkeypatch):
     load_all_enrichers()
     ENRICHER_REGISTRY.register(_FakeEnricher)
     assert ENRICHER_REGISTRY.enricher_exists(FAKE) is False
+
+
+def test_disabled_and_unknown_names_are_told_apart(clean_registry, monkeypatch):
+    monkeypatch.setenv("FLOWSINT_DISABLED_ENRICHERS", FAKE)
+    load_all_enrichers()
+    assert ENRICHER_REGISTRY.is_disabled(FAKE) is True
+    assert ENRICHER_REGISTRY.is_disabled("domain_to_whois") is False
+    assert ENRICHER_REGISTRY.is_disabled("nope") is False
