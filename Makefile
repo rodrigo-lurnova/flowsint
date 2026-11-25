@@ -142,6 +142,7 @@ test:
 	cd flowsint-core && uv run pytest
 	cd flowsint-enrichers && uv run pytest
 	cd flowsint-api && uv run pytest
+	uv run pytest es-enrichers/tests
 
 PY_SRC := flowsint-core/src flowsint-core/tests \
 	flowsint-api/app flowsint-api/tests flowsint-api/alembic \

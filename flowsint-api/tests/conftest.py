@@ -13,6 +13,7 @@ import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 from sqlalchemy import create_engine  # noqa: E402
 from sqlalchemy.orm import sessionmaker  # noqa: E402
+from sqlalchemy.pool import StaticPool  # noqa: E402
 
 from app.main import app  # noqa: E402
 from flowsint_core.core.models import Base  # noqa: E402
@@ -22,7 +23,9 @@ from flowsint_core.core.postgre_db import get_db  # noqa: E402
 @pytest.fixture
 def db_session():
     engine = create_engine(
-        "sqlite:///:memory:", connect_args={"check_same_thread": False}
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,  # one connection, so TestClient's thread sees the tables
     )
     Base.metadata.create_all(engine)
     Session = sessionmaker(bind=engine)

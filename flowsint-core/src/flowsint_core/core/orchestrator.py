@@ -3,17 +3,67 @@ import json
 import os
 import time
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Set, Union
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from flowsint_enrichers import ENRICHER_REGISTRY
 
 from ..utils import to_json_serializable
 from .enricher_base import Enricher
+from .findings import Finding, SourceRun, compute_outcome, dedupe_findings
 from .logger import Logger
 from .types import FlowBranch, FlowStep
 from .vault import VaultProtocol
+
+DISABLED = "desactivado en este servidor"
+NO_INPUT_TYPE = "sin datos del tipo necesario: paso anterior desactivado"
+
+
+def _leading_type(branch: FlowBranch) -> Optional[type]:
+    """The entity type of the branch's leading `type` step, if it resolves.
+
+    The step id follows the flow-schema convention "<TypeName>-<n>".
+    """
+    for step in branch.steps:
+        if step.type != "type":
+            continue
+        from flowsint_types import TYPE_REGISTRY
+
+        return TYPE_REGISTRY.get_lowercase(step.nodeId.split("-")[0])
+    return None
+
+
+def data_fits_input_type(
+    data: Any, input_type: Any, initial_type: Optional[type] = None
+) -> bool:
+    """Whether the data a step would receive is really of the enricher's InputType.
+
+    Checked on the actual data, never through pydantic coercion (which would turn
+    an Organization into an Individual named like the company): model instances by
+    isinstance, dicts by their nodeType. `initial_type` is set while the data is
+    still the flow's initial values (launch payloads carry no nodeType): they are
+    of the branch's leading type. Anything that cannot be determined (no usable
+    InputType, empty data, unknown item) does not fit; mixed lists do not fit.
+    """
+    if not isinstance(input_type, type) or not isinstance(data, (list, tuple)):
+        return False
+    if not data:
+        return False
+    expected = input_type.__name__.lower()
+    for item in data:
+        if isinstance(item, BaseModel):
+            if not isinstance(item, input_type):
+                return False
+        elif isinstance(item, dict) and isinstance(item.get("nodeType"), str):
+            if item["nodeType"].strip().lower() != expected:
+                return False
+        elif initial_type is not None:
+            if initial_type.__name__.lower() != expected:
+                return False
+        else:
+            return False
+    return True
 
 
 class FlowOrchestrator(Enricher):
@@ -31,6 +81,7 @@ class FlowOrchestrator(Enricher):
         super().__init__(sketch_id, scan_id, vault=vault)
         self.enricher_branches = enricher_branches
         self.enrichers: Dict[str, Enricher] = {}  # Map of nodeId -> enricher instance
+        self.disabled_nodes: Set[str] = set()  # nodeIds disabled on this server
         self.execution_log_file: Optional[str] = None  # Path to the execution log file
         self._create_execution_log()
         self._load_enrichers()
@@ -237,7 +288,11 @@ class FlowOrchestrator(Enricher):
             enricher_name = node_id.split("-")[0]
 
             if not ENRICHER_REGISTRY.enricher_exists(enricher_name):
-                raise ValueError(f"Enricher '{enricher_name}' not found in registry")
+                # Neither case aborts the flow: the scan reports the node as
+                # skipped (disabled on this server) or failed (unknown).
+                if ENRICHER_REGISTRY.is_disabled(enricher_name):
+                    self.disabled_nodes.add(node_id)
+                continue
 
             # Pass the step params to the enricher instance
             enricher_params = (
@@ -378,10 +433,40 @@ class FlowOrchestrator(Enricher):
 
         # Global mapping of output references to actual values
         results_mapping: Dict[str, Any] = {}
-        # Cache for enricher results to avoid recomputation
+        # Cache for enricher results to avoid recomputation: key -> (outputs, run)
         enricher_results_cache: Dict[str, Any] = {}
 
-        sum(len(branch.steps) for branch in self.enricher_branches)
+        # One entry per real enricher execution (plus at most one skipped entry
+        # per node that never ran), in order of first appearance.
+        run_entries: List[Dict[str, Any]] = []
+        all_findings: List[Finding] = []
+
+        def add_real_run(node_id: str, run: SourceRun) -> None:
+            # A real run supersedes any "skipped" placeholder for that node.
+            run_entries[:] = [
+                e
+                for e in run_entries
+                if not (e["node_id"] == node_id and e["run"].status == "skipped")
+            ]
+            run_entries.append({"node_id": node_id, "run": run})
+
+        def replace_run(old: SourceRun, new: SourceRun) -> None:
+            for entry in run_entries:
+                if entry["run"] is old:
+                    entry["run"] = new
+
+        def add_skipped_run(
+            node_id: str, source: str, reason: Optional[str] = None
+        ) -> None:
+            if any(e["node_id"] == node_id for e in run_entries):
+                return
+            run_entries.append(
+                {
+                    "node_id": node_id,
+                    "run": SourceRun(source=source, status="skipped", error=reason),
+                }
+            )
+
         completed_steps = 0
 
         # Process each branch
@@ -393,6 +478,15 @@ class FlowOrchestrator(Enricher):
                 "name": branch_name,
                 "steps": [],
             }
+            # Set once a step failed with no outputs: the rest of the branch is skipped.
+            branch_failed = False
+            # A disabled node left the data of an earlier step (or the initial
+            # values) in place: until a real step runs, check it before using it.
+            after_disabled = False
+            # Set once a step cannot get data of its type: the rest is skipped.
+            type_blocked = False
+            # Until a real step has produced outputs, the data is the initial values
+            initial_type = _leading_type(branch)
 
             # Process each step in the branch
             enricher_inputs = values
@@ -402,15 +496,61 @@ class FlowOrchestrator(Enricher):
 
                 node_id = step.nodeId
                 enricher = self.enrichers.get(node_id)
+                enricher_name = enricher.name() if enricher else node_id.split("-")[0]
 
-                if not enricher:
-                    Logger.error(
-                        self.sketch_id,
-                        {"message": f"Enricher not found for node {node_id}"},
+                if node_id in self.disabled_nodes:
+                    # The branch goes on with the inputs this node would have had
+                    add_skipped_run(node_id, enricher_name, DISABLED)
+                    branch_results["steps"].append(
+                        {
+                            "nodeId": node_id,
+                            "enricher": enricher_name,
+                            "status": "skipped",
+                            "error": DISABLED,
+                        }
+                    )
+                    after_disabled = True
+                    continue
+
+                if after_disabled and not branch_failed and not type_blocked:
+                    type_blocked = enricher is not None and not data_fits_input_type(
+                        enricher_inputs,
+                        getattr(enricher, "InputType", None),
+                        initial_type,
+                    )
+                if type_blocked:
+                    add_skipped_run(node_id, enricher_name, NO_INPUT_TYPE)
+                    branch_results["steps"].append(
+                        {
+                            "nodeId": node_id,
+                            "enricher": enricher_name,
+                            "status": "skipped",
+                            "error": NO_INPUT_TYPE,
+                        }
                     )
                     continue
 
-                enricher_name = enricher.name()
+                if not enricher:
+                    error_msg = f"Enricher not found for node {node_id}"
+                    Logger.error(self.sketch_id, {"message": error_msg})
+                    add_real_run(
+                        node_id,
+                        SourceRun(source=enricher_name, status="ok").with_failure(
+                            error_msg
+                        ),
+                    )
+                    results["results"][node_id] = {"error": error_msg}
+                    branch_results["steps"].append(
+                        {
+                            "nodeId": node_id,
+                            "enricher": enricher_name,
+                            "status": "error",
+                            "error": error_msg,
+                        }
+                    )
+                    branch_failed = True
+                    continue
+
                 step_start_time = time.time()
 
                 step_result: Dict[str, Any] = {
@@ -434,11 +574,19 @@ class FlowOrchestrator(Enricher):
                     "execution_time_ms": 0,
                 }
 
+                run: Optional[SourceRun] = None  # set once the enricher has run
+                cache_hit, cache_key, outputs = False, "", None
+
                 try:
                     # Update status for current step
                     completed_steps += 1
-                    if not enricher_inputs:
-                        error_msg = "No inputs available"
+                    if branch_failed or not enricher_inputs:
+                        error_msg = (
+                            "Skipped: a previous step failed"
+                            if branch_failed
+                            else "No inputs available"
+                        )
+                        add_skipped_run(node_id, enricher_name)
                         step_result["error"] = error_msg
                         log_entry["status"] = "error"
                         log_entry["error"] = error_msg
@@ -451,19 +599,26 @@ class FlowOrchestrator(Enricher):
 
                     # Check if we already have results for this enricher with these inputs
                     cache_key = f"{node_id}:{str(enricher_inputs)}"
-                    if cache_key in enricher_results_cache:
-                        outputs = enricher_results_cache[cache_key]
+                    cache_hit = cache_key in enricher_results_cache
+                    if cache_hit:
+                        outputs, run = enricher_results_cache[cache_key]
                         log_entry["cache_hit"] = True
                     else:
                         # Execute the enricher
                         outputs = await enricher.execute(enricher_inputs)
-                        if not isinstance(outputs, (dict, list)):
-                            raise ValueError(
-                                f"Enricher '{enricher_name}' returned unsupported output format"
-                            )
-                        # Cache the results
-                        enricher_results_cache[cache_key] = outputs
+                        # The same instance may run again with other inputs: its
+                        # run and findings must be read right now. They are also
+                        # committed before anything else can fail, so that this
+                        # (maybe paid) lookup is neither lost nor repeated.
+                        run = enricher.source_run()
+                        add_real_run(node_id, run)
+                        all_findings.extend(enricher.findings)
+                        enricher_results_cache[cache_key] = (outputs, run)
                         log_entry["cache_hit"] = False
+                    if not isinstance(outputs, (dict, list)):
+                        raise ValueError(
+                            f"Enricher '{enricher_name}' returned unsupported output format"
+                        )
 
                     # Store the outputs in the step result (serialize to avoid JSON issues)
                     step_result["outputs"] = to_json_serializable(outputs)
@@ -476,28 +631,46 @@ class FlowOrchestrator(Enricher):
                         (time.time() - step_start_time) * 1000
                     )
 
+                    if run.status == "failed":
+                        step_result["status"] = "error"
+                        step_result["error"] = run.error
+                        log_entry["status"] = "error"
+                        log_entry["error"] = run.error
+
                     # Update the global results mapping with the outputs
                     self.update_results_mapping(outputs, step.outputs, results_mapping)
                     # Also store the raw outputs in the main results
                     results["results"][node_id] = outputs
                     enricher_inputs = outputs
+                    after_disabled = False  # real outputs from here on
+                    initial_type = None
 
-                except ValidationError as e:
-                    error_msg = f"Validation error: {str(e)}"
-                    Logger.error(self.sketch_id, {"message": error_msg})
-                    step_result["error"] = error_msg
-                    log_entry["status"] = "error"
-                    log_entry["error"] = error_msg
-                    log_entry["execution_time_ms"] = int(
-                        (time.time() - step_start_time) * 1000
-                    )
-                    results["results"][node_id] = {"error": error_msg}
-                    self._update_execution_log(log_entry)
-                    return results
+                    if run.status == "failed" and not outputs:
+                        branch_failed = True
 
                 except Exception as e:
-                    error_msg = f"Error during scan: {str(e)}"
+                    prefix = (
+                        "Validation error"
+                        if isinstance(e, ValidationError)
+                        else "Error during scan"
+                    )
+                    error_msg = enricher.hide_secrets(
+                        f"{prefix}: {str(e).strip() or type(e).__name__}"
+                    )
                     Logger.error(self.sketch_id, {"message": error_msg})
+                    if run is None:
+                        add_real_run(
+                            node_id,
+                            SourceRun(source=enricher_name, status="ok").with_failure(
+                                error_msg
+                            ),
+                        )
+                    elif not cache_hit or run.status != "failed":
+                        # Keep its findings; a cached failure is already recorded
+                        failed_run = run.with_failure(error_msg)
+                        replace_run(run, failed_run)
+                        enricher_results_cache[cache_key] = (outputs, failed_run)
+                    step_result["status"] = "error"
                     step_result["error"] = error_msg
                     log_entry["status"] = "error"
                     log_entry["error"] = error_msg
@@ -506,7 +679,9 @@ class FlowOrchestrator(Enricher):
                     )
                     results["results"][node_id] = {"error": error_msg}
                     self._update_execution_log(log_entry)
-                    return results
+                    branch_results["steps"].append(step_result)
+                    branch_failed = True
+                    continue
 
                 # Update execution log with this step
                 self._update_execution_log(log_entry)
@@ -514,9 +689,23 @@ class FlowOrchestrator(Enricher):
 
             results["branches"].append(branch_results)
 
-        Logger.completed(
-            self.sketch_id, {"message": "Enricher completed successfully."}
-        )
+        runs = [e["run"] for e in run_entries]
+        outcome = compute_outcome(runs)
+        results["outcome"] = outcome
+        results["sources"] = [r.model_dump(mode="json") for r in runs]
+        results["findings"] = [
+            f.model_dump(mode="json") for f in dedupe_findings(all_findings)
+        ]
+
+        if outcome == "failed":
+            Logger.error(
+                self.sketch_id,
+                {"message": "Flow failed: no source completed successfully."},
+            )
+        else:
+            Logger.completed(
+                self.sketch_id, {"message": "Enricher completed successfully."}
+            )
 
         # Include the final reference mapping for debugging
         results["reference_mapping"] = results_mapping

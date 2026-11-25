@@ -31,6 +31,7 @@ class ScanRepository(BaseRepository[Scan]):
             self._db.query(Scan)
             .join(Sketch, Sketch.id == Scan.sketch_id)
             .filter(Sketch.investigation_id.in_(inv_ids), Sketch.id == sketch_id)
+            .order_by(Scan.started_at.is_(None), Scan.started_at, Scan.id)
             .all()
         )
 

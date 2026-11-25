@@ -80,8 +80,13 @@ class EmailToGravatarEnricher(Enricher):
                     gravatar = Gravatar(**gravatar_data)
                     results.append(gravatar)
                     self.email_gravatar_mapping.append((email, gravatar))
+                elif response.status_code != 404:  # 404 = no Gravatar account
+                    self.add_failure(
+                        f"Gravatar: {email.email}: HTTP {response.status_code}"
+                    )
 
             except Exception as e:
+                self.add_failure(f"Gravatar: {email.email}: {type(e).__name__}: {e}")
                 Logger.error(
                     self.sketch_id,
                     {

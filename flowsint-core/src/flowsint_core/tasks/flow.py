@@ -1,7 +1,10 @@
 import uuid
+from datetime import datetime, timezone
 from typing import List, Optional
 
 from celery import states
+from celery.exceptions import Ignore
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from flowsint_core.utils import to_json_serializable
@@ -18,6 +21,37 @@ from ..core.types import FlowBranch
 db: Session = next(get_db())
 
 
+def _failure_message(sources: List[dict]) -> str:
+    """Explain why a flow ended with outcome=failed, from its source runs."""
+    errors = [
+        f"{s.get('source')}: {s.get('error')}"
+        for s in sources
+        if s.get("status") == "failed" and s.get("error")
+    ]
+    if not errors:
+        return "Flow failed: no source completed successfully."
+    return "Flow failed, no source completed: " + "; ".join(errors)
+
+
+def _expired(expires) -> bool:
+    """Whether a message's expiry (ISO string or datetime, naive = UTC) has passed.
+
+    Celery only checks it when it hands the message to the pool. With --pool=threads
+    (and with prefetch in general) the task can start long after that.
+    """
+    if not expires:
+        return False
+    try:
+        if isinstance(expires, str):
+            expires = datetime.fromisoformat(expires.strip().replace("Z", "+00:00"))
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        return expires <= datetime.now(timezone.utc)
+    except (ValueError, TypeError, AttributeError):
+        print(f"Unreadable task expiry {expires!r}, running the flow anyway")
+        return False
+
+
 @celery.task(name="run_flow", bind=True)
 def run_flow(
     self,
@@ -26,6 +60,10 @@ def run_flow(
     sketch_id: str | None,
     owner_id: Optional[str] = None,
 ):
+    if _expired(self.request.expires):
+        print(f"Scan {self.request.id} expired in the queue, not run")
+        raise Ignore()
+
     session = SessionLocal()
 
     try:
@@ -40,7 +78,17 @@ def run_flow(
             sketch_id=uuid.UUID(sketch_id) if sketch_id else None,
         )
         session.add(scan)
-        session.commit()
+        try:
+            session.commit()
+        except IntegrityError:
+            session.rollback()
+            if session.get(Scan, scan_id) is None:
+                raise
+            # The id is taken: a second launch with the same client-chosen id,
+            # or a Celery redelivery. Run nothing and leave the existing scan
+            # (and the task state) alone.
+            print(f"Scan {scan_id} already exists, duplicate run ignored")
+            raise Ignore()
 
         # Create vault instance if owner_id is provided
         vault = None
@@ -64,11 +112,19 @@ def run_flow(
         # Pass serialized objects instead of strings - the preprocess will handle them
         results = enricher.scan(values=serialized_objects)
 
-        scan.status = EventLevel.COMPLETED
         scan.details = to_json_serializable(results)
+        scan.completed_at = datetime.now(timezone.utc)
+        if results.get("outcome") == "failed":
+            scan.status = EventLevel.FAILED
+            scan.error = _failure_message(results.get("sources") or [])
+        else:
+            scan.status = EventLevel.COMPLETED
         session.commit()
 
         return {"result": scan.details}
+
+    except Ignore:
+        raise
 
     except Exception as ex:
         session.rollback()
@@ -79,6 +135,7 @@ def run_flow(
         if scan:
             scan.status = EventLevel.FAILED
             scan.error = error_logs
+            scan.completed_at = datetime.now(timezone.utc)
             session.commit()
 
         self.update_state(state=states.FAILURE)

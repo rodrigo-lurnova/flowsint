@@ -22,6 +22,7 @@ Uso:
   cnmv.py A-48010615         # ficha directa por NIF
   cnmv.py Iberdrola --json
 """
+
 import argparse
 import html
 import json
@@ -32,45 +33,81 @@ from urllib.parse import urljoin
 import httpx
 
 BASE = "https://www.cnmv.es/portal/consultas/"
-HEADERS = {"User-Agent": "Mozilla/5.0 (osint-es-scripts)", "Accept-Language": "es-ES,es;q=0.9"}
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (osint-es-scripts)",
+    "Accept-Language": "es-ES,es;q=0.9",
+}
 NIF_RE = re.compile(r"^[A-Z]-?\d{7,8}[A-Z0-9]?$", re.I)
 
 
 def buscar(client: httpx.Client, texto: str) -> list[dict]:
-    page = client.get(BASE + "busquedaporentidad").text
-    form = {k: re.search(rf'id="{k}" value="([^"]*)"', page).group(1)
-            for k in ("__VIEWSTATE", "__VIEWSTATEGENERATOR", "__EVENTVALIDATION")}
-    form.update({"__EVENTTARGET": "", "__EVENTARGUMENT": "",
-                 "ctl00$ContentPrincipal$txtBusqueda": texto,
-                 "ctl00$ContentPrincipal$btnBuscar": "Buscar"})
+    inicio = client.get(BASE + "busquedaporentidad")
+    inicio.raise_for_status()
+    page = inicio.text
+    form = {
+        k: re.search(rf'id="{k}" value="([^"]*)"', page).group(1)
+        for k in ("__VIEWSTATE", "__VIEWSTATEGENERATOR", "__EVENTVALIDATION")
+    }
+    form.update(
+        {
+            "__EVENTTARGET": "",
+            "__EVENTARGUMENT": "",
+            "ctl00$ContentPrincipal$txtBusqueda": texto,
+            "ctl00$ContentPrincipal$btnBuscar": "Buscar",
+        }
+    )
     r = client.post(BASE + "busquedaporentidad", data=form)
     r.raise_for_status()
-    sel = re.search(r'name="ctl00\$ContentPrincipal\$wuc_Entidades\$lstSeleccion".*?</select>', r.text, re.S)
+    sel = re.search(
+        r'name="ctl00\$ContentPrincipal\$wuc_Entidades\$lstSeleccion".*?</select>',
+        r.text,
+        re.S,
+    )
     if not sel:
         return []
-    return [{"nif": nif, "nombre": html.unescape(nombre).strip()}
-            for nif, nombre in re.findall(r'<option[^>]*value="([^"]+)">(.*?)</option>', sel.group(0))]
+    return [
+        {"nif": nif, "nombre": html.unescape(nombre).strip()}
+        for nif, nombre in re.findall(
+            r'<option[^>]*value="([^"]+)">(.*?)</option>', sel.group(0)
+        )
+    ]
 
 
 def ficha(client: httpx.Client, nif: str) -> dict:
     r = client.get(BASE + "DatosEntidad", params={"nif": nif})
     r.raise_for_status()
     nombre = re.search(r"<title>\s*CNMV - [^-]+ - (.*?)\s*</title>", r.text, re.S)
-    secciones = [{"seccion": html.unescape(re.sub(r"<[^>]+>", "", txt)).strip(),
-                  "url": urljoin(str(r.url), html.unescape(href))}
-                 for href, txt in re.findall(r'id="ctl00_ContentPrincipal_repIzquierda_ctl\d+_hlEnlace" href="([^"]+)">(.*?)</a>', r.text, re.S)]
-    return {"nif": nif, "nombre": html.unescape(nombre.group(1)) if nombre else None,
-            "url": str(r.url), "secciones": secciones}
+    secciones = [
+        {
+            "seccion": html.unescape(re.sub(r"<[^>]+>", "", txt)).strip(),
+            "url": urljoin(str(r.url), html.unescape(href)),
+        }
+        for href, txt in re.findall(
+            r'id="ctl00_ContentPrincipal_repIzquierda_ctl\d+_hlEnlace" href="([^"]+)">(.*?)</a>',
+            r.text,
+            re.S,
+        )
+    ]
+    return {
+        "nif": nif,
+        "nombre": html.unescape(nombre.group(1)) if nombre else None,
+        "url": str(r.url),
+        "secciones": secciones,
+    }
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("texto", help="nombre (o parte) de la entidad, o NIF")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args()
 
     with httpx.Client(headers=HEADERS, timeout=30, follow_redirects=True) as c:
-        entidades = [{"nif": a.texto.upper()}] if NIF_RE.match(a.texto) else buscar(c, a.texto)
+        entidades = (
+            [{"nif": a.texto.upper()}] if NIF_RE.match(a.texto) else buscar(c, a.texto)
+        )
         if not entidades:
             print("Sin resultados en la CNMV.", file=sys.stderr)
             return 1

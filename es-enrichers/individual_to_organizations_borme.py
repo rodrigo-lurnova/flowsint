@@ -5,12 +5,15 @@ Caro: necesita el texto completo de todas las provincias del rango (~30 peticion
 día hábil; 30 días ≈ 650 peticiones ≈ 6 min la primera vez, luego caché). Usa PROVINCIA
 para abaratarlo. El BORME no publica DNI: un nombre puede corresponder a homónimos.
 """
+
 from typing import Any, Dict, List, Optional
 
 from flowsint_core.core.enricher_base import Enricher
 from flowsint_core.core.logger import Logger
-from flowsint_enrichers.registry import flowsint_enricher
 from flowsint_enrichers.es import _borme_comun as bc
+from flowsint_enrichers.es import _evidencias as ev
+from flowsint_enrichers.es._contexto import vecinos
+from flowsint_enrichers.registry import flowsint_enricher
 from flowsint_types.individual import Individual
 from flowsint_types.organization import Organization
 
@@ -22,23 +25,59 @@ class EsIndividualToOrgsBormeEnricher(Enricher):
     InputType = Individual
     OutputType = Organization
 
-    def __init__(self, sketch_id: Optional[str] = None, scan_id: Optional[str] = None,
-                 vault=None, params: Optional[Dict[str, Any]] = None, graph_service=None):
-        super().__init__(sketch_id=sketch_id, scan_id=scan_id, params_schema=self.get_params_schema(),
-                         vault=vault, params=params, graph_service=graph_service)
+    def __init__(
+        self,
+        sketch_id: Optional[str] = None,
+        scan_id: Optional[str] = None,
+        vault=None,
+        params: Optional[Dict[str, Any]] = None,
+        graph_service=None,
+    ):
+        super().__init__(
+            sketch_id=sketch_id,
+            scan_id=scan_id,
+            params_schema=self.get_params_schema(),
+            vault=vault,
+            params=params,
+            graph_service=graph_service,
+        )
         self.mapping: List[tuple] = []
 
     @classmethod
     def get_params_schema(cls) -> List[Dict[str, Any]]:
         return [
-            {"name": "DIAS", "type": "string", "default": "30", "required": False,
-             "description": "Días hacia atrás (~30 peticiones por día hábil la primera vez)."},
-            {"name": "DESDE", "type": "string", "required": False, "description": "Fecha inicial AAAA-MM-DD."},
-            {"name": "HASTA", "type": "string", "required": False, "description": "Fecha final AAAA-MM-DD."},
-            {"name": "PROVINCIA", "type": "string", "required": False,
-             "description": "Provincias separadas por comas (nombre o código INE) para abaratar."},
-            {"name": "MAX_PETICIONES", "type": "string", "default": "1500", "required": False,
-             "description": "Tope de peticiones a boe.es por ejecución."},
+            {
+                "name": "DIAS",
+                "type": "string",
+                "default": "30",
+                "required": False,
+                "description": "Días hacia atrás (~30 peticiones por día hábil la primera vez).",
+            },
+            {
+                "name": "DESDE",
+                "type": "string",
+                "required": False,
+                "description": "Fecha inicial AAAA-MM-DD.",
+            },
+            {
+                "name": "HASTA",
+                "type": "string",
+                "required": False,
+                "description": "Fecha final AAAA-MM-DD.",
+            },
+            {
+                "name": "PROVINCIA",
+                "type": "string",
+                "required": False,
+                "description": "Provincias separadas por comas (nombre o código INE) para abaratar.",
+            },
+            {
+                "name": "MAX_PETICIONES",
+                "type": "string",
+                "default": "1500",
+                "required": False,
+                "description": "Tope de peticiones a boe.es por ejecución.",
+            },
         ]
 
     @classmethod
@@ -60,45 +99,112 @@ class EsIndividualToOrgsBormeEnricher(Enricher):
         inscritos del BORME del rango y crea Organization por cada sociedad donde aparece,
         con la relación Individual -[CARGO]-> Organization (EX_<CARGO> si consta cese).
         Requiere todos los documentos provinciales del rango (se cachean en SQLite).
-        Cuidado con homónimos: el BORME no publica DNI.
+        El BORME no publica DNI: salvo en la empresa ya vinculada a la persona en el sketch,
+        la relación es POSIBLE_<CARGO> (POSIBLE_EX_<CARGO>) porque puede ser un homónimo.
+        Solo se confirma si coinciden la forma jurídica y el nombre completo del cargo.
         """
 
     async def scan(self, data: List[InputType]) -> List[OutputType]:
         self.mapping, out = [], []
+        mod, sin_nombre = bc.borme(), []
         for ind in data:
-            nombre = (ind.full_name or " ".join(x for x in (ind.first_name, ind.last_name) if x) or "").strip()
+            nombre = (
+                ind.full_name
+                or " ".join(x for x in (ind.first_name, ind.last_name) if x)
+                or ""
+            ).strip()
             if not nombre:
+                sin_nombre.append("sin nombre utilizable")
                 continue
+            try:
+                enlazadas = vecinos(self._graph_service, self.sketch_id, nombre)[
+                    "empresas_directas"
+                ]
+            except (
+                Exception
+            ) as exc:  # sin contexto se busca igual: todo queda como posible
+                ev.fallo(self, bc.FUENTE, nombre, exc)
+                enlazadas = None
             try:
                 res = await bc.buscar_persona(nombre, self.params)
             except Exception as exc:
-                Logger.error(self.sketch_id, {"message": f"[BORME] {nombre}: {exc}"})
+                ev.fallo(self, bc.FUENTE, nombre, exc)
                 continue
-            Logger.info(self.sketch_id, {"message": f"[BORME] {nombre}: {len(res['empresas'])} sociedades, "
-                                                    f"coste {res['coste']}"})
-            for emp in res["empresas"]:
-                org = Organization(name=emp["empresa"], source="BORME", siege_departement=emp["provincia"],
-                                   hoja_registral=emp["hoja_registral"], registro_mercantil=emp["provincia"])
+            bc.anotar_cobertura(self, res, nombre)
+            Logger.info(
+                self.sketch_id,
+                {
+                    "message": f"[BORME] {nombre}: {len(res['empresas'])} sociedades, "
+                    f"coste {res['coste']}"
+                },
+            )
+            bases = [
+                mod.normalizar_denominacion(e["empresa"] or "")["base"]
+                for e in res["empresas"]
+            ]
+            for emp, base in zip(res["empresas"], bases):
+                # Dos sociedades con la denominación vinculada: no se sabe cuál es la del sketch
+                directa = any(
+                    bc.misma_empresa(e, emp["empresa"] or "") for e in enlazadas or []
+                )
+                unica = directa and bases.count(base) == 1
+                # Una relación POSIBLE_ quitaría el contexto a un vínculo legítimo (o que no se ha podido leer)
+                escribir_posible = enlazadas is not None and not directa
+                org = Organization(
+                    name=emp["empresa"],
+                    source="BORME",
+                    siege_departement=emp["provincia"],
+                    hoja_registral=emp["hoja_registral"],
+                    registro_mercantil=emp["provincia"],
+                )
                 out.append(org)
-                vig = {v["cargo_codigo"] for v in emp["cargos_vigentes"]}
+                vig = {
+                    (bc.palabras(v["persona"]), v["cargo_codigo"])
+                    for v in emp["cargos_vigentes"]
+                }
                 vistos = set()
                 for c in emp["cargos"]:
-                    etiqueta = c["cargo_codigo"] if c["cargo_codigo"] in vig else f"EX_{c['cargo_codigo']}"
+                    confirmada = unica and bc.mismas_palabras(nombre, c["persona"])
+                    etiqueta = (
+                        c["cargo_codigo"]
+                        if (bc.palabras(c["persona"]), c["cargo_codigo"]) in vig
+                        else f"EX_{c['cargo_codigo']}"
+                    )
+                    etiqueta = etiqueta if confirmada else f"POSIBLE_{etiqueta}"
                     if etiqueta in vistos:
                         continue
                     vistos.add(etiqueta)
-                    self.mapping.append((ind, org, etiqueta, f"{c['fecha']} {c['accion']} {c['cargo']} "
-                                                             f"({c['persona']}) {c.get('url_pdf') or ''}"))
+                    resumen = (
+                        f"{c['fecha']} {c['accion']} {c['cargo']} ({c['persona']}) "
+                        f"{c.get('url_pdf') or ''}"
+                    ).strip()
+                    if confirmada or escribir_posible:
+                        self.mapping.append((ind, org, etiqueta, resumen))
+                    ev.anotar(
+                        self,
+                        bc.FUENTE,
+                        nombre,
+                        etiqueta,
+                        emp["empresa"],
+                        "confirmada" if confirmada else "posible",
+                        evidence=[resumen],
+                        url=c.get("url_pdf"),
+                    )
+        ev.sin_buscar(self, bc.FUENTE, "personas", len(data), sin_nombre)
         return out
 
-    def postprocess(self, results: List[OutputType], original_input: List[InputType] = None) -> List[OutputType]:
+    def postprocess(
+        self, results: List[OutputType], original_input: List[InputType] = None
+    ) -> List[OutputType]:
         if not self._graph_service:
             return results
         for ind, org, etiqueta, resumen in self.mapping:
             self.create_node(ind)
             self.create_node(org)
             self.create_relationship(ind, org, etiqueta)
-            self.log_graph_message(f"{ind.full_name} -[{etiqueta}]-> {org.name}: {resumen}")
+            self.log_graph_message(
+                f"{ind.full_name} -[{etiqueta}]-> {org.name}: {resumen}"
+            )
         return results
 
 

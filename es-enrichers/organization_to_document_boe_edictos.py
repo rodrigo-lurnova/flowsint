@@ -15,14 +15,35 @@ class OrgToEdictosBoe(OrgEsEnricher):
     FUENTE = "[BOE]"
     MAX_DEFECTO = 20
     PARAMS = [
-        {"name": "tablones", "type": "select", "default": "ambos", "required": False,
-         "description": "TEU (administrativos), TEJU (judiciales) o ambos.",
-         "options": [{"label": "Ambos", "value": "ambos"}, {"label": "TEU", "value": "teu"},
-                     {"label": "TEJU", "value": "teju"}]},
-        {"name": "desde", "type": "string", "required": False, "description": "Fecha desde (dd/mm/aaaa)."},
-        {"name": "incluir_organismos", "type": "select", "default": "true", "required": False,
-         "description": "Crear el organismo emisor como Organization.",
-         "options": [{"label": "Sí", "value": "true"}, {"label": "No", "value": "false"}]},
+        {
+            "name": "tablones",
+            "type": "select",
+            "default": "ambos",
+            "required": False,
+            "description": "TEU (administrativos), TEJU (judiciales) o ambos.",
+            "options": [
+                {"label": "Ambos", "value": "ambos"},
+                {"label": "TEU", "value": "teu"},
+                {"label": "TEJU", "value": "teju"},
+            ],
+        },
+        {
+            "name": "desde",
+            "type": "string",
+            "required": False,
+            "description": "Fecha desde (dd/mm/aaaa).",
+        },
+        {
+            "name": "incluir_organismos",
+            "type": "select",
+            "default": "true",
+            "required": False,
+            "description": "Crear el organismo emisor como Organization.",
+            "options": [
+                {"label": "Sí", "value": "true"},
+                {"label": "No", "value": "false"},
+            ],
+        },
     ]
 
     @classmethod
@@ -48,17 +69,40 @@ class OrgToEdictosBoe(OrgEsEnricher):
         out: List[Hallazgo] = []
         with httpx.Client(headers=boe.HEADERS, timeout=40, follow_redirects=True) as c:
             for judicial in tablones:
-                r = boe.buscar(c, texto, judicial, str(self.params.get("desde") or ""), "", 50)
+                try:
+                    r = boe.buscar(
+                        c, texto, judicial, str(self.params.get("desde") or ""), "", 50
+                    )
+                except Exception as e:  # un tablón no invalida el otro
+                    self.fallo(f"{texto} ({'TEJU' if judicial else 'TEU'})", e)
+                    continue
                 for i in r["resultados"]:
-                    doc = documento(f"{r['fuente']} {i['referencia']} · {recorta(i['asunto'], 90)}",
-                                    doc_type="edicto judicial" if judicial else "notificación administrativa",
-                                    source=f"BOE {r['fuente']}", source_url=i["pdf"], author=i["organismo"],
-                                    subject=i["asunto"], description=i["boletin"], referencia=i["referencia"],
-                                    consulta=texto)
+                    doc = documento(
+                        f"{r['fuente']} {i['referencia']} · {recorta(i['asunto'], 90)}",
+                        doc_type="edicto judicial"
+                        if judicial
+                        else "notificación administrativa",
+                        source=f"BOE {r['fuente']}",
+                        source_url=i["pdf"],
+                        author=i["organismo"],
+                        subject=i["asunto"],
+                        description=i["boletin"],
+                        referencia=i["referencia"],
+                        consulta=texto,
+                    )
                     extra = []
                     if self.p_bool("incluir_organismos", True) and i.get("organismo"):
-                        extra.append((doc, Organization(name=i["organismo"]), "PUBLICADO_POR"))
-                    out.append(Hallazgo(doc, "MENCIONADA_EN_EDICTO", extra))
+                        extra.append(
+                            (doc, Organization(name=i["organismo"]), "PUBLICADO_POR")
+                        )
+                    out.append(
+                        Hallazgo(
+                            doc,
+                            "MENCIONADA_EN_EDICTO",
+                            extra,
+                            certainty="confirmada" if ids["nif"] else "posible",
+                        )
+                    )
         return out
 
 

@@ -51,9 +51,12 @@ class ScanService(BaseService):
         if not scan:
             raise NotFoundError("Scan not found")
 
-        sketch = self._sketch_repo.get_by_id(scan.sketch_id)
-        if sketch:
-            self._check_permission(user_id, sketch.investigation_id, ["read"])
+        # A scan without a reachable sketch has no investigation to authorise
+        # against, so it is hidden rather than readable by anyone.
+        sketch = self._sketch_repo.get_by_id(scan.sketch_id) if scan.sketch_id else None
+        if not sketch:
+            raise NotFoundError("Scan not found")
+        self._check_permission(user_id, sketch.investigation_id, ["read"])
 
         return scan
 
@@ -62,9 +65,10 @@ class ScanService(BaseService):
         if not scan:
             raise NotFoundError("Scan not found")
 
-        sketch = self._sketch_repo.get_by_id(scan.sketch_id)
-        if sketch:
-            self._check_permission(user_id, sketch.investigation_id, ["delete"])
+        sketch = self._sketch_repo.get_by_id(scan.sketch_id) if scan.sketch_id else None
+        if not sketch:
+            raise NotFoundError("Scan not found")
+        self._check_permission(user_id, sketch.investigation_id, ["delete"])
 
         self._scan_repo.delete(scan)
         self._commit()

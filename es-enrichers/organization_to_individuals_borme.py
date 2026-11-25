@@ -6,12 +6,14 @@ Relación Individual -[CARGO]-> Organization con el código del cargo como etiqu
 SOCIO_UNICO...). Los cargos cesados/revocados en el rango llevan prefijo EX_.
 Las personas jurídicas que ocupan cargos se crean como Organization.
 """
+
 from typing import Any, Dict, List, Optional
 
 from flowsint_core.core.enricher_base import Enricher
 from flowsint_core.core.logger import Logger
-from flowsint_enrichers.registry import flowsint_enricher
 from flowsint_enrichers.es import _borme_comun as bc
+from flowsint_enrichers.es import _evidencias as ev
+from flowsint_enrichers.registry import flowsint_enricher
 from flowsint_types.individual import Individual
 from flowsint_types.organization import Organization
 
@@ -23,21 +25,48 @@ class EsOrgToIndividualsBormeEnricher(Enricher):
     InputType = Organization
     OutputType = Individual
 
-    def __init__(self, sketch_id: Optional[str] = None, scan_id: Optional[str] = None,
-                 vault=None, params: Optional[Dict[str, Any]] = None, graph_service=None):
-        super().__init__(sketch_id=sketch_id, scan_id=scan_id, params_schema=self.get_params_schema(),
-                         vault=vault, params=params, graph_service=graph_service)
+    def __init__(
+        self,
+        sketch_id: Optional[str] = None,
+        scan_id: Optional[str] = None,
+        vault=None,
+        params: Optional[Dict[str, Any]] = None,
+        graph_service=None,
+    ):
+        super().__init__(
+            sketch_id=sketch_id,
+            scan_id=scan_id,
+            params_schema=self.get_params_schema(),
+            vault=vault,
+            params=params,
+            graph_service=graph_service,
+        )
         self.mapping: List[tuple] = []
 
     @classmethod
     def get_params_schema(cls) -> List[Dict[str, Any]]:
         return bc.PARAMS_COMUNES + [
-            {"name": "SOLO_VIGENTES", "type": "string", "default": "false", "required": False,
-             "description": "true = solo cargos sin cese posterior observado; false = también EX_ cargos."},
-            {"name": "COMPLETO", "type": "string", "default": "false", "required": False,
-             "description": "true = descargar todos los documentos provinciales (lento; llena la caché)."},
-            {"name": "MAX_PETICIONES", "type": "string", "default": "3000", "required": False,
-             "description": "Tope de peticiones a boe.es por ejecución."},
+            {
+                "name": "SOLO_VIGENTES",
+                "type": "string",
+                "default": "false",
+                "required": False,
+                "description": "true = solo cargos sin cese posterior observado; false = también EX_ cargos.",
+            },
+            {
+                "name": "COMPLETO",
+                "type": "string",
+                "default": "false",
+                "required": False,
+                "description": "true = descargar todos los documentos provinciales (lento; llena la caché).",
+            },
+            {
+                "name": "MAX_PETICIONES",
+                "type": "string",
+                "default": "3000",
+                "required": False,
+                "description": "Tope de peticiones a boe.es por ejecución.",
+            },
         ]
 
     @classmethod
@@ -62,46 +91,103 @@ class EsOrgToIndividualsBormeEnricher(Enricher):
         Individual -[ADM_UNICO|CONSEJERO|APODERADO|...]-> Organization (EX_<CARGO> si
         consta cese/revocación). Los cargos 'vigentes' son una inferencia parcial sobre el
         rango consultado (por defecto 90 días). El BORME no publica DNI: posibles homónimos.
+        Si la coincidencia es parcial o hay varias sociedades con la misma denominación, la
+        relación es POSIBLE_<CARGO> (POSIBLE_EX_<CARGO>), la persona se crea sin más datos que el
+        nombre y no sigue aguas abajo. Si la sociedad tiene otro NIF, sus cargos cuelgan de un nodo
+        aparte («DENOMINACIÓN (NIF)»).
         """
 
     async def scan(self, data: List[InputType]) -> List[OutputType]:
         self.mapping, out = [], []
         solo_vig = bc.p_bool(self.params.get("SOLO_VIGENTES"))
-        api_key = bc.api_key_de(self)
-        mod = bc.borme()
         for org in data:
-            try:
-                res = await bc.buscar_empresa(str(org.name), self.params, api_key)
-            except Exception as exc:
-                Logger.error(self.sketch_id, {"message": f"[BORME] {org.name}: {exc}"})
+            res = await bc.consultar_empresa(self, org)
+            if res is None:
                 continue
-            q = mod.normalizar_denominacion(str(org.name))
-            Logger.info(self.sketch_id, {"message": f"[BORME] {org.name}: {len(res['empresas'])} sociedades, "
-                                                    f"coste {res['coste']}"})
-            for emp in res["empresas"]:
-                exacta = mod.normalizar_denominacion(emp["empresa"] or "")["base"] == q["base"]
-                destino = org if exacta else Organization(name=emp["empresa"], source="BORME")
-                if not exacta:
-                    self.mapping.append(("org", org, destino, "BORME_COINCIDENCIA_PARCIAL", None))
+            Logger.info(
+                self.sketch_id,
+                {
+                    "message": f"[BORME] {org.name}: {len(res['empresas'])} sociedades, "
+                    f"coste {res['coste']}"
+                },
+            )
+            estados = bc.dudas(org, res["empresas"])
+            for emp, (exacta, duda) in zip(res["empresas"], estados):
+                confirmada = duda is None
+                if bc.tiene_otro_nif(org, emp):
+                    # Otra sociedad: no se cuelga nada de la consultada
+                    ident = emp["ficha"]["nif"]
+                    destino = bc.org_actualizada(
+                        bc.empresa_aparte(emp, ident), nif=ident, source="BORME"
+                    )
+                    self.mapping.append(
+                        ("org", destino, org, "BORME_COINCIDENCIA_PARCIAL", None)
+                    )
+                elif exacta:
+                    destino = org
+                else:
+                    destino = Organization(name=emp["empresa"], source="BORME")
+                    self.mapping.append(
+                        ("org", org, destino, "BORME_COINCIDENCIA_PARCIAL", None)
+                    )
                 for h in bc.historial_cargos(emp["actos"]):
                     if solo_vig and not h["vigente"]:
                         continue
-                    etiqueta = h["cargo_codigo"] if h["vigente"] else f"EX_{h['cargo_codigo']}"
-                    resumen = (f"{h['cargo']} en {emp['empresa']} desde {h['desde'] or '¿?'}"
-                               + (f" hasta {h['hasta']}" if h["hasta"] else " (vigente, inferido)")
-                               + f" [BORME {', '.join(h['borme_ids'][:3])}]")
-                    if bc.es_persona_juridica(h["persona"]):
-                        nodo = Organization(name=h["persona"], source="BORME", borme_cargos=[resumen])
+                    etiqueta = (
+                        h["cargo_codigo"] if h["vigente"] else f"EX_{h['cargo_codigo']}"
+                    )
+                    etiqueta = etiqueta if confirmada else f"POSIBLE_{etiqueta}"
+                    resumen = (
+                        f"{h['cargo']} en {emp['empresa']} desde {h['desde'] or '¿?'}"
+                        + (
+                            f" hasta {h['hasta']}"
+                            if h["hasta"]
+                            else " (vigente, inferido)"
+                        )
+                        + f" [BORME {', '.join(h['borme_ids'][:3])}]"
+                    )
+                    juridica = bc.es_persona_juridica(h["persona"])
+                    if not confirmada:
+                        # Los nodos se fusionan por nombre: sin más datos, para no escribir sobre el
+                        # de la persona real. No siguen aguas abajo, solo quedan en el grafo.
+                        nodo = (
+                            Organization(name=h["persona"])
+                            if juridica
+                            else bc.individuo_sin_datos(h["persona"])
+                        )
+                    elif juridica:
+                        nodo = Organization(
+                            name=h["persona"], source="BORME", borme_cargos=[resumen]
+                        )
                     else:
-                        nodo = bc.individuo(h["persona"], job_title=h["cargo"], employer=emp["empresa"],
-                                            first_seen=h["desde"], last_seen=h["hasta"] or h["desde"],
-                                            notes=resumen, borme_cargos=[resumen],
-                                            borme_cargo_codigo=h["cargo_codigo"], borme_vigente=h["vigente"])
+                        nodo = bc.individuo(
+                            h["persona"],
+                            job_title=h["cargo"],
+                            employer=emp["empresa"],
+                            first_seen=h["desde"],
+                            last_seen=h["hasta"] or h["desde"],
+                            notes=resumen,
+                            borme_cargos=[resumen],
+                            borme_cargo_codigo=h["cargo_codigo"],
+                            borme_vigente=h["vigente"],
+                        )
                         out.append(nodo)
                     self.mapping.append(("cargo", nodo, destino, etiqueta, resumen))
+                    ev.anotar(
+                        self,
+                        bc.FUENTE,
+                        destino.nodeLabel,
+                        etiqueta,
+                        getattr(nodo, "full_name", None) or nodo.name,
+                        "confirmada" if confirmada else "posible",
+                        evidence=[resumen, duda],
+                        url=bc.url_acto(emp["actos"], h["borme_ids"]),
+                    )
         return out
 
-    def postprocess(self, results: List[OutputType], original_input: List[InputType] = None) -> List[OutputType]:
+    def postprocess(
+        self, results: List[OutputType], original_input: List[InputType] = None
+    ) -> List[OutputType]:
         if not self._graph_service:
             return results
         for kind, a, b, etiqueta, resumen in self.mapping:
@@ -112,7 +198,9 @@ class EsOrgToIndividualsBormeEnricher(Enricher):
                 self.log_graph_message(f"{a.name} ~ {b.name} ({etiqueta})")
             else:
                 self.create_relationship(a, b, etiqueta)
-                self.log_graph_message(f"{getattr(a, 'full_name', None) or a.name} -[{etiqueta}]-> {b.name}")
+                self.log_graph_message(
+                    f"{getattr(a, 'full_name', None) or a.name} -[{etiqueta}]-> {b.name}"
+                )
         return results
 
 

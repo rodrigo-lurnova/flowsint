@@ -41,6 +41,7 @@ class IpToInfosEnricher(Enricher):
                 ip.isp = geo_data.get("isp")
                 results.append(ip)
             except Exception as e:
+                self.add_failure(f"ip-api: {ip.address}: {type(e).__name__}: {e}")
                 print(f"Error geolocating {ip.address}: {e}")
         return results
 
@@ -77,5 +78,6 @@ class IpToInfosEnricher(Enricher):
                     f"Geolocation failed for {address}: {data.get('message')}"
                 )
         except Exception as e:
+            self.add_failure(f"ip-api: {address}: {type(e).__name__}: {e}")
             print(f"Failed to geolocate {address}: {e}")
             return {}

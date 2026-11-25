@@ -13,6 +13,7 @@ Contenido:
     útil para emparejar «Nombre Apellido» con el cargo del bloque contiguo.
   - extraer_emails(): regex + mailto + data-cfemail (ofuscación de Cloudflare).
 """
+
 import html as _html
 import re
 import time
@@ -23,33 +24,200 @@ from urllib.parse import urljoin, urlparse
 import httpx
 
 UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36 (osint-es-scripts)"
-HEADERS = {"User-Agent": UA, "Accept-Language": "es-ES,es;q=0.9,en;q=0.6",
-           "Accept": "text/html,application/xhtml+xml,*/*;q=0.8"}
+HEADERS = {
+    "User-Agent": UA,
+    "Accept-Language": "es-ES,es;q=0.9,en;q=0.6",
+    "Accept": "text/html,application/xhtml+xml,*/*;q=0.8",
+}
 
-PARTICULAS = {"de", "del", "la", "las", "los", "y", "i", "e", "da", "dos", "san", "santa", "van", "von", "di"}
+PARTICULAS = {
+    "de",
+    "del",
+    "la",
+    "las",
+    "los",
+    "y",
+    "i",
+    "e",
+    "da",
+    "dos",
+    "san",
+    "santa",
+    "van",
+    "von",
+    "di",
+}
 # Nombres compuestos frecuentes cuyo primer token suele ir acompañado
-NOMBRES_COMPUESTOS_1 = {"jose", "maria", "juan", "ana", "luis", "francisco", "miguel", "jesus", "pedro",
-                        "antonio", "manuel", "carlos", "javier", "angel", "rosa", "pilar", "mari", "fco"}
+NOMBRES_COMPUESTOS_1 = {
+    "jose",
+    "maria",
+    "juan",
+    "ana",
+    "luis",
+    "francisco",
+    "miguel",
+    "jesus",
+    "pedro",
+    "antonio",
+    "manuel",
+    "carlos",
+    "javier",
+    "angel",
+    "rosa",
+    "pilar",
+    "mari",
+    "fco",
+}
 
-PALABRAS_WEB = ("contact", "aviso", "legal", "privac", "equipo", "team", "nosotros", "about", "quienes",
-                "quiénes", "sobre", "people", "staff", "direccion", "dirección", "management", "leadership",
-                "consejo", "board", "imprint", "impressum", "cookies", "socios", "partners", "fundador",
-                "founder", "empresa", "company")
-PALABRAS_EQUIPO = ("equipo", "team", "nosotros", "about", "quienes", "quiénes", "sobre", "people", "staff",
-                   "direccion", "dirección", "management", "leadership", "consejo", "board", "socios",
-                   "fundador", "founder", "empresa", "company", "who-we-are", "conocenos", "conócenos")
+PALABRAS_WEB = (
+    "contact",
+    "aviso",
+    "legal",
+    "privac",
+    "equipo",
+    "team",
+    "nosotros",
+    "about",
+    "quienes",
+    "quiénes",
+    "sobre",
+    "people",
+    "staff",
+    "direccion",
+    "dirección",
+    "management",
+    "leadership",
+    "consejo",
+    "board",
+    "imprint",
+    "impressum",
+    "cookies",
+    "socios",
+    "partners",
+    "fundador",
+    "founder",
+    "empresa",
+    "company",
+)
+PALABRAS_EQUIPO = (
+    "equipo",
+    "team",
+    "nosotros",
+    "about",
+    "quienes",
+    "quiénes",
+    "sobre",
+    "people",
+    "staff",
+    "direccion",
+    "dirección",
+    "management",
+    "leadership",
+    "consejo",
+    "board",
+    "socios",
+    "fundador",
+    "founder",
+    "empresa",
+    "company",
+    "who-we-are",
+    "conocenos",
+    "conócenos",
+)
 
-EMAIL_RE = re.compile(r"(?<![\w.+-])([a-zA-Z0-9][a-zA-Z0-9._%+-]{0,63}@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,24})(?![\w-])")
-GENERICOS = {"info", "contacto", "contact", "hola", "hello", "hi", "admin", "administracion", "administration",
-             "rrhh", "hr", "jobs", "empleo", "careers", "trabajo", "ventas", "sales", "comercial", "soporte",
-             "support", "help", "ayuda", "prensa", "press", "media", "marketing", "legal", "privacy",
-             "privacidad", "dpo", "dpd", "lopd", "rgpd", "gdpr", "protecciondedatos", "datos", "noreply", "no-reply",
-             "donotreply", "webmaster", "postmaster", "abuse", "office", "oficina", "recepcion", "reception",
-             "facturacion", "billing", "factura", "facturas", "accounts", "contabilidad", "compras", "pedidos",
-             "orders", "clientes", "atencionalcliente", "customer", "customerservice", "booking", "reservas",
-             "team", "equipo", "general", "mail", "email", "correo", "secretaria", "direccion", "gerencia",
-             "partners", "socios", "proveedores", "seguridad", "security", "it", "sistemas", "tech", "dev",
-             "hello", "talento", "talent", "recruiting", "seleccion", "cv", "inversores", "investors", "ir"}
+EMAIL_RE = re.compile(
+    r"(?<![\w.+-])([a-zA-Z0-9][a-zA-Z0-9._%+-]{0,63}@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,24})(?![\w-])"
+)
+GENERICOS = {
+    "info",
+    "contacto",
+    "contact",
+    "hola",
+    "hello",
+    "hi",
+    "admin",
+    "administracion",
+    "administration",
+    "rrhh",
+    "hr",
+    "jobs",
+    "empleo",
+    "careers",
+    "trabajo",
+    "ventas",
+    "sales",
+    "comercial",
+    "soporte",
+    "support",
+    "help",
+    "ayuda",
+    "prensa",
+    "press",
+    "media",
+    "marketing",
+    "legal",
+    "privacy",
+    "privacidad",
+    "dpo",
+    "dpd",
+    "lopd",
+    "rgpd",
+    "gdpr",
+    "protecciondedatos",
+    "datos",
+    "noreply",
+    "no-reply",
+    "donotreply",
+    "webmaster",
+    "postmaster",
+    "abuse",
+    "office",
+    "oficina",
+    "recepcion",
+    "reception",
+    "facturacion",
+    "billing",
+    "factura",
+    "facturas",
+    "accounts",
+    "contabilidad",
+    "compras",
+    "pedidos",
+    "orders",
+    "clientes",
+    "atencionalcliente",
+    "customer",
+    "customerservice",
+    "booking",
+    "reservas",
+    "team",
+    "equipo",
+    "general",
+    "mail",
+    "email",
+    "correo",
+    "secretaria",
+    "direccion",
+    "gerencia",
+    "partners",
+    "socios",
+    "proveedores",
+    "seguridad",
+    "security",
+    "it",
+    "sistemas",
+    "tech",
+    "dev",
+    "hello",
+    "talento",
+    "talent",
+    "recruiting",
+    "seleccion",
+    "cv",
+    "inversores",
+    "investors",
+    "ir",
+}
 
 
 def normalizar(s: str) -> str:
@@ -99,15 +267,33 @@ def partir_nombre(nombre: str, apellidos_primero: bool | None = None) -> list[di
     elif len(pal) == 3:
         out.append({"nombre": pal[0], "apellido1": pal[1], "apellido2": pal[2]})
         if pal[0] in NOMBRES_COMPUESTOS_1:
-            out.append({"nombre": pal[0], "nombre2": pal[1], "apellido1": pal[2], "apellido2": ""})
+            out.append(
+                {
+                    "nombre": pal[0],
+                    "nombre2": pal[1],
+                    "apellido1": pal[2],
+                    "apellido2": "",
+                }
+            )
     else:
-        out.append({"nombre": pal[0], "nombre2": pal[1], "apellido1": pal[2], "apellido2": pal[3]})
+        out.append(
+            {
+                "nombre": pal[0],
+                "nombre2": pal[1],
+                "apellido1": pal[2],
+                "apellido2": pal[3],
+            }
+        )
     return out
 
 
 def tokens_nombre(nombre: str) -> list[str]:
     """Tokens significativos (sin partículas) para comparar nombres en texto libre."""
-    return [t for t in normalizar(nombre.replace(",", " ")).split() if t not in PARTICULAS and len(t) > 1]
+    return [
+        t
+        for t in normalizar(nombre.replace(",", " ")).split()
+        if t not in PARTICULAS and len(t) > 1
+    ]
 
 
 def coincidencia_nombre(nombre: str, texto: str) -> float:
@@ -126,9 +312,40 @@ def coincidencia_nombre(nombre: str, texto: str) -> float:
 
 # --------------------------------------------------------------------------- HTML
 
-_BLOQUE = {"p", "div", "li", "td", "th", "tr", "h1", "h2", "h3", "h4", "h5", "h6", "section", "article",
-           "header", "footer", "br", "figcaption", "figure", "dt", "dd", "blockquote", "address",
-           "ul", "ol", "table", "main", "aside", "nav", "form", "label", "button"}
+_BLOQUE = {
+    "p",
+    "div",
+    "li",
+    "td",
+    "th",
+    "tr",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "section",
+    "article",
+    "header",
+    "footer",
+    "br",
+    "figcaption",
+    "figure",
+    "dt",
+    "dd",
+    "blockquote",
+    "address",
+    "ul",
+    "ol",
+    "table",
+    "main",
+    "aside",
+    "nav",
+    "form",
+    "label",
+    "button",
+}
 
 
 class _Bloques(HTMLParser):
@@ -146,14 +363,19 @@ class _Bloques(HTMLParser):
     def _flush(self):
         txt = re.sub(r"\s+", " ", "".join(self.buf)).strip()
         if txt:
-            self.bloques.append({"texto": txt, "tag": self.tag_actual, "links": self.links})
+            self.bloques.append(
+                {"texto": txt, "tag": self.tag_actual, "links": self.links}
+            )
         self.buf, self.links = [], []
 
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
         if tag in ("script", "style", "noscript", "svg", "template"):
             self.skip += 1
-            if tag == "script" and (a.get("type") or "").lower() == "application/ld+json":
+            if (
+                tag == "script"
+                and (a.get("type") or "").lower() == "application/ld+json"
+            ):
                 self._in_jsonld = True
             return
         if a.get("data-cfemail"):
@@ -194,7 +416,12 @@ def parsear_html(html_txt: str) -> dict:
         pass
     links = [h for b in p.bloques for h in b["links"]]
     links += re.findall(r'href=["\']([^"\']+)["\']', html_txt)
-    return {"bloques": p.bloques, "cfemail": p.cf, "jsonld": p.jsonld, "links": list(dict.fromkeys(links))}
+    return {
+        "bloques": p.bloques,
+        "cfemail": p.cf,
+        "jsonld": p.jsonld,
+        "links": list(dict.fromkeys(links)),
+    }
 
 
 def bloques_texto(html_txt: str) -> list[dict]:
@@ -204,7 +431,9 @@ def bloques_texto(html_txt: str) -> list[dict]:
 def _decode_cf(hexs: str) -> str:
     try:
         k = int(hexs[:2], 16)
-        return "".join(chr(int(hexs[i:i + 2], 16) ^ k) for i in range(2, len(hexs), 2))
+        return "".join(
+            chr(int(hexs[i : i + 2], 16) ^ k) for i in range(2, len(hexs), 2)
+        )
     except ValueError:
         return ""
 
@@ -216,12 +445,21 @@ def extraer_emails(html_txt: str, parsed: dict | None = None) -> list[str]:
     txt = re.sub(r"\s*(\[dot\]|\(dot\)|\{dot\}| punto )\s*", ".", txt, flags=re.I)
     found = [m.group(1) for m in EMAIL_RE.finditer(txt)]
     found += [_decode_cf(h) for h in parsed["cfemail"]]
-    found += [_html.unescape(l[7:].split("?")[0]) for l in parsed["links"] if l.lower().startswith("mailto:")]
+    found += [
+        _html.unescape(u[7:].split("?")[0])
+        for u in parsed["links"]
+        if u.lower().startswith("mailto:")
+    ]
     out = []
     for e in found:
         e = e.strip().strip(".").lower()
-        if EMAIL_RE.fullmatch(e) and not re.search(r"\.(png|jpe?g|gif|webp|svg|css|js)$", e) \
-                and "example." not in e and "sentry" not in e and "wixpress" not in e:
+        if (
+            EMAIL_RE.fullmatch(e)
+            and not re.search(r"\.(png|jpe?g|gif|webp|svg|css|js)$", e)
+            and "example." not in e
+            and "sentry" not in e
+            and "wixpress" not in e
+        ):
             out.append(e)
     return list(dict.fromkeys(out))
 
@@ -229,12 +467,33 @@ def extraer_emails(html_txt: str, parsed: dict | None = None) -> list[str]:
 def contexto_email(bloques: list[dict], email: str, ventana: int = 2) -> str:
     """Texto de los bloques alrededor de donde aparece el email (para adivinar a quién pertenece)."""
     for i, b in enumerate(bloques):
-        if email in b["texto"].lower() or any(email in (l or "").lower() for l in b["links"]):
-            return " | ".join(x["texto"] for x in bloques[max(0, i - ventana): i + ventana + 1])
+        if email in b["texto"].lower() or any(
+            email in (u or "").lower() for u in b["links"]
+        ):
+            return " | ".join(
+                x["texto"] for x in bloques[max(0, i - ventana) : i + ventana + 1]
+            )
     return ""
 
 
 # --------------------------------------------------------------------------- crawl
+
+
+LIMITE_GITHUB = "límite de peticiones"
+
+
+def error_github(r: httpx.Response) -> str:
+    """Distingue el límite de peticiones (pasajero) de un fallo de GitHub."""
+    limite = r.status_code == 429 or (
+        r.status_code == 403
+        and (
+            r.headers.get("x-ratelimit-remaining") == "0"
+            or "retry-after" in r.headers
+            or "rate limit" in r.text.lower()
+        )
+    )
+    return f"GitHub: HTTP {r.status_code}" + (f" ({LIMITE_GITHUB})" if limite else "")
+
 
 def url_base(dominio_o_url: str) -> str:
     s = dominio_o_url.strip()
@@ -249,14 +508,22 @@ def host_raiz(host: str) -> str:
     return host[4:] if host.startswith("www.") else host
 
 
-def crawl_web(dominio_o_url: str, max_paginas: int = 12, palabras=PALABRAS_WEB, pausa: float = 0.4,
-              client: httpx.Client | None = None, timeout: float = 15) -> list[dict]:
+def crawl_web(
+    dominio_o_url: str,
+    max_paginas: int = 12,
+    palabras=PALABRAS_WEB,
+    pausa: float = 0.4,
+    client: httpx.Client | None = None,
+    timeout: float = 15,
+) -> list[dict]:
     """Descarga la portada y hasta `max_paginas` internas cuyo enlace contenga alguna palabra clave.
 
     Devuelve [{url, status, html}] (solo text/html). No sale del host raíz.
     """
     propio = client is None
-    client = client or httpx.Client(headers=HEADERS, timeout=timeout, follow_redirects=True)
+    client = client or httpx.Client(
+        headers=HEADERS, timeout=timeout, follow_redirects=True
+    )
     paginas: list[dict] = []
     try:
         inicio = url_base(dominio_o_url)
@@ -274,21 +541,35 @@ def crawl_web(dominio_o_url: str, max_paginas: int = 12, palabras=PALABRAS_WEB, 
         else:
             return paginas
         cola, vistos = [], {str(r.url).rstrip("/")}
+
         def _encolar(html_txt, base):
             for h in parsear_html(html_txt)["links"]:
                 if h.startswith(("mailto:", "tel:", "javascript:", "#")):
                     continue
                 u = urljoin(base, h).split("#")[0]
                 pu = urlparse(u)
-                if host_raiz(pu.netloc) != raiz or re.search(r"\.(pdf|jpe?g|png|gif|zip|docx?|xlsx?|svg|webp|mp4)$", pu.path, re.I):
+                if host_raiz(pu.netloc) != raiz or re.search(
+                    r"\.(pdf|jpe?g|png|gif|zip|docx?|xlsx?|svg|webp|mp4)$",
+                    pu.path,
+                    re.I,
+                ):
                     continue
                 low = (pu.path + "?" + pu.query).lower()
                 if any(p in low for p in palabras) and u.rstrip("/") not in vistos:
                     vistos.add(u.rstrip("/"))
                     cola.append(u)
+
         _encolar(r.text, str(r.url))
         # rutas típicas aunque no estén enlazadas en la portada
-        for ruta in ("/contacto", "/aviso-legal", "/equipo", "/nosotros", "/quienes-somos", "/about", "/team"):
+        for ruta in (
+            "/contacto",
+            "/aviso-legal",
+            "/equipo",
+            "/nosotros",
+            "/quienes-somos",
+            "/about",
+            "/team",
+        ):
             u = urljoin(str(r.url), ruta)
             if any(p in ruta for p in palabras) and u.rstrip("/") not in vistos:
                 vistos.add(u.rstrip("/"))
@@ -300,11 +581,15 @@ def crawl_web(dominio_o_url: str, max_paginas: int = 12, palabras=PALABRAS_WEB, 
                 rr = client.get(u)
             except httpx.HTTPError:
                 continue
-            if rr.status_code != 200 or "html" not in rr.headers.get("content-type", ""):
+            if rr.status_code != 200 or "html" not in rr.headers.get(
+                "content-type", ""
+            ):
                 continue
             if host_raiz(urlparse(str(rr.url)).netloc) != raiz:
                 continue
-            paginas.append({"url": str(rr.url), "status": rr.status_code, "html": rr.text})
+            paginas.append(
+                {"url": str(rr.url), "status": rr.status_code, "html": rr.text}
+            )
             if len(paginas) < 4:  # segundo nivel solo desde las primeras páginas
                 _encolar(rr.text, str(rr.url))
     finally:

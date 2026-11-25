@@ -25,6 +25,7 @@ Uso:
   sanciones_ue.py "BLINDITEX" --json
   sanciones_ue.py A48010615
 """
+
 import argparse
 import json
 import os
@@ -39,22 +40,30 @@ import httpx
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from resolver_empresa import limpiar_nif, normalizar, parece_nif  # noqa: E402
 
-URL = ("https://webgate.ec.europa.eu/fsd/fsf/public/files/xmlFullSanctionsList_1_1/content"
-       "?token=dG9rZW4tMjAxNw")
+URL = (
+    "https://webgate.ec.europa.eu/fsd/fsf/public/files/xmlFullSanctionsList_1_1/content"
+    "?token=dG9rZW4tMjAxNw"
+)
 HEADERS = {"User-Agent": "Mozilla/5.0 (osint-es-scripts)"}
 NS = "{http://eu.europa.ec/fpi/fsd/export}"
 TTL = 24 * 3600
 
 
 def ruta_cache() -> str:
-    d = os.getenv("OSINT_ES_CACHE") or os.path.join(tempfile.gettempdir(), "osint-es-cache")
+    d = os.getenv("OSINT_ES_CACHE") or os.path.join(
+        tempfile.gettempdir(), "osint-es-cache"
+    )
     os.makedirs(d, exist_ok=True)
     return os.path.join(d, "eu_fsf_full.xml")
 
 
 def descargar(client: httpx.Client, forzar: bool = False) -> str:
     path = ruta_cache()
-    if not forzar and os.path.exists(path) and time.time() - os.path.getmtime(path) < TTL:
+    if (
+        not forzar
+        and os.path.exists(path)
+        and time.time() - os.path.getmtime(path) < TTL
+    ):
         return path
     tmp = path + ".part"
     with client.stream("GET", URL, timeout=180) as r:
@@ -76,30 +85,66 @@ def _entidades(path: str):
             "referencia_ue": el.get("euReferenceNumber"),
             "fecha_designacion": el.get("designationDate") or None,
             "tipo": st.get("code") if st is not None else None,
-            "nombres": list(dict.fromkeys(n.get("wholeName") for n in el.findall(NS + "nameAlias") if n.get("wholeName"))),
-            "programas": sorted({r.get("programme") for r in regs if r.get("programme")}),
-            "reglamentos": [{"numero": r.get("numberTitle"), "fecha": r.get("publicationDate"),
-                             "url": (r.findtext(NS + "publicationUrl") or "").strip() or None} for r in regs],
-            "direcciones": [", ".join(x for x in (a.get("street"), a.get("zipCode"), a.get("city"),
-                                                   a.get("countryDescription")) if x)
-                            for a in el.findall(NS + "address")],
-            "identificadores": [{"numero": i.get("number"), "tipo": i.get("identificationTypeDescription"),
-                                 "pais": i.get("countryIso2Code")} for i in el.findall(NS + "identification")
-                                if i.get("number")],
+            "nombres": list(
+                dict.fromkeys(
+                    n.get("wholeName")
+                    for n in el.findall(NS + "nameAlias")
+                    if n.get("wholeName")
+                )
+            ),
+            "programas": sorted(
+                {r.get("programme") for r in regs if r.get("programme")}
+            ),
+            "reglamentos": [
+                {
+                    "numero": r.get("numberTitle"),
+                    "fecha": r.get("publicationDate"),
+                    "url": (r.findtext(NS + "publicationUrl") or "").strip() or None,
+                }
+                for r in regs
+            ],
+            "direcciones": [
+                ", ".join(
+                    x
+                    for x in (
+                        a.get("street"),
+                        a.get("zipCode"),
+                        a.get("city"),
+                        a.get("countryDescription"),
+                    )
+                    if x
+                )
+                for a in el.findall(NS + "address")
+            ],
+            "identificadores": [
+                {
+                    "numero": i.get("number"),
+                    "tipo": i.get("identificationTypeDescription"),
+                    "pais": i.get("countryIso2Code"),
+                }
+                for i in el.findall(NS + "identification")
+                if i.get("number")
+            ],
             "observaciones": (el.findtext(NS + "remark") or "").strip() or None,
         }
         el.clear()
 
 
-def buscar(client: httpx.Client, texto: str, max_items: int = 25, tipo: str | None = None) -> dict:
+def buscar(
+    client: httpx.Client, texto: str, max_items: int = 25, tipo: str | None = None
+) -> dict:
     """tipo: None (todos), "enterprise" o "person"."""
     path = descargar(client)
     nif = limpiar_nif(texto)
-    por_id = parece_nif(texto) or (bool(re.fullmatch(r"[A-Z0-9]{6,20}", nif)) and sum(c.isdigit() for c in nif) >= 6)
+    por_id = parece_nif(texto) or (
+        bool(re.fullmatch(r"[A-Z0-9]{6,20}", nif))
+        and sum(c.isdigit() for c in nif) >= 6
+    )
     q = normalizar(texto)["base"]
     q_toks = set(q.split())
-    out = []
+    out, leidas = [], 0
     for e in _entidades(path):
+        leidas += 1
         if tipo and e["tipo"] != tipo:
             continue
         nivel = None
@@ -115,15 +160,31 @@ def buscar(client: httpx.Client, texto: str, max_items: int = 25, tipo: str | No
         if nivel:
             e["coincidencia"] = nivel
             out.append(e)
-    out.sort(key=lambda e: ("identificador", "exacta", "contiene").index(e["coincidencia"]))
-    return {"consulta": texto, "fichero": path, "actualizado": time.strftime(
-        "%Y-%m-%d %H:%M", time.localtime(os.path.getmtime(path))), "total": len(out), "resultados": out[:max_items]}
+    if not leidas:  # otro XML (p. ej. una página de error) no significa «sin sanciones»
+        os.remove(path)
+        raise RuntimeError("la lista de sanciones de la UE está sin entidades")
+    out.sort(
+        key=lambda e: ("identificador", "exacta", "contiene").index(e["coincidencia"])
+    )
+    return {
+        "consulta": texto,
+        "fichero": path,
+        "actualizado": time.strftime(
+            "%Y-%m-%d %H:%M", time.localtime(os.path.getmtime(path))
+        ),
+        "total": len(out),
+        "resultados": out[:max_items],
+    }
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("texto", help="denominación, nombre o NIF/identificador")
-    ap.add_argument("--tipo", choices=["enterprise", "person"], help="filtrar por tipo de sujeto")
+    ap.add_argument(
+        "--tipo", choices=["enterprise", "person"], help="filtrar por tipo de sujeto"
+    )
     ap.add_argument("--max", type=int, default=25)
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args()
@@ -133,11 +194,15 @@ def main() -> int:
     if a.json:
         json.dump(res, sys.stdout, ensure_ascii=False, indent=1)
         return 0
-    print(f"Lista consolidada UE (descarga {res['actualizado']}): {res['total']} coincidencias para «{a.texto}»")
+    print(
+        f"Lista consolidada UE (descarga {res['actualizado']}): {res['total']} coincidencias para «{a.texto}»"
+    )
     for e in res["resultados"]:
         url = next((r["url"] for r in e["reglamentos"] if r["url"]), "")
-        print(f"\n- [{e['coincidencia']}] {e['referencia_ue']} ({e['tipo']}, {e['fecha_designacion']}) "
-              f"programas {', '.join(e['programas'])}\n  {' | '.join(e['nombres'][:4])}\n  {url}")
+        print(
+            f"\n- [{e['coincidencia']}] {e['referencia_ue']} ({e['tipo']}, {e['fecha_designacion']}) "
+            f"programas {', '.join(e['programas'])}\n  {' | '.join(e['nombres'][:4])}\n  {url}"
+        )
     return 0
 
 

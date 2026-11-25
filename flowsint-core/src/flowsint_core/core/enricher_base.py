@@ -7,9 +7,18 @@ from pydantic.config import ConfigDict
 from flowsint_types import FlowsintType
 
 from ..utils import resolve_type
+from .findings import MAX_MESSAGE, Finding, SourceRun, bounded
 from .graph import GraphService, create_graph_service
 from .logger import Logger
 from .vault import VaultProtocol
+
+
+def mask_secret(text: str, secret: Optional[str]) -> str:
+    """Hide a secret, both as configured and without surrounding whitespace."""
+    stripped = (secret or "").strip()
+    if not secret or not stripped:
+        return text
+    return text.replace(secret, "***").replace(stripped, "***")
 
 
 class InvalidEnricherParams(Exception):
@@ -127,6 +136,10 @@ class Enricher(ABC):
         self.params_schema = params_schema or []
         self.ParamsModel = build_params_model(self.params_schema)
         self.params: Dict[str, Any] = params or {}
+        self.findings: List[Finding] = []
+        self.failures: List[str] = []
+        self.warnings: List[str] = []
+        self.coverage: Optional[str] = None
 
         # Initialize graph service (uses singleton connection by default)
         if graph_service:
@@ -420,7 +433,44 @@ class Enricher(ABC):
     ) -> List[Dict[str, Any]]:
         return results
 
+    def add_finding(self, f: Finding) -> None:
+        self.findings.append(f)
+
+    def add_failure(self, message: str) -> None:
+        """Record a source failure, hiding the values of vault-secret params."""
+        self.failures.append(self.hide_secrets(message).strip() or "unspecified error")
+
+    def add_warning(self, message: str) -> None:
+        """Record something that limits the results without making the source fail."""
+        self.warnings.append(self.hide_secrets(message))
+
+    def hide_secrets(self, message: str) -> str:
+        """Replace the values of vault-secret params in a text."""
+        for param in self.params_schema:
+            if param.get("type") != "vaultSecret":
+                continue
+            secret = self.params.get(param["name"])
+            if isinstance(secret, str):
+                message = mask_secret(message, secret)
+        return message
+
+    def source_run(self) -> SourceRun:
+        error = "; ".join(self.failures)[:MAX_MESSAGE] if self.failures else None
+        return SourceRun(
+            source=self.name(),
+            status="failed" if self.failures else "ok",
+            error=error,
+            errors=bounded(self.failures),
+            warnings=bounded(self.warnings),
+            coverage=self.coverage,
+            findings=len(self.findings),
+        )
+
     async def execute(self, values: List[Any]) -> List[Dict[str, Any]]:
+        self.findings = []
+        self.failures = []
+        self.warnings = []
+        self.coverage = None
         if self.name() != "enricher_orchestrator":
             Logger.info(self.sketch_id, {"message": f"Enricher {self.name()} started."})
         try:
@@ -440,10 +490,11 @@ class Enricher(ABC):
             return processed
 
         except Exception as e:
+            self.add_failure(str(e).strip() or type(e).__name__)
             if self.name() != "enricher_orchestrator":
                 Logger.error(
                     self.sketch_id,
-                    {"message": f"Enricher {self.name()} errored: {str(e)}"},
+                    {"message": f"Enricher {self.name()} errored: {self.failures[-1]}"},
                 )
             return []
 

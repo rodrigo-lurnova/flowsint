@@ -26,6 +26,7 @@ class EnricherRegistry:
 
     def __init__(self):
         self._enrichers: Dict[str, Type[Enricher]] = {}
+        self._disabled: set = set()
 
     def register(self, enricher_class: Type[E]) -> Type[E]:
         """
@@ -35,11 +36,31 @@ class EnricherRegistry:
         Returns:
             The same class (for use as a decorator)
         """
-        self._enrichers[enricher_class.name()] = enricher_class
+        if enricher_class.name() not in self._disabled:
+            self._enrichers[enricher_class.name()] = enricher_class
         return enricher_class
+
+    def disable(self, names: List[str]) -> None:
+        """
+        Remove enrichers from the registry and keep them out of later register()
+        calls. Raises ValueError, without changing anything, if any name is unknown.
+        """
+        unknown = sorted(n for n in names if n not in self._enrichers)
+        if unknown:
+            raise ValueError(
+                "FLOWSINT_DISABLED_ENRICHERS names unknown enrichers: "
+                + ", ".join(unknown)
+            )
+        for name in names:
+            self._enrichers.pop(name, None)
+            self._disabled.add(name)
 
     def enricher_exists(self, name: str) -> bool:
         return name in self._enrichers
+
+    def is_disabled(self, name: str) -> bool:
+        """True if the deployment removed this enricher (FLOWSINT_DISABLED_ENRICHERS)."""
+        return name in self._disabled
 
     def get_enricher(
         self, name: str, sketch_id: str, scan_id: str, **kwargs
@@ -164,10 +185,13 @@ def load_all_enrichers() -> None:
 
     Features:
     - Only imports modules once (cached via _enrichers_loaded flag)
-    - Ignores private modules (starting with _)
+    - Ignores private modules (starting with _) and "tests" directories
     - Only imports .py files
     - Recursively scans subdirectories (domain/, ip/, etc.) even without __init__.py
     - Uses os.walk for comprehensive discovery
+
+    Enrichers listed in FLOWSINT_DISABLED_ENRICHERS (comma-separated) are removed
+    at the end; an unknown name raises ValueError.
 
     This function is idempotent - calling it multiple times is safe and efficient.
     """
@@ -194,8 +218,8 @@ def load_all_enrichers() -> None:
 
     # Walk through all directories and files
     for root, dirs, files in os.walk(package_path):
-        # Skip __pycache__ directories
-        dirs[:] = [d for d in dirs if not d.startswith("__pycache__")]
+        # Skip __pycache__ and test directories (e.g. es-enrichers/tests once mounted)
+        dirs[:] = [d for d in dirs if d != "tests" and not d.startswith("__pycache__")]
 
         # Calculate the module prefix for this directory
         rel_path = os.path.relpath(root, package_path)
@@ -226,6 +250,11 @@ def load_all_enrichers() -> None:
             except Exception as e:
                 # Log but don't fail - some modules might have optional dependencies
                 print(f"Warning: Failed to import {module_name}: {e}", file=sys.stderr)
+
+    # Apply the deployment's disabled list. Fail closed: validate before marking
+    # as loaded so a misconfigured list raises on every call, not just the first.
+    raw = os.environ.get("FLOWSINT_DISABLED_ENRICHERS", "")
+    ENRICHER_REGISTRY.disable([n.strip() for n in raw.split(",") if n.strip()])
 
     # Mark as loaded
     _enrichers_loaded = True

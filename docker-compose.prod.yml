@@ -112,6 +112,9 @@ services:
       - OSINT_ES_CACHE=/data/osint-es
       - SEARXNG_URL=${SEARXNG_URL:-http://searxng:8080}
       - REDIS_URL=redis://redis:6379/0
+      - FLOWSINT_DISABLED_ENRICHERS=${FLOWSINT_DISABLED_ENRICHERS:-}
+      - FLOWSINT_DISABLE_REGISTRATION=${FLOWSINT_DISABLE_REGISTRATION:-}
+      - FLOWSINT_FLOW_EXPIRES_SECONDS=${FLOWSINT_FLOW_EXPIRES_SECONDS:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -166,6 +169,7 @@ services:
       - OSINT_ES_CACHE=/data/osint-es
       - SEARXNG_URL=${SEARXNG_URL:-http://searxng:8080}
       - REDIS_URL=redis://redis:6379/0
+      - FLOWSINT_DISABLED_ENRICHERS=${FLOWSINT_DISABLED_ENRICHERS:-}
       - SKIP_MIGRATIONS=true
       - AUTH_SECRET=${AUTH_SECRET}
     healthcheck:

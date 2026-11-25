@@ -37,6 +37,7 @@ Uso:
   APISPAIN_API_KEY=... apispain.py bdns --q digitalizacion --abiertas
   APISPAIN_API_KEY=... apispain.py licitaciones --q limpieza --provincia Madrid
 """
+
 import argparse
 import json
 import os
@@ -57,8 +58,12 @@ class ApispainError(RuntimeError):
 class Apispain:
     """Cliente mínimo. `api_key=None` lee APISPAIN_API_KEY; las rutas públicas no la necesitan."""
 
-    def __init__(self, api_key: str | None = None, timeout: float = 30, base: str = BASE):
-        self.api_key = api_key if api_key is not None else os.getenv(ENV_KEY)
+    def __init__(
+        self, api_key: str | None = None, timeout: float = 30, base: str = BASE
+    ):
+        self.api_key = (
+            api_key if api_key is not None else os.getenv(ENV_KEY) or ""
+        ).strip()
         self.client = httpx.Client(base_url=base, headers=HEADERS, timeout=timeout)
         self.last_usage: dict = {}
 
@@ -77,24 +82,32 @@ class Apispain:
             if not self.api_key:
                 raise ApispainError(
                     f"Falta la clave de apispain.es: exporta {ENV_KEY}=<clave> (se obtiene en "
-                    "https://apispain.es; plan Free = 100 peticiones/mes).")
+                    "https://apispain.es; plan Free = 100 peticiones/mes)."
+                )
             headers["Authorization"] = f"Bearer {self.api_key}"
         params = {k: v for k, v in (params or {}).items() if v not in (None, "", False)}
         params = {k: ("true" if v is True else v) for k, v in params.items()}
         r = self.client.get(path, params=params, headers=headers)
-        self.last_usage = {k.lower(): v for k, v in r.headers.items()
-                           if k.lower().startswith(("x-plan", "x-ratelimit", "x-apispain"))}
+        self.last_usage = {
+            k.lower(): v
+            for k, v in r.headers.items()
+            if k.lower().startswith(("x-plan", "x-ratelimit", "x-apispain"))
+        }
         if r.status_code == 401:
             raise ApispainError("401: clave de apispain.es ausente o no válida.")
         if r.status_code == 429:
-            raise ApispainError(f"429: límite de apispain.es alcanzado ({self.last_usage}).")
+            raise ApispainError(
+                f"429: límite de apispain.es alcanzado ({self.last_usage})."
+            )
         if r.status_code == 404:
             return {"data": None, "error": "no encontrado", "status": 404}
         if r.status_code >= 400:
             raise ApispainError(f"{r.status_code}: {r.text[:300]}")
         return r.json()
 
-    def paginar(self, path: str, params: dict | None = None, max_items: int = 100) -> list:
+    def paginar(
+        self, path: str, params: dict | None = None, max_items: int = 100
+    ) -> list:
         out, cursor = [], None
         params = dict(params or {})
         while len(out) < max_items:
@@ -122,9 +135,15 @@ class Apispain:
         return self.get("/v1/me")
 
     # --- BORME ----------------------------------------------------------------------
-    def buscar_empresas(self, nombre: str | None = None, provincia: str | None = None,
-                        max_items: int = 20) -> list:
-        return self.paginar("/v1/borme/empresas", {"nombre": nombre, "provincia": provincia}, max_items)
+    def buscar_empresas(
+        self,
+        nombre: str | None = None,
+        provincia: str | None = None,
+        max_items: int = 20,
+    ) -> list:
+        return self.paginar(
+            "/v1/borme/empresas", {"nombre": nombre, "provincia": provincia}, max_items
+        )
 
     def empresa(self, nif: str, historico: bool = False) -> dict:
         return self.get(f"/v1/borme/empresas/{nif}", {"historico": historico})
@@ -165,67 +184,129 @@ def personas_de_actos(actos: list[dict]) -> list[dict]:
     out = []
     for a in actos or []:
         for p in a.get("personas") or []:
-            out.append({"fecha": (a.get("fechaPublicacion") or "")[:10], "accion": p.get("accion"),
-                        "cargo": p.get("cargo"), "persona": p.get("nombre"), "borme_id": a.get("bormeId")})
+            out.append(
+                {
+                    "fecha": (a.get("fechaPublicacion") or "")[:10],
+                    "accion": p.get("accion"),
+                    "cargo": p.get("cargo"),
+                    "persona": p.get("nombre"),
+                    "borme_id": a.get("bormeId"),
+                }
+            )
     return out
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--json", action="store_true", help="salida JSON (por defecto ya es JSON indentado)")
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    ap.add_argument(
+        "--json",
+        action="store_true",
+        help="salida JSON (por defecto ya es JSON indentado)",
+    )
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("health", help="estado del servicio (público)")
-    p = sub.add_parser("organos", help="buscar órganos de contratación (público)"); p.add_argument("q")
-    p = sub.add_parser("organo", help="ficha pública de un órgano (público)"); p.add_argument("slug")
+    p = sub.add_parser("organos", help="buscar órganos de contratación (público)")
+    p.add_argument("q")
+    p = sub.add_parser("organo", help="ficha pública de un órgano (público)")
+    p.add_argument("slug")
     sub.add_parser("me", help="cuenta y consumo")
     p = sub.add_parser("buscar", help="buscar empresas BORME por nombre")
-    p.add_argument("nombre"); p.add_argument("--provincia"); p.add_argument("--max", type=int, default=20)
+    p.add_argument("nombre")
+    p.add_argument("--provincia")
+    p.add_argument("--max", type=int, default=20)
     p = sub.add_parser("empresa", help="ficha BORME por NIF")
-    p.add_argument("nif"); p.add_argument("--historico", action="store_true",
-                                         help="historial completo 2009-hoy (CONSUME 1 crédito de historial)")
-    p = sub.add_parser("actos", help="actos BORME por NIF"); p.add_argument("nif")
+    p.add_argument("nif")
+    p.add_argument(
+        "--historico",
+        action="store_true",
+        help="historial completo 2009-hoy (CONSUME 1 crédito de historial)",
+    )
+    p = sub.add_parser("actos", help="actos BORME por NIF")
+    p.add_argument("nif")
     p.add_argument("--max", type=int, default=100)
-    p = sub.add_parser("cambios", help="cambios desde fecha"); p.add_argument("nif"); p.add_argument("--desde", required=True)
-    p = sub.add_parser("scoring", help="score de riesgo"); p.add_argument("nif")
-    p = sub.add_parser("deudores", help="listado AEAT de deudores"); p.add_argument("nif")
-    p = sub.add_parser("borme-dia", help="actos BORME de una fecha AAAA-MM-DD"); p.add_argument("fecha")
-    p = sub.add_parser("boe", help="publicaciones BOE"); p.add_argument("--q"); p.add_argument("--fecha")
+    p = sub.add_parser("cambios", help="cambios desde fecha")
+    p.add_argument("nif")
+    p.add_argument("--desde", required=True)
+    p = sub.add_parser("scoring", help="score de riesgo")
+    p.add_argument("nif")
+    p = sub.add_parser("deudores", help="listado AEAT de deudores")
+    p.add_argument("nif")
+    p = sub.add_parser("borme-dia", help="actos BORME de una fecha AAAA-MM-DD")
+    p.add_argument("fecha")
+    p = sub.add_parser("boe", help="publicaciones BOE")
+    p.add_argument("--q")
+    p.add_argument("--fecha")
     p.add_argument("--max", type=int, default=20)
     p = sub.add_parser("bdns", help="convocatorias de subvenciones")
     for f in ("q", "ccaa", "sector"):
         p.add_argument(f"--{f}")
-    p.add_argument("--abiertas", action="store_true"); p.add_argument("--importe-min", type=float)
-    p.add_argument("--importe-max", type=float); p.add_argument("--max", type=int, default=20)
+    p.add_argument("--abiertas", action="store_true")
+    p.add_argument("--importe-min", type=float)
+    p.add_argument("--importe-max", type=float)
+    p.add_argument("--max", type=int, default=20)
     p = sub.add_parser("licitaciones", help="licitaciones PLACE")
     for f in ("q", "cpv", "organo", "provincia"):
         p.add_argument(f"--{f}")
-    p.add_argument("--abiertas", action="store_true"); p.add_argument("--importe-min", type=float)
-    p.add_argument("--importe-max", type=float); p.add_argument("--max", type=int, default=20)
-    p = sub.add_parser("licitacion", help="licitación por id"); p.add_argument("id")
+    p.add_argument("--abiertas", action="store_true")
+    p.add_argument("--importe-min", type=float)
+    p.add_argument("--importe-max", type=float)
+    p.add_argument("--max", type=int, default=20)
+    p = sub.add_parser("licitacion", help="licitación por id")
+    p.add_argument("id")
     a = ap.parse_args()
 
     try:
         with Apispain() as api:
             c = a.cmd
-            if c == "health": res = api.health()
-            elif c == "organos": res = api.organos(a.q)
-            elif c == "organo": res = api.organo(a.slug)
-            elif c == "me": res = api.me()
-            elif c == "buscar": res = api.buscar_empresas(a.nombre, a.provincia, a.max)
-            elif c == "empresa": res = api.empresa(a.nif, a.historico)
-            elif c == "actos": res = api.actos(a.nif, a.max)
-            elif c == "cambios": res = api.cambios(a.nif, a.desde)
-            elif c == "scoring": res = api.scoring(a.nif)
-            elif c == "deudores": res = api.deudores_aeat(a.nif)
-            elif c == "borme-dia": res = api.borme_dia(a.fecha)
-            elif c == "boe": res = api.boe(a.q, a.fecha, a.max)
+            if c == "health":
+                res = api.health()
+            elif c == "organos":
+                res = api.organos(a.q)
+            elif c == "organo":
+                res = api.organo(a.slug)
+            elif c == "me":
+                res = api.me()
+            elif c == "buscar":
+                res = api.buscar_empresas(a.nombre, a.provincia, a.max)
+            elif c == "empresa":
+                res = api.empresa(a.nif, a.historico)
+            elif c == "actos":
+                res = api.actos(a.nif, a.max)
+            elif c == "cambios":
+                res = api.cambios(a.nif, a.desde)
+            elif c == "scoring":
+                res = api.scoring(a.nif)
+            elif c == "deudores":
+                res = api.deudores_aeat(a.nif)
+            elif c == "borme-dia":
+                res = api.borme_dia(a.fecha)
+            elif c == "boe":
+                res = api.boe(a.q, a.fecha, a.max)
             elif c == "bdns":
-                res = api.subvenciones(a.max, q=a.q, ccaa=a.ccaa, sector=a.sector, abiertas=a.abiertas,
-                                       importeMin=a.importe_min, importeMax=a.importe_max)
+                res = api.subvenciones(
+                    a.max,
+                    q=a.q,
+                    ccaa=a.ccaa,
+                    sector=a.sector,
+                    abiertas=a.abiertas,
+                    importeMin=a.importe_min,
+                    importeMax=a.importe_max,
+                )
             elif c == "licitaciones":
-                res = api.licitaciones(a.max, q=a.q, cpv=a.cpv, organo=a.organo, provincia=a.provincia,
-                                       abiertas=a.abiertas, importeMin=a.importe_min, importeMax=a.importe_max)
-            elif c == "licitacion": res = api.licitacion(a.id)
+                res = api.licitaciones(
+                    a.max,
+                    q=a.q,
+                    cpv=a.cpv,
+                    organo=a.organo,
+                    provincia=a.provincia,
+                    abiertas=a.abiertas,
+                    importeMin=a.importe_min,
+                    importeMax=a.importe_max,
+                )
+            elif c == "licitacion":
+                res = api.licitacion(a.id)
             if api.last_usage:
                 print(f"[apispain] consumo: {api.last_usage}", file=sys.stderr)
     except ApispainError as e:

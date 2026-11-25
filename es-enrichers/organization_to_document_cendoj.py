@@ -3,7 +3,12 @@ from typing import Dict, List, Optional
 
 import httpx
 
-from flowsint_enrichers.es._org import Hallazgo, OrgEsEnricher, documento, nombre_por_nif, recorta
+from flowsint_enrichers.es._org import (
+    Hallazgo,
+    OrgEsEnricher,
+    documento,
+    recorta,
+)
 from flowsint_enrichers.es._scripts import load
 from flowsint_enrichers.registry import flowsint_enricher
 
@@ -35,31 +40,51 @@ class OrgToSentenciasCendoj(OrgEsEnricher):
 
     def consultar(self, ids: Dict[str, Optional[str]]) -> List[Hallazgo]:
         cendoj = load("cendoj")
-        base = ids["base"] or (nombre_por_nif(ids["nif"]) if ids["nif"] else "")
+        base = self.base_o_fallo(ids)
         if not base:
-            self.log("Sin denominación para buscar en el CENDOJ (no se busca por NIF)", error=True)
             return []
         texto = f'"{base}"' if " " in base else base
         tope = min(self.max_resultados, TOPE_CENDOJ)
-        with httpx.Client(headers=cendoj.HEADERS, timeout=40, follow_redirects=True) as c:
-            c.get(cendoj.BASE + "indexAN.jsp")
+        with httpx.Client(
+            headers=cendoj.HEADERS, timeout=40, follow_redirects=True
+        ) as c:
+            c.get(cendoj.BASE + "indexAN.jsp").raise_for_status()
             total, items = cendoj.pagina(c, texto, 1)
             while len(items) < min(tope, total):
                 time.sleep(1.5)
-                _, more = cendoj.pagina(c, texto, len(items) + 1)
+                try:
+                    _, more = cendoj.pagina(c, texto, len(items) + 1)
+                except Exception as e:  # se conservan las páginas ya leídas
+                    self.fallo(texto, e)
+                    break
                 if not more:
+                    self.fallo(
+                        texto,
+                        f"página sin resultados legibles tras {len(items)} de {total}",
+                    )
                     break
                 items.extend(more)
-        self.log(f"«{texto}»: {total} resoluciones en total (se toman {min(tope, len(items))})")
+        self.log(
+            f"«{texto}»: {total} resoluciones en total (se toman {min(tope, len(items))})"
+        )
         out = []
         for i in items[:tope]:
-            doc = documento(f"CENDOJ {i.get('roj') or recorta(i['titulo'], 80)} ({i['fecha']})",
-                            doc_type="resolución judicial", source="CENDOJ", source_url=i["url"],
-                            created_date=i["fecha"], author=i.get("Órgano") or i.get("Municipio"),
-                            subject=i["titulo"], description=recorta(i.get("resumen"), 600),
-                            ecli=i.get("ecli"), roj=i.get("roj"), ponente=i.get("Ponente"),
-                            recurso=i.get("Nº Recurso"), consulta=texto)
-            out.append(Hallazgo(doc, "MENCIONADA_EN_SENTENCIA"))
+            doc = documento(
+                f"CENDOJ {i.get('roj') or recorta(i['titulo'], 80)} ({i['fecha']})",
+                doc_type="resolución judicial",
+                source="CENDOJ",
+                source_url=i["url"],
+                created_date=i["fecha"],
+                author=i.get("Órgano") or i.get("Municipio"),
+                subject=i["titulo"],
+                description=recorta(i.get("resumen"), 600),
+                ecli=i.get("ecli"),
+                roj=i.get("roj"),
+                ponente=i.get("Ponente"),
+                recurso=i.get("Nº Recurso"),
+                consulta=texto,
+            )
+            out.append(Hallazgo(doc, "MENCIONADA_EN_SENTENCIA", certainty="posible"))
         return out
 
 

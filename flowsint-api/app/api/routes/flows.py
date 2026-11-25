@@ -1,15 +1,16 @@
+import os
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel
+from pydantic import UUID4, BaseModel
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
 from app.api.schemas.flow import FlowCreate, FlowRead, FlowUpdate
 from flowsint_core.core.celery import celery
 from flowsint_core.core.graph import create_graph_service
-from flowsint_core.core.models import Profile
+from flowsint_core.core.models import Profile, Scan
 from flowsint_core.core.postgre_db import get_db
 from flowsint_core.core.services import (
     NotFoundError,
@@ -64,6 +65,29 @@ class StepSimulationRequest(BaseModel):
 class launchFlowPayload(BaseModel):
     node_ids: List[str]
     sketch_id: str
+    # Client-chosen scan id: becomes the Celery task id, so a retry after a lost
+    # response cannot start a second (paid) run.
+    scan_id: Optional[UUID4] = None
+
+
+def parse_flow_expires(raw: Optional[str]) -> Optional[int]:
+    """FLOWSINT_FLOW_EXPIRES_SECONDS: unset/empty = no expiry, else seconds > 0."""
+    if raw is None or not raw.strip():
+        return None
+    try:
+        seconds = int(raw.strip())
+    except ValueError:
+        seconds = 0
+    if seconds <= 0:
+        raise RuntimeError(
+            "FLOWSINT_FLOW_EXPIRES_SECONDS must be a positive integer "
+            f"(seconds) or empty, got {raw!r}"
+        )
+    return seconds
+
+
+# Evaluated at import, so an invalid value aborts API startup.
+FLOW_EXPIRES_SECONDS = parse_flow_expires(os.getenv("FLOWSINT_FLOW_EXPIRES_SECONDS"))
 
 
 router = APIRouter()
@@ -213,6 +237,10 @@ async def launch_flow(
         flow = service.get_by_id(UUID(flow_id), current_user.id)
         service.get_sketch_for_launch(payload.sketch_id, current_user.id)
 
+        # Any owner: the answer must not reveal anything about the existing scan.
+        if payload.scan_id is not None and db.get(Scan, payload.scan_id) is not None:
+            raise HTTPException(status_code=409, detail="scan_id already used")
+
         # Retrieve entities from Neo4J by their element IDs
         type_registry = create_type_registry_service(db)
         resolver = type_registry.build_type_resolver(current_user.id)
@@ -237,6 +265,11 @@ async def launch_flow(
         flow_branches = compute_flow_branches(sample_value, nodes, edges)
         serializable_branches = [branch.model_dump() for branch in flow_branches]
 
+        send_options: Dict[str, Any] = {}
+        if payload.scan_id is not None:
+            send_options["task_id"] = str(payload.scan_id)
+        if FLOW_EXPIRES_SECONDS is not None:
+            send_options["expires"] = FLOW_EXPIRES_SECONDS
         task = celery.send_task(
             "run_flow",
             args=[
@@ -245,9 +278,12 @@ async def launch_flow(
                 payload.sketch_id,
                 str(current_user.id),
             ],
+            **send_options,
         )
         return {"id": task.id}
 
+    except HTTPException:
+        raise
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except PermissionDeniedError:
