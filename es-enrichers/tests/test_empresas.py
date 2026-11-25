@@ -41,6 +41,9 @@ from flowsint_types.individual import Individual
 from flowsint_types.ip import Ip
 from flowsint_types.organization import Organization
 
+COBERTURA_APISPAIN = (
+    "BORME apispain desde 2024-01-01 (parcial: hasta 20 empresas y sus actos recientes)"
+)
 NIF = "B00000000"
 OTRO_NIF = "B11111111"
 ACME = Organization(name="ACME SL")
@@ -307,8 +310,56 @@ def test_documents_matched_by_name_are_possible(
     ]
 
 
+@pytest.mark.parametrize(
+    "clase, relacion",
+    [
+        (OrgToContratosPlacsp, "ADJUDICATARIA"),
+        (OrgToContratosTed, "ADJUDICATARIA"),
+        (OrgToSubvencionesBdns, "RECIBE_SUBVENCION"),
+        (OrgToSancionesUe, "SANCIONADA"),
+    ],
+)
+def test_possible_results_get_a_prefixed_relation(
+    correr, fuentes, grafo, clase, relacion
+):
+    e = correr(clase, [ACME])
+    assert [f.relation for f in e.findings] == [f"POSIBLE_{relacion}"]
+    assert grafo.relaciones[0][:2] == ("ACME SL", f"POSIBLE_{relacion}")
+    # las secundarias son del documento, nunca de la empresa consultada
+    assert all("ACME SL" not in (d, h) for d, _, h in grafo.relaciones[1:])
+    # aguas abajo siguen yendo los documentos
+    assert [n.nodeLabel for n in e.resultados] == [e.findings[0].object]
+
+
+@pytest.mark.parametrize(
+    "org, relacion",
+    [(ACME_NIF, "SANCIONADA"), (ACME_PROBABLE, "POSIBLE_SANCIONADA")],
+)
+def test_sanctioned_is_unprefixed_only_when_confirmed(
+    correr, fuentes, grafo, org, relacion
+):
+    e = correr(OrgToSancionesUe, [org])
+    assert [f.relation for f in e.findings] == [relacion]
+    assert [x[1] for x in grafo.relaciones] == [relacion]
+
+
+def test_probable_results_keep_their_relation(correr, fuentes, grafo):
+    correr(OrgToContratosTed, [ACME_PROBABLE])
+    assert grafo.relaciones[0][1] == "ADJUDICATARIA"
+
+
+def test_partial_sanction_match_is_not_prefixed_twice(correr, monkeypatch, grafo):
+    monkeypatch.setattr(
+        load("sanciones_ue"), "buscar", lambda c, t, n: sancion(False, "contiene")
+    )
+    e = correr(OrgToSancionesUe, [ACME], incluir_parciales="true")
+    assert {e.findings[0].relation, grafo.relaciones[0][1]} == {
+        "POSIBLE_COINCIDENCIA_SANCIONES"
+    }
+
+
 def test_result_whose_identifier_is_another_nif_is_possible(
-    correr, fuentes, monkeypatch
+    correr, fuentes, monkeypatch, grafo
 ):
     monkeypatch.setattr(
         load("bdns"),
@@ -316,6 +367,7 @@ def test_result_whose_identifier_is_another_nif_is_possible(
         lambda c, t: [{"id": 1, "descripcion": f"{OTRO_NIF} - OTRA SL"}],
     )
     assert certezas(correr(OrgToSubvencionesBdns, [ACME_NIF])) == ["posible"]
+    assert grafo.relaciones[0][1] == "POSIBLE_RECIBE_SUBVENCION"
 
 
 @pytest.mark.parametrize("org", [ACME, ACME_NIF])
@@ -628,21 +680,65 @@ def test_resolver_script_separates_errors_from_notices(monkeypatch):
     assert len(r["avisos"]) > 1
 
 
-def test_resolver_script_reports_dns_down_but_not_missing_domains(monkeypatch):
+@pytest.fixture
+def webs(monkeypatch, http):
+    """webs({dominio: errno}, responder): errores y webs del script real; lo demás resuelve."""
     import socket
 
     res = load("resolver_empresa")
-    fallo_dns = [socket.EAI_AGAIN]
 
-    def resuelve(*a):
-        raise socket.gaierror(fallo_dns[0], "x")
+    def _webs(dns_errores, responder):
+        def resuelve(dominio, puerto):
+            if dominio in dns_errores:
+                raise socket.gaierror(dns_errores[dominio], "x")
 
-    monkeypatch.setattr(socket, "getaddrinfo", resuelve)
-    r = res.resolver("ACME SL", (), True, client=httpx.Client())
-    assert [x["fuente"] for x in r["errores"]] == ["DNS"]
-    fallo_dns[0] = socket.EAI_NONAME
-    r = res.resolver("ACME SL", (), True, client=httpx.Client())
-    assert r["errores"] == []
+        monkeypatch.setattr(socket, "getaddrinfo", resuelve)
+        monkeypatch.setattr(res, "TLDS", ("es", "com"))
+        monkeypatch.setattr(res.webs_probables, "__defaults__", (("es", "com"), None))
+        http(responder)
+        r = res.resolver("ACME SL", (), True)
+        return r["errores"], {w["dominio"]: w["confianza"] for w in r["webs"]}
+
+    return _webs
+
+
+def test_resolver_script_reports_each_unanswered_domain(webs):
+    import socket
+
+    ok = lambda req: httpx.Response(200, html="ACME")  # noqa: E731
+    errores, vivas = webs({"acme.es": socket.EAI_AGAIN}, ok)
+    assert [e["fuente"] for e in errores] == ["DNS"]
+    assert "acme.es" in errores[0]["error"] and vivas == {"acme.com": "media"}
+    errores, _ = webs({"acme.es": socket.EAI_FAIL, "acme.com": socket.EAI_AGAIN}, ok)
+    assert len(errores) == 2
+    errores, vivas = webs({"acme.es": socket.EAI_NONAME}, ok)
+    assert errores == [] and vivas == {"acme.com": "media"}
+
+
+@pytest.mark.parametrize(
+    "respuesta, es_fallo",
+    [
+        (httpx.ConnectError("x"), True),
+        (httpx.ReadTimeout("x"), True),
+        (500, True),
+        (503, True),
+        (403, False),
+        (404, False),
+    ],
+)
+def test_resolver_script_website_errors(webs, respuesta, es_fallo):
+    def responder(req):
+        if req.url.host == "acme.com":
+            return httpx.Response(200, html="ACME")
+        if isinstance(respuesta, Exception):
+            raise respuesta
+        return httpx.Response(respuesta, html="ACME")
+
+    errores, vivas = webs({}, responder)
+    assert vivas == {"acme.com": "media", "acme.es": "baja"}  # un error no es la web
+    assert [(e["fuente"], "acme.es" in e["error"]) for e in errores] == (
+        [("Web", True)] if es_fallo else []
+    )
 
 
 def test_probable_identity_survives_json(resolver, fuentes, correr):
@@ -651,47 +747,63 @@ def test_probable_identity_survives_json(resolver, fuentes, correr):
     assert certezas(correr(OrgToContratosTed, entrada)) == ["probable"]
 
 
-def test_probable_identity_survives_the_orchestrator(
-    resolver, fuentes, monkeypatch, tmp_path, grafo
-):
-    resolver(cand())  # deja el script simulado
-    monkeypatch.chdir(tmp_path)
-    clases = {"es_resolver": OrgToIdentidadEs, "es_ted": OrgToContratosTed}
+@pytest.fixture
+def flujo(monkeypatch, tmp_path, grafo):
+    """flujo(Clase, …): pasa {"name": "ACME SL"} por los enrichers con FlowOrchestrator."""
 
-    class Registro:
-        def enricher_exists(self, nombre):
-            return nombre in clases
+    def _flujo(*pasos_clases):
+        clases = {f"es_{i}": c for i, c in enumerate(pasos_clases)}
+        monkeypatch.chdir(tmp_path)
 
-        def get_enricher(self, nombre, sketch_id, scan_id, vault=None, params=None):
-            return clases[nombre](
-                sketch_id=sketch_id, scan_id=scan_id, graph_service=grafo, params=params
-            )
+        class Registro:
+            def enricher_exists(self, nombre):
+                return nombre in clases
 
-    monkeypatch.setattr(orq, "ENRICHER_REGISTRY", Registro())
-    monkeypatch.setattr(
-        orq,
-        "Logger",
-        SimpleNamespace(
-            **{n: (lambda *a: None) for n in ("info", "error", "pending", "completed")}
-        ),
-    )
-    monkeypatch.setattr(
-        "flowsint_core.core.enricher_base.create_graph_service", lambda **k: grafo
-    )
-    pasos = [
-        FlowStep(
-            nodeId=f"{n}-1",
-            type="enricher",
-            inputs={},
-            outputs={},
-            status="pending",
-            branchId="b",
-            depth=0,
+            def get_enricher(self, nombre, sketch_id, scan_id, vault=None, params=None):
+                return clases[nombre](
+                    sketch_id=sketch_id,
+                    scan_id=scan_id,
+                    graph_service=grafo,
+                    params=params,
+                )
+
+        monkeypatch.setattr(orq, "ENRICHER_REGISTRY", Registro())
+        monkeypatch.setattr(
+            orq,
+            "Logger",
+            SimpleNamespace(
+                **{
+                    n: (lambda *a: None)
+                    for n in ("info", "error", "pending", "completed")
+                }
+            ),
         )
-        for n in clases
-    ]
-    flujo = orq.FlowOrchestrator("s", "t", [FlowBranch(id="b", name="b", steps=pasos)])
-    r = flujo.scan([{"name": "ACME SL"}])
+        monkeypatch.setattr(
+            "flowsint_core.core.enricher_base.create_graph_service", lambda **k: grafo
+        )
+        pasos = [
+            FlowStep(
+                nodeId=f"{n}-1",
+                type="enricher",
+                inputs={},
+                outputs={},
+                status="pending",
+                branchId="b",
+                depth=0,
+            )
+            for n in clases
+        ]
+        orquestador = orq.FlowOrchestrator(
+            "s", "t", [FlowBranch(id="b", name="b", steps=pasos)]
+        )
+        return orquestador.scan([{"name": "ACME SL"}])
+
+    return _flujo
+
+
+def test_probable_identity_survives_the_orchestrator(resolver, fuentes, flujo):
+    resolver(cand())  # deja el script simulado
+    r = flujo(OrgToIdentidadEs, OrgToContratosTed)
     assert [(f["relation"], f["certainty"]) for f in r["findings"]] == [
         ("NIF", "probable"),
         ("ADJUDICATARIA", "probable"),
@@ -776,11 +888,11 @@ def test_single_exact_company_updates_the_node(borme, grafo):
         [emp_borme(hoja="M 1"), emp_borme(hoja="M 2")],
         [emp_borme("ACME SA")],
         [emp_borme("ACME TRADING SL")],
-        [emp_borme(hoja=None), emp_borme(hoja=None)],
     ],
 )
 def test_uncertain_companies_do_not_update_the_node(borme, grafo, empresas):
     e = borme(*empresas)
+    assert e.resultados == [ACME]  # aguas abajo no siguen los homónimos
     assert certezas(e) == ["posible"] * len(empresas)
     for n in grafo.nodos:
         assert n.nodeLabel != "ACME SL" or n.siege_adresse is None
@@ -789,14 +901,39 @@ def test_uncertain_companies_do_not_update_the_node(borme, grafo, empresas):
     assert {r[1] for r in grafo.relaciones} == {"BORME_COINCIDENCIA_PARCIAL"}
 
 
-def test_uncertain_company_does_not_update_another_input_node(borme, grafo):
-    grupo = Organization(name="ACME SL")
-    borme(
-        emp_borme("ACME SL"),
-        emp_borme("ACME SA"),
-        org=[Organization(name="ACME"), grupo],
-    )
-    assert all(n.siege_adresse is None for n in grafo.nodos if n.nodeLabel == "ACME SL")
+@pytest.mark.parametrize(
+    "emp, etiqueta",
+    [
+        (emp_borme("ACME TRADING SL", nif=OTRO_NIF), f"ACME TRADING SL ({OTRO_NIF})"),
+        (emp_borme("ACME TRADING SL"), "ACME TRADING SL (M 1)"),
+    ],
+)
+def test_other_company_label_carries_a_unique_identifier(borme, grafo, emp, etiqueta):
+    e = borme(emp)
+    assert {n.nodeLabel for n in grafo.nodos} == {"ACME SL", etiqueta}
+    assert e.findings[0].object == etiqueta
+
+
+def test_other_company_without_identifier_writes_no_node(borme, grafo):
+    e = borme(emp_borme("ACME TRADING SL", hoja=None))
+    assert grafo.nodos == [] and len(e.findings) == 1
+    assert e.resultados == [ACME]
+
+
+def test_borme_returns_the_subject_updated_unchanged_or_failed(borme):
+    assert [o.hoja_registral for o in borme(emp_borme()).resultados] == ["M 1"]
+    assert borme().resultados == [ACME]
+    assert borme(boe=falla).resultados == [ACME]
+
+
+def test_homonyms_do_not_reach_the_next_step(borme, fuentes, flujo):
+    mod = load("borme")
+    borme()  # sustituye los dos backends
+    otras = [emp_borme(nif=NIF, hoja="M 1"), emp_borme(nif=OTRO_NIF, hoja="M 2")]
+    mod.buscar_empresa = lambda *a: res_boe(*otras)
+    r = flujo(BormeFicha, OrgToContratosTed)
+    ted = [f for f in r["findings"] if f["source"] == "TED"]
+    assert [(f["subject"], f["certainty"]) for f in ted] == [("ACME SL", "posible")]
 
 
 def test_company_with_a_different_nif_is_possible(borme, grafo):
@@ -809,6 +946,23 @@ def test_company_with_a_different_nif_is_possible(borme, grafo):
     assert (
         org_ids(next(n for n in grafo.nodos if n.nodeLabel == "ACME SL"))["nif"] == NIF
     )
+
+
+def test_officers_of_a_company_with_a_different_nif_are_possible(borme, grafo):
+    emp = emp_borme(nif=OTRO_NIF)
+    emp["actos"][0]["cargos"] = [
+        {
+            "persona": "EJEMPLO FICTICIA ANA",
+            "cargo": "Adm. Unico",
+            "cargo_codigo": "ADM_UNICO",
+            "accion": "nombramiento",
+        }
+    ]
+    e = borme(emp, org=ACME_NIF, clase=BormeEmpresa)
+    assert certezas(e) == ["posible"] and "otro NIF" in str(e.findings[0].evidence)
+    assert [x[1] for x in grafo.relaciones] == ["POSIBLE_ADM_UNICO"]
+    e = borme(emp, org=Organization(name="ACME SL", nif=OTRO_NIF), clase=BormeEmpresa)
+    assert certezas(e) == ["confirmada"]
 
 
 def test_nif_obtained_by_name_from_borme_is_probable(borme):
@@ -846,7 +1000,7 @@ def test_apispain_coverage(borme, clase):
     vacio = {"backend": "apispain", "coste": {}, "empresas": []}
     e = borme(clase=clase, apispain=lambda *a: vacio, APISPAIN_API_KEY="clave-secreta")
     assert e.llamadas == ["apispain"] and e.failures == []  # vacío no es un error
-    assert e.coverage == "BORME apispain desde 2024-01-01"
+    assert e.coverage == COBERTURA_APISPAIN
 
 
 @pytest.mark.parametrize("clase", [BormeFicha, BormeEmpresa])
@@ -959,6 +1113,111 @@ def test_coverage_is_the_range_actually_queried(correr, boe_sin_red, clase, entr
     assert e.coverage is None and len(e.failures) == 1
 
 
+SUMARIO = {
+    "id": "BORME-A-2026-1-28",
+    "provincia": "MADRID",
+    "url_pdf": None,
+    "url_html": None,
+}
+INDICE = {**SUMARIO, "id": "BORME-A-2026-1-99"}
+COMPLETO = [SUMARIO, INDICE]
+
+
+@pytest.fixture
+def boe_dias(monkeypatch, tmp_path):
+    """boe_dias({día: items}): BORME real con sumarios simulados (None = sin BORME ese día)."""
+    mod = load("borme")
+    monkeypatch.setattr(mod, "DEFAULT_DB", str(tmp_path / "borme.sqlite"))
+    monkeypatch.setattr(mod, "documento", lambda *a: True)
+    monkeypatch.setattr(mod, "indice_dia", lambda *a: True)
+
+    def _dias(dias):
+        monkeypatch.setattr(
+            mod, "sumario", lambda db, dl, d: dias.get(d.isoformat(), COMPLETO)
+        )
+
+    return _dias
+
+
+SEMANA = {"DESDE": "2026-01-05", "HASTA": "2026-01-11"}  # de lunes a domingo
+ENTRADAS = [
+    (BormeFicha, ACME, [SUMARIO]),
+    (BormeEmpresa, ACME, [SUMARIO]),
+    (BormePersona, Individual(full_name="Ana Ejemplo Ficticia"), [INDICE]),
+]
+
+
+@pytest.mark.parametrize("clase, entrada, roto", ENTRADAS)
+@pytest.mark.parametrize(
+    "dias, cobertura, rango",
+    [
+        ({}, "2026-01-05 a 2026-01-11", None),
+        ({"2026-01-06": None}, "2026-01-05 a 2026-01-11", None),
+        ({"2026-01-07": 0}, "2026-01-05 a 2026-01-11", "1 día sin cubrir (2026-01-07)"),
+        (
+            {"2026-01-05": 0, "2026-01-06": 0},
+            "2026-01-07 a 2026-01-11",
+            "2 días sin cubrir (entre 2026-01-05 y 2026-01-06)",
+        ),
+        (
+            {"2026-01-08": 0, "2026-01-09": 0},
+            "2026-01-05 a 2026-01-07",
+            "2 días sin cubrir (entre 2026-01-08 y 2026-01-09)",
+        ),
+        (  # el festivo entre medias no separa los días perdidos del borde
+            {"2026-01-07": 0, "2026-01-08": None, "2026-01-09": 0},
+            "2026-01-05 a 2026-01-06",
+            "2 días sin cubrir (entre 2026-01-07 y 2026-01-09)",
+        ),
+        (
+            {f"2026-01-0{d}": 0 for d in range(5, 10)},
+            None,
+            "5 días sin cubrir (entre 2026-01-05 y 2026-01-09)",
+        ),
+    ],
+)
+def test_uncovered_days(correr, boe_dias, clase, entrada, roto, dias, cobertura, rango):
+    boe_dias({d: roto if v == 0 else v for d, v in dias.items()})
+    e = correr(clase, [entrada], **SEMANA)
+    assert e.coverage == (cobertura and f"BORME BOE {cobertura}")
+    assert len(e.failures) == bool(rango)
+    if rango:
+        assert e.failures[0].startswith("BORME: ") and rango in e.failures[0]
+
+
+def test_sumario_without_section_a_is_uncovered(correr, boe_dias):
+    boe_dias({"2026-01-07": []})
+    assert len(correr(BormeFicha, [ACME], **SEMANA).failures) == 1
+
+
+def test_index_without_rows_is_not_cached_as_read(http):
+    mod = load("borme")
+    import sqlite3
+    from datetime import date
+
+    http(lambda req: httpx.Response(200, text="<html>mantenimiento</html>"))
+    db = sqlite3.connect(":memory:")
+    db.execute("CREATE TABLE indices (fecha TEXT PRIMARY KEY, n INTEGER, ts TEXT)")
+    db.execute(
+        "CREATE TABLE indice (fecha, doc_id, num, empresa, empresa_norm, PRIMARY KEY (doc_id, num, empresa))"
+    )
+    assert mod.indice_dia(db, mod.Descargador(0), INDICE, date(2026, 1, 7)) is False
+    assert db.execute("SELECT count(*) FROM indices").fetchone() == (0,)
+    db.execute("INSERT INTO indices VALUES ('2026-01-07', 0, '')")  # caché antigua
+    assert mod.indice_dia(db, mod.Descargador(0), INDICE, date(2026, 1, 7)) is False
+
+
+@pytest.mark.parametrize("clase, entrada, _", ENTRADAS)
+def test_request_limit_is_a_failure_without_coverage(
+    correr, monkeypatch, tmp_path, http, clase, entrada, _
+):
+    monkeypatch.setattr(load("borme"), "DEFAULT_DB", str(tmp_path / "borme.sqlite"))
+    http(lambda req: httpx.Response(404))
+    e = correr(clase, [entrada], MAX_PETICIONES="2", **SEMANA)
+    assert e.coverage is None
+    assert len(e.failures) == 1 and "Tope de 2 peticiones" in e.failures[0]
+
+
 def test_different_coverages_are_joined(borme):
     def api(nombre, *a):
         return (
@@ -969,9 +1228,7 @@ def test_different_coverages_are_joined(borme):
 
     orgs = [ACME, Organization(name="OTRA SL"), Organization(name="TERCERA SL")]
     e = borme(org=orgs, apispain=api, APISPAIN_API_KEY="k1234")
-    assert e.coverage == (
-        "BORME apispain desde 2024-01-01; BORME BOE 2026-01-01 a 2026-03-31"
-    )
+    assert e.coverage == (f"{COBERTURA_APISPAIN}; BORME BOE 2026-01-01 a 2026-03-31")
 
 
 def test_org_officers_coverage_and_failures_without_backend_data(monkeypatch, correr):

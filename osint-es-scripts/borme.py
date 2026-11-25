@@ -627,7 +627,7 @@ def documento(db, dl: Descargador | None, item: dict, fecha: dt.date) -> bool:
 def indice_dia(db, dl: Descargador | None, item99: dict, fecha: dt.date) -> bool:
     """Descarga y guarda el índice alfabético del día (denominación -> doc provincial, nº)."""
     f = fecha.isoformat()
-    if db.execute("SELECT 1 FROM indices WHERE fecha=?", (f,)).fetchone():
+    if db.execute("SELECT 1 FROM indices WHERE fecha=? AND n > 0", (f,)).fetchone():
         return True
     if dl is None:
         return False
@@ -637,6 +637,10 @@ def indice_dia(db, dl: Descargador | None, item99: dict, fecha: dt.date) -> bool
         r"<td>([^<]+)</td>\s*<td>\s*<p[^>]*>(BORME-A-[\d-]+)</p>\s*</td>\s*<td[^>]*>\s*\((\d+)\)",
         r.text,
     )
+    if (
+        not filas
+    ):  # el índice de un día con BORME nunca está vacío: no se ha podido leer
+        return False
     rows = []
     for emp, doc, num in filas:
         emp = html.unescape(emp).strip().rstrip(".")
@@ -685,20 +689,33 @@ def cubrir(
     consulta: dict | None = None,
     exacta: bool = False,
 ) -> dict:
-    """Asegura en caché los documentos necesarios del rango. Devuelve estadística de cobertura."""
-    est = {"dias_habiles": 0, "dias_con_borme": 0, "docs": 0, "sin_red": dl is None}
+    """Asegura en caché los documentos necesarios del rango. Devuelve estadística de cobertura.
+    `cubiertos` y `sin_cubrir` son los días con BORME que se han podido consultar y los que no."""
+    est = {
+        "dias_habiles": 0,
+        "dias_con_borme": 0,
+        "docs": 0,
+        "sin_red": dl is None,
+        "cubiertos": [],
+        "sin_cubrir": [],
+    }
     for d in dias_habiles(desde, hasta):
         est["dias_habiles"] += 1
         items = sumario(db, dl, d)
-        if not items:
+        if items is None:
+            continue
+        if not items:  # sumario sin Sección A
+            est["sin_cubrir"].append(d)
             continue
         est["dias_con_borme"] += 1
         provs = [i for i in items if not i["id"].endswith("-99")]
         if provincias or completo:
             objetivo = [i for i in provs if _prov_ok(i, provincias)]
+            cubierto = bool(provs)
         else:
             i99 = next((i for i in items if i["id"].endswith("-99")), None)
-            if not i99 or not indice_dia(db, dl, i99, d) or consulta is None:
+            cubierto = bool(i99) and indice_dia(db, dl, i99, d)
+            if not cubierto or consulta is None:
                 objetivo = []
             else:
                 ids = {
@@ -713,7 +730,30 @@ def cubrir(
         for it in objetivo:
             if documento(db, dl, it, d):
                 est["docs"] += 1
+            else:
+                cubierto = False
+        est["cubiertos" if cubierto else "sin_cubrir"].append(d)
     return est
+
+
+def cobertura(desde: dt.date, hasta: dt.date, est: dict) -> dict:
+    """{"cubierto": [desde, hasta] o None, "dias_sin_cubrir": [...]}, sacando de `est` los días.
+    Los días sin cubrir de los extremos acortan el rango; los de en medio no."""
+    cubiertos, sin = est.pop("cubiertos", []), sorted(est.pop("sin_cubrir", []))
+    rango_real = [desde, hasta]
+    if sin and not cubiertos:
+        rango_real = None
+    elif sin:
+        antes = [d for d in sin if d < min(cubiertos)]
+        despues = [d for d in sin if d > max(cubiertos)]
+        if antes:
+            rango_real[0] = antes[-1] + dt.timedelta(days=1)
+        if despues:
+            rango_real[1] = despues[0] - dt.timedelta(days=1)
+    return {
+        "cubierto": rango_real and [d.isoformat() for d in rango_real],
+        "dias_sin_cubrir": [d.isoformat() for d in sin],
+    }
 
 
 # ----------------------------------------------------------------------------------------
@@ -933,6 +973,7 @@ def buscar_empresa(
         "backend": "boe",
         "desde": desde.isoformat(),
         "hasta": hasta.isoformat(),
+        **cobertura(desde, hasta, est),
         "modo": "provincia" if provincias else ("completo" if completo else "indice"),
         "coste": {
             **est,
@@ -1033,6 +1074,7 @@ def buscar_persona(
         "backend": "boe",
         "desde": desde.isoformat(),
         "hasta": hasta.isoformat(),
+        **cobertura(desde, hasta, est),
         "coste": {
             **est,
             "peticiones": dl.peticiones if dl else 0,

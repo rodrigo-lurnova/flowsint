@@ -20,6 +20,7 @@ from flowsint_types.document import Document
 from flowsint_types.organization import Organization
 
 NIVELES = ("posible", "probable", "confirmada")
+SOLO_CONFIRMADAS = {"SANCIONADA"}  # con cualquier duda, POSIBLE_
 MAX_DURO = 100  # tope absoluto de nodos por organización, se pida lo que se pida
 
 
@@ -216,6 +217,13 @@ class OrgEsEnricher(Enricher):
             items = items[: self.max_resultados]
             self.log(f"{ids['nif'] or ids['nombre']}: {len(items)} resultados")
             for h in items:
+                certeza = limitar(h.certainty, ids)
+                if not h.relacion.startswith("POSIBLE_") and (
+                    certeza == "posible"
+                    or h.relacion in SOLO_CONFIRMADAS
+                    and certeza != "confirmada"
+                ):
+                    h.relacion = f"POSIBLE_{h.relacion}"
                 self.hallazgos.append((org, h))
                 results.append(h.nodo)
                 ev.anotar(
@@ -224,7 +232,7 @@ class OrgEsEnricher(Enricher):
                     org.nodeLabel,
                     h.relacion,
                     h.nodo.nodeLabel,
-                    limitar(h.certainty, ids),
+                    certeza,
                     evidence=[getattr(h.nodo, "description", None)],
                     url=h.url,
                 )

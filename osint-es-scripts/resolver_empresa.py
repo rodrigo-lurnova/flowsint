@@ -367,13 +367,16 @@ def desde_cnmv(client: httpx.Client, texto: str) -> list[dict]:
 
 
 # --- Web probable ----------------------------------------------------------------------
+NO_EXISTE = {socket.EAI_NONAME, getattr(socket, "EAI_NODATA", socket.EAI_NONAME)}
+
+
 def _resuelve(dominio: str) -> bool | None:
     """True/False; None si el DNS no ha respondido (no se sabe si existe)."""
     try:
         socket.getaddrinfo(dominio, 443)
         return True
     except OSError as e:
-        return None if getattr(e, "errno", None) == socket.EAI_AGAIN else False
+        return False if e.errno in NO_EXISTE else None
 
 
 def webs_probables(
@@ -384,7 +387,8 @@ def webs_probables(
     errores: list | None = None,
 ) -> list[dict]:
     """Prueba <base>.<tld> (sin espacios y con guiones). Devuelve los que resuelven, con indicios.
-    Si el DNS no responde a ninguno, lo anota en `errores`."""
+    En `errores`, los dominios que no se han podido comprobar: sin respuesta DNS, sin conexión o HTTP 5xx."""
+    errores = [] if errores is None else errores
     slug = re.sub(r"[^a-z0-9 ]", "", base.lower()).strip()
     if not slug:
         return []
@@ -393,8 +397,11 @@ def webs_probables(
     with cf.ThreadPoolExecutor(8) as ex:
         estados = list(ex.map(_resuelve, dominios))
     vivos = [d for d, ok in zip(dominios, estados) if ok]
-    if errores is not None and all(ok is None for ok in estados):
-        errores.append({"fuente": "DNS", "error": "sin respuesta del resolutor"})
+    errores += [
+        {"fuente": "DNS", "error": f"{d}: sin respuesta"}
+        for d, ok in zip(dominios, estados)
+        if ok is None
+    ]
     out = []
     for d in vivos:
         item = {
@@ -406,18 +413,25 @@ def webs_probables(
         }
         try:
             r = client.get(f"https://{d}", timeout=10, follow_redirects=True)
+            item["estado_http"] = r.status_code
+            if r.status_code >= 400:  # página de error: no dice nada del dominio
+                item["error"] = f"HTTP {r.status_code}"
+                if r.status_code >= 500:
+                    errores.append({"fuente": "Web", "error": f"{d}: {item['error']}"})
+                out.append({**item, "confianza": "baja"})
+                continue
             txt = r.text[:400_000]
             t = re.search(r"<title[^>]*>(.*?)</title>", txt, re.S | re.I)
             plano = re.sub(r"[\s.\-]", "", re.sub(r"<[^>]+>", " ", txt)).upper()
             item.update(
                 url=str(r.url),
-                estado_http=r.status_code,
                 titulo=html.unescape(t.group(1)).strip()[:200] if t else None,
                 nif_en_portada=[n for n in nifs if n and n in plano],
                 nombre_en_portada=slug.replace(" ", "").upper() in plano,
             )
         except httpx.HTTPError as e:
             item["error"] = type(e).__name__
+            errores.append({"fuente": "Web", "error": f"{d}: {item['error']}"})
         item["confianza"] = (
             "alta"
             if item["nif_en_portada"]
@@ -436,7 +450,7 @@ def resolver(
     client: httpx.Client | None = None,
 ) -> dict:
     """Devuelve {"consulta", "normalizado", "nif_consulta", "candidatos", "homonimia", "avisos", "errores", "webs"}.
-    `errores` son las fuentes que han fallado: [{"fuente", "error"}]; también figuran en `avisos`."""
+    `errores` son las fuentes y dominios que han fallado: [{"fuente", "error"}]; las fuentes, también en `avisos`."""
     own = client is None
     client = client or httpx.Client(headers=HEADERS, timeout=40, follow_redirects=True)
     nif = limpiar_nif(texto) if parece_nif(texto) else None

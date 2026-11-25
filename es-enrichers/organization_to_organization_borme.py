@@ -14,7 +14,6 @@ from flowsint_core.core.logger import Logger
 from flowsint_enrichers.es import _borme_comun as bc
 from flowsint_enrichers.es import _evidencias as ev
 from flowsint_enrichers.es._org import org_ids
-from flowsint_enrichers.es._scripts import load
 from flowsint_enrichers.registry import flowsint_enricher
 from flowsint_types.organization import Organization
 from flowsint_types.website import Website
@@ -116,26 +115,25 @@ class EsOrgToOrgBormeEnricher(Enricher):
             source="BORME",
         )
 
-    @staticmethod
-    def _otra(emp: dict, etiquetas: set) -> Organization:
-        """Nodo aparte. Con la etiqueta de otra empresa, el grafo fundiría los dos nodos."""
-        nombre, f = emp["empresa"], emp["ficha"]
-        if nombre not in etiquetas:
-            return Organization(name=nombre)
-        ident = f.get("hoja_registral") or f.get("nif") or f.get("provincia") or "BORME"
-        etiqueta, n = f"{nombre} ({ident})", 2
-        while etiqueta in etiquetas:
-            etiqueta, n = f"{nombre} ({ident}) {n}", n + 1
-        return Organization(name=nombre, nom_complet=etiqueta)
+    def _otra(self, emp: dict) -> Optional[Organization]:
+        """Nodo aparte, con su NIF u hoja en la etiqueta para no escribir sobre otro nodo del sketch.
+        Sin identificador no hay nodo: no se puede distinguir de un homónimo."""
+        f = emp["ficha"]
+        ident = f.get("nif") or f.get("hoja_registral")
+        if not ident:
+            return None
+        etiqueta = f"{emp['empresa']} ({ident})"
+        return self._ficha(Organization(name=emp["empresa"], nom_complet=etiqueta), emp)
 
     async def scan(self, data: List[InputType]) -> List[OutputType]:
         self.mapping, out = [], []
         for org in data:
             res = await bc.consultar_empresa(self, str(org.name))
             if res is None:
+                out.append(org)
                 continue
             ids = org_ids(org)
-            etiquetas = {o.nodeLabel for o in data}
+            sujeto = org
             if not res["empresas"]:
                 Logger.info(
                     self.sketch_id,
@@ -143,32 +141,25 @@ class EsOrgToOrgBormeEnricher(Enricher):
                         "message": f"[BORME] {org.name}: sin actos en el rango ({res['coste']})"
                     },
                 )
-            estados = bc.dudas(str(org.name), res["empresas"])
+            estados = bc.dudas(org, res["empresas"])
             for emp, (_, duda) in zip(res["empresas"], estados):
                 nif = emp["ficha"].get("nif")
-                if (
-                    not duda
-                    and ids["nif"]
-                    and nif
-                    and load("resolver_empresa").limpiar_nif(nif) != ids["nif"]
-                ):
-                    duda = f"otro NIF ({nif})"
                 principal = duda is None
                 certeza = "confirmada" if principal else "posible"
                 if principal:
                     nodo = self._ficha(org, emp)
                     if nif and not ids["nif"]:  # NIF obtenido solo por nombre
                         nodo = bc.org_actualizada(nodo, identidad_certeza="probable")
+                    sujeto = nodo
                 else:
-                    nodo = self._ficha(self._otra(emp, etiquetas), emp)
-                etiquetas.add(nodo.nodeLabel)
+                    nodo = self._otra(emp)
                 f = emp["ficha"]
                 ev.anotar(
                     self,
                     bc.FUENTE,
                     org.nodeLabel,
                     "FICHA_REGISTRAL" if principal else "BORME_COINCIDENCIA_PARCIAL",
-                    emp["empresa"] if principal else nodo.nodeLabel,
+                    nodo.nodeLabel if nodo and not principal else emp["empresa"],
                     certeza,
                     evidence=[
                         duda,
@@ -194,7 +185,8 @@ class EsOrgToOrgBormeEnricher(Enricher):
                         or ("confirmada" if ids["nif"] else "probable"),
                         evidence=[f"denominación: {emp['empresa']}"],
                     )
-                out.append(nodo)
+                if nodo is None or not principal and nodo.nodeLabel == org.nodeLabel:
+                    continue
                 web = None
                 if nodo.model_extra and nodo.model_extra.get("pagina_web"):
                     url = nodo.model_extra["pagina_web"]
@@ -215,6 +207,8 @@ class EsOrgToOrgBormeEnricher(Enricher):
                         evidence=[duda],
                     )
                 self.mapping.append((org, nodo, principal, web))
+            # Aguas abajo solo sigue la empresa investigada, nunca los homónimos.
+            out.append(sujeto)
         return out
 
     def postprocess(

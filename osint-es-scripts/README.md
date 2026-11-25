@@ -91,7 +91,7 @@ Se montan como `flowsint_enrichers.es` y reutilizan estos scripts (montados en `
 | `es_org_to_edictos_boe` | Organization → Document | MENCIONADA_EN_EDICTO, PUBLICADO_POR |
 | `es_org_to_sentencias_cendoj` | Organization → Document | MENCIONADA_EN_SENTENCIA (máx. 50) |
 | `es_org_to_contratos_placsp` / `es_org_to_contratos_ted` | Organization → Document | ADJUDICATARIA, LICITADO_POR |
-| `es_org_to_sanciones_ue` | Organization → Document | SANCIONADA / POSIBLE_COINCIDENCIA_SANCIONES |
+| `es_org_to_sanciones_ue` | Organization → Document | SANCIONADA / POSIBLE_SANCIONADA / POSIBLE_COINCIDENCIA_SANCIONES |
 | `es_org_to_asn` | Organization → ASN | sustituto sin clave de `org_to_asn` (PeeringDB + RIPEstat + Team Cymru) |
 | `es_domain_to_web_emails` | Domain → Email | PUBLISHES_EMAIL |
 | `es_domain_to_dns_records` | Domain → DNSRecord | HAS_MX/TXT/DMARC/NS/CAA/SOA_RECORD; describe SPF y verificaciones SaaS |

@@ -37,7 +37,8 @@ class OrgToSancionesUe(OrgEsEnricher):
         Busca la organización en la lista consolidada de personas y entidades sujetas a
         sanciones financieras de la UE (Comisión Europea, Financial Sanctions Files; descarga
         pública diaria en caché local). Por NIF/identificador o por denominación normalizada.
-        Coincidencia por identificador o denominación exacta -> SANCIONADA; coincidencia parcial
+        Coincidencia por identificador o denominación exacta -> SANCIONADA (POSIBLE_SANCIONADA
+        salvo que coincida el NIF, sin dudas sobre él); coincidencia parcial
         (si se activa) -> POSIBLE_COINCIDENCIA_SANCIONES. Una coincidencia de nombre no prueba
         identidad: revisa país, dirección e identificadores del Document.
         Script osint-es-scripts/sanciones_ue.py.

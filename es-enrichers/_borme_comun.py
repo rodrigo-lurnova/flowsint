@@ -9,6 +9,7 @@ import re
 from typing import Any, Dict, List, Optional
 
 from flowsint_enrichers.es import _evidencias as ev
+from flowsint_enrichers.es._org import org_ids
 from flowsint_enrichers.es._scripts import load
 from flowsint_types.individual import Individual
 from flowsint_types.organization import Organization
@@ -211,34 +212,42 @@ async def consultar_empresa(enricher, nombre: str) -> Optional[dict]:
     for fuente, exc in fallos:
         ev.fallo(enricher, fuente, nombre, exc, api_key)
     if res is not None:
-        anotar_cobertura(enricher, res)
+        anotar_cobertura(enricher, res, nombre)
     return res
 
 
 def cobertura(res: dict) -> Optional[str]:
     """Texto de cobertura según el backend y las fechas con las que se ha consultado."""
     if res.get("backend") == "apispain":
-        return f"{APISPAIN} desde 2024-01-01"
-    if res.get("desde") and res.get("hasta"):
-        return f"BORME BOE {res['desde']} a {res['hasta']}"
-    return None
+        return f"{APISPAIN} desde 2024-01-01 (parcial: hasta 20 empresas y sus actos recientes)"
+    rango = res.get("cubierto", [res.get("desde"), res.get("hasta")])
+    return f"BORME BOE {rango[0]} a {rango[1]}" if rango and all(rango) else None
 
 
-def anotar_cobertura(enricher, res: dict) -> None:
+def anotar_cobertura(enricher, res: dict, nombre: str) -> None:
+    """Cobertura real de la consulta y, como fallo, los días del rango que no se han podido consultar."""
+    sin = res.get("dias_sin_cubrir") or []
+    if sin:
+        tramo = f"{sin[0]}" if len(sin) == 1 else f"entre {sin[0]} y {sin[-1]}"
+        dias = "1 día" if len(sin) == 1 else f"{len(sin)} días"
+        ev.fallo(enricher, FUENTE, nombre, f"{dias} sin cubrir ({tramo})")
     textos = enricher.coverage.split("; ") if enricher.coverage else []
     texto = cobertura(res)
     if texto and texto not in textos:
         enricher.coverage = "; ".join([*textos, texto])
 
 
-def dudas(nombre: str, empresas: List[dict]) -> List[tuple]:
+def dudas(org: Organization, empresas: List[dict]) -> List[tuple]:
     """Por empresa: (denominación exacta, motivo de duda o None si es la consultada sin ambigüedad)."""
     norm = borme().normalizar_denominacion
+    limpiar = load("resolver_empresa").limpiar_nif
+    nombre, nif = str(org.name), org_ids(org)["nif"]
     q = norm(nombre)
     normas = [norm(e["empresa"] or "") for e in empresas]
     exactas = sum(n["base"] == q["base"] for n in normas)
     out = []
-    for n in normas:
+    for e, n in zip(empresas, normas):
+        otro = (e.get("ficha") or {}).get("nif")
         exacta, duda = n["base"] == q["base"], None
         if not exacta:
             duda = f"coincidencia parcial con «{nombre}»"
@@ -246,6 +255,8 @@ def dudas(nombre: str, empresas: List[dict]) -> List[tuple]:
             duda = f"{exactas} sociedades con la misma denominación"
         elif not misma_forma(n, q):
             duda = f"distinta forma jurídica que «{nombre}»"
+        elif nif and otro and limpiar(otro) != nif:
+            duda = f"otro NIF ({otro})"
         out.append((exacta, duda))
     return out
 

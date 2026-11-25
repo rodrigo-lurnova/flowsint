@@ -109,7 +109,7 @@ class EsOrgToIndividualsBormeEnricher(Enricher):
                     f"coste {res['coste']}"
                 },
             )
-            estados = bc.dudas(str(org.name), res["empresas"])
+            estados = bc.dudas(org, res["empresas"])
             for emp, (exacta, duda) in zip(res["empresas"], estados):
                 confirmada = duda is None
                 destino = (

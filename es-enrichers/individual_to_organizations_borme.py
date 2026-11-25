@@ -129,7 +129,7 @@ class EsIndividualToOrgsBormeEnricher(Enricher):
             except Exception as exc:
                 ev.fallo(self, bc.FUENTE, nombre, exc)
                 continue
-            bc.anotar_cobertura(self, res)
+            bc.anotar_cobertura(self, res, nombre)
             Logger.info(
                 self.sketch_id,
                 {
