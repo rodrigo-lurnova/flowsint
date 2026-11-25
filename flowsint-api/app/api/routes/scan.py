@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
-from app.api.schemas.scan import ScanRead
+from app.api.schemas.scan import ScanDetail, ScanListItem
 from flowsint_core.core.models import Profile
 from flowsint_core.core.postgre_db import get_db
 from flowsint_core.core.services import (
@@ -17,7 +17,7 @@ from flowsint_core.core.services import (
 router = APIRouter()
 
 
-@router.get("/sketch/{id}", response_model=List[ScanRead])
+@router.get("/sketch/{id}", response_model=List[ScanListItem])
 def get_scans(
     id: UUID,
     db: Session = Depends(get_db),
@@ -28,7 +28,7 @@ def get_scans(
     return service.get_accessible_scans_by_sketch_id(current_user.id, id)
 
 
-@router.get("/{id}", response_model=ScanRead)
+@router.get("/{id}", response_model=ScanDetail)
 def get_scan_by_id(
     id: UUID,
     db: Session = Depends(get_db),
