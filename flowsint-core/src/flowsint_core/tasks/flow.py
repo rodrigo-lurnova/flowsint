@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime, timezone
 from typing import List, Optional
 
 from celery import states
@@ -16,6 +17,18 @@ from ..core.services import create_vault_service
 from ..core.types import FlowBranch
 
 db: Session = next(get_db())
+
+
+def _failure_message(sources: List[dict]) -> str:
+    """Explain why a flow ended with outcome=failed, from its source runs."""
+    errors = [
+        f"{s.get('source')}: {s.get('error')}"
+        for s in sources
+        if s.get("status") == "failed" and s.get("error")
+    ]
+    if not errors:
+        return "Flow failed: no source completed successfully."
+    return "Flow failed, no source completed: " + "; ".join(errors)
 
 
 @celery.task(name="run_flow", bind=True)
@@ -64,8 +77,13 @@ def run_flow(
         # Pass serialized objects instead of strings - the preprocess will handle them
         results = enricher.scan(values=serialized_objects)
 
-        scan.status = EventLevel.COMPLETED
         scan.details = to_json_serializable(results)
+        scan.completed_at = datetime.now(timezone.utc)
+        if results.get("outcome") == "failed":
+            scan.status = EventLevel.FAILED
+            scan.error = _failure_message(results.get("sources") or [])
+        else:
+            scan.status = EventLevel.COMPLETED
         session.commit()
 
         return {"result": scan.details}
@@ -79,6 +97,7 @@ def run_flow(
         if scan:
             scan.status = EventLevel.FAILED
             scan.error = error_logs
+            scan.completed_at = datetime.now(timezone.utc)
             session.commit()
 
         self.update_state(state=states.FAILURE)

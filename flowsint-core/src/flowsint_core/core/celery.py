@@ -20,6 +20,7 @@ celery.conf.update(
     timezone="UTC",
     enable_utc=True,
     task_track_started=True,
+    task_acks_late=False,  # never re-run a flow (paid lookups) if a worker dies
     task_time_limit=3600,  # 1 hour
     worker_max_tasks_per_child=1000,
     worker_prefetch_multiplier=4,  # Allow each worker to prefetch up to 4 tasks
