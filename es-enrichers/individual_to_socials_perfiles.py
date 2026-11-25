@@ -10,12 +10,15 @@ from typing import Any, Dict, List, Optional
 
 from flowsint_core.core.enricher_base import Enricher
 from flowsint_core.core.logger import Logger
+from flowsint_enrichers.es import _evidencias as ev
 from flowsint_enrichers.es._contexto import nombre_de, vecinos
 from flowsint_enrichers.es._scripts import load
 from flowsint_enrichers.registry import flowsint_enricher
 from flowsint_types.individual import Individual
 from flowsint_types.social_account import SocialAccount
 from flowsint_types.username import Username
+
+FUENTE = "Perfiles públicos"
 
 
 @flowsint_enricher
@@ -106,17 +109,23 @@ class EsIndividualToSocialsEnricher(Enricher):
 
     async def scan(self, data: List[InputType]) -> List[OutputType]:
         perfiles = load("perfiles")
-        if self.params.get("APIFY_TOKEN"):
-            os.environ.setdefault("APIFY_TOKEN", self.params["APIFY_TOKEN"])
+        token = self.params.get("APIFY_TOKEN") or os.getenv("APIFY_TOKEN")
         redes = [
             r.strip() for r in (self.params.get("redes") or "").split(",") if r.strip()
         ] or None
         minc = float(self.params.get("min_confianza") or 0.6)
         apify = str(self.params.get("usar_apify")).lower() == "true"
+        if apify and not token:
+            ev.sin_token(self)  # las fuentes gratuitas se consultan igual
+            apify = False
         self.mapping, out = [], []
         for ind in data:
             nombre = nombre_de(ind)
-            ctx = vecinos(self._graph_service, self.sketch_id, nombre)
+            try:
+                ctx = vecinos(self._graph_service, self.sketch_id, nombre)
+            except Exception as exc:
+                ev.fallo(self, FUENTE, nombre, exc)
+                ctx = {"empresas": [], "dominios": [], "linkedin": []}
             empresa = self.params.get("empresa") or (ctx["empresas"] or [None])[0]
             if not nombre or not empresa:
                 Logger.info(
@@ -128,12 +137,21 @@ class EsIndividualToSocialsEnricher(Enricher):
                 continue
             try:
                 res = perfiles.buscar_perfiles(
-                    nombre, empresa, (ctx["dominios"] or [None])[0], redes, apify, minc
+                    nombre,
+                    empresa,
+                    (ctx["dominios"] or [None])[0],
+                    redes,
+                    apify,
+                    minc,
+                    apify_token=token,
                 )
             except Exception as exc:
-                Logger.error(self.sketch_id, {"message": f"[PERFILES] {nombre}: {exc}"})
+                ev.fallo(self, FUENTE, nombre, exc, token)
                 continue
-            for av in res["avisos"]:
+            errores = res.get("errores") or []
+            for error in errores:
+                ev.fallo(self, FUENTE, nombre, error, token)
+            for av in [a for a in res["avisos"] if a not in errores]:
                 Logger.info(self.sketch_id, {"message": f"[PERFILES] {av}"})
             for p in res["perfiles"]:
                 acc = SocialAccount(
@@ -147,6 +165,17 @@ class EsIndividualToSocialsEnricher(Enricher):
                 )
                 out.append(acc)
                 self.mapping.append((ind, acc, p))
+                ev.anotar(
+                    self,
+                    FUENTE,
+                    nombre,
+                    "HAS_PROFILE",
+                    p["url"],
+                    ev.certeza(p.get("confianza")),
+                    p.get("confianza"),
+                    p.get("evidencias"),
+                    p["url"],
+                )
         return out
 
     def postprocess(
@@ -157,8 +186,8 @@ class EsIndividualToSocialsEnricher(Enricher):
             self.create_node(acc)
             self.create_relationship(ind, acc, "HAS_PROFILE")
             self.log_graph_message(
-                f"{nombre_de(ind)} -> {p['red']} {p['url']} ({p['confianza']:.0%}: "
-                f"{'; '.join(p['evidencias'][:2])})"
+                f"{nombre_de(ind)} -> {p['red']} {p['url']} ({ev.pct(p.get('confianza'))}: "
+                f"{'; '.join((p.get('evidencias') or [])[:2])})"
             )
         return results
 

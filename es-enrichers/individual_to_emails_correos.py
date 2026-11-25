@@ -5,11 +5,24 @@ from typing import Any, Dict, List, Optional
 
 from flowsint_core.core.enricher_base import Enricher
 from flowsint_core.core.logger import Logger
+from flowsint_enrichers.es import _evidencias as ev
 from flowsint_enrichers.es._contexto import nombre_de, vecinos
 from flowsint_enrichers.es._scripts import load
 from flowsint_enrichers.registry import flowsint_enricher
 from flowsint_types.email import Email
 from flowsint_types.individual import Individual
+
+FUENTE = "Correos"
+
+
+def certeza_correo(c: Dict[str, Any]) -> str:
+    """«probable» solo con pruebas estructuradas: publicado en la web, commit público o verificado por Hunter."""
+    verificado = c.get("hunter_verificacion") == "valid"
+    return (
+        "probable"
+        if c.get("publicado_web") or c.get("github_commit") or verificado
+        else "posible"
+    )
 
 
 @flowsint_enricher
@@ -88,7 +101,9 @@ class EsIndividualToEmailsEnricher(Enricher):
         públicos de GitHub del dominio), MX del dominio, Gravatar y Hunter.io si hay
         clave. No hace verificación SMTP. El dominio sale del parámetro `dominio` o
         de los nodos Domain/Website conectados a la persona o a su empresa.
-        La confianza y las evidencias se registran en el log del sketch.
+        La confianza y las evidencias se registran en los hallazgos y en el log del sketch.
+        Certeza «probable» si está publicado en la web, firma un commit público o Hunter lo
+        verifica; «posible» en el resto.
         """
 
     async def scan(self, data: List[InputType]) -> List[OutputType]:
@@ -99,11 +114,17 @@ class EsIndividualToEmailsEnricher(Enricher):
         maxr = int(self.params.get("max_resultados") or 3)
         for ind in data:
             nombre = nombre_de(ind)
-            dominios = (
-                [self.params["dominio"]]
-                if self.params.get("dominio")
-                else vecinos(self._graph_service, self.sketch_id, nombre)["dominios"]
-            )
+            try:
+                dominios = (
+                    [self.params["dominio"]]
+                    if self.params.get("dominio")
+                    else vecinos(self._graph_service, self.sketch_id, nombre)[
+                        "dominios"
+                    ]
+                )
+            except Exception as exc:
+                ev.fallo(self, FUENTE, nombre, exc)
+                continue
             if not nombre or not dominios:
                 Logger.info(
                     self.sketch_id,
@@ -118,16 +139,26 @@ class EsIndividualToEmailsEnricher(Enricher):
                         nombre, dom, max_paginas=8, max_verificar=4, hunter_key=hk
                     )
                 except Exception as exc:
-                    Logger.error(
-                        self.sketch_id,
-                        {"message": f"[CORREOS] {nombre} @ {dom}: {exc}"},
-                    )
+                    ev.fallo(self, FUENTE, f"{nombre} @ {dom}", exc, hk)
                     continue
-                for c in [c for c in res["candidatos"] if c["confianza"] >= minc][
-                    :maxr
-                ]:
+                for error in res.get("errores") or []:
+                    ev.fallo(self, FUENTE, f"{nombre} @ {dom}", error, hk)
+                for c in [
+                    c for c in res["candidatos"] if ev.supera(c.get("confianza"), minc)
+                ][:maxr]:
                     email = Email(email=c["email"])
                     out.append(email)
+                    ev.anotar(
+                        self,
+                        FUENTE,
+                        nombre,
+                        "PROBABLE_EMAIL",
+                        c["email"],
+                        certeza_correo(c),
+                        c.get("confianza"),
+                        c.get("evidencias"),
+                        c.get("url"),
+                    )
                     self.mapping.append((ind, email, c))
         return out
 
@@ -139,8 +170,8 @@ class EsIndividualToEmailsEnricher(Enricher):
             self.create_node(email)
             self.create_relationship(ind, email, "PROBABLE_EMAIL")
             self.log_graph_message(
-                f"{nombre_de(ind)} -> {email.email} ({c['confianza']:.0%}: "
-                f"{'; '.join(c['evidencias'][:3])})"
+                f"{nombre_de(ind)} -> {email.email} ({ev.pct(c.get('confianza'))}: "
+                f"{'; '.join((c.get('evidencias') or [])[:3])})"
             )
         return results
 

@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional
 from flowsint_core.core.enricher_base import Enricher
 from flowsint_core.core.logger import Logger
 from flowsint_enrichers.es import _borme_comun as bc
+from flowsint_enrichers.es import _evidencias as ev
 from flowsint_enrichers.registry import flowsint_enricher
 from flowsint_types.individual import Individual
 from flowsint_types.organization import Organization
@@ -90,6 +91,8 @@ class EsOrgToIndividualsBormeEnricher(Enricher):
         Individual -[ADM_UNICO|CONSEJERO|APODERADO|...]-> Organization (EX_<CARGO> si
         consta cese/revocación). Los cargos 'vigentes' son una inferencia parcial sobre el
         rango consultado (por defecto 90 días). El BORME no publica DNI: posibles homónimos.
+        Si la coincidencia es parcial o hay varias sociedades con la misma denominación, la
+        relación es POSIBLE_<CARGO> (POSIBLE_EX_<CARGO>).
         """
 
     async def scan(self, data: List[InputType]) -> List[OutputType]:
@@ -101,7 +104,7 @@ class EsOrgToIndividualsBormeEnricher(Enricher):
             try:
                 res = await bc.buscar_empresa(str(org.name), self.params, api_key)
             except Exception as exc:
-                Logger.error(self.sketch_id, {"message": f"[BORME] {org.name}: {exc}"})
+                ev.fallo(self, bc.FUENTE, str(org.name), exc, api_key)
                 continue
             q = mod.normalizar_denominacion(str(org.name))
             Logger.info(
@@ -111,11 +114,20 @@ class EsOrgToIndividualsBormeEnricher(Enricher):
                     f"coste {res['coste']}"
                 },
             )
-            for emp in res["empresas"]:
-                exacta = (
-                    mod.normalizar_denominacion(emp["empresa"] or "")["base"]
-                    == q["base"]
-                )
+            normas = [
+                mod.normalizar_denominacion(e["empresa"] or "") for e in res["empresas"]
+            ]
+            exactas = sum(n["base"] == q["base"] for n in normas)
+            for emp, norma in zip(res["empresas"], normas):
+                exacta = norma["base"] == q["base"]
+                confirmada = exacta and exactas == 1 and bc.misma_forma(norma, q)
+                duda = None
+                if not exacta:
+                    duda = f"coincidencia parcial con «{org.name}»"
+                elif exactas > 1:
+                    duda = f"{exactas} sociedades con la misma denominación"
+                elif not confirmada:
+                    duda = f"distinta forma jurídica que «{org.name}»"
                 destino = (
                     org if exacta else Organization(name=emp["empresa"], source="BORME")
                 )
@@ -129,6 +141,7 @@ class EsOrgToIndividualsBormeEnricher(Enricher):
                     etiqueta = (
                         h["cargo_codigo"] if h["vigente"] else f"EX_{h['cargo_codigo']}"
                     )
+                    etiqueta = etiqueta if confirmada else f"POSIBLE_{etiqueta}"
                     resumen = (
                         f"{h['cargo']} en {emp['empresa']} desde {h['desde'] or '¿?'}"
                         + (
@@ -156,6 +169,16 @@ class EsOrgToIndividualsBormeEnricher(Enricher):
                         )
                         out.append(nodo)
                     self.mapping.append(("cargo", nodo, destino, etiqueta, resumen))
+                    ev.anotar(
+                        self,
+                        bc.FUENTE,
+                        destino.name,
+                        etiqueta,
+                        getattr(nodo, "full_name", None) or nodo.name,
+                        "confirmada" if confirmada else "posible",
+                        evidence=[resumen, duda],
+                        url=bc.url_acto(emp["actos"], h["borme_ids"]),
+                    )
         return out
 
     def postprocess(

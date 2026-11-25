@@ -11,6 +11,8 @@ from typing import Any, Dict, List, Optional
 from flowsint_core.core.enricher_base import Enricher
 from flowsint_core.core.logger import Logger
 from flowsint_enrichers.es import _borme_comun as bc
+from flowsint_enrichers.es import _evidencias as ev
+from flowsint_enrichers.es._contexto import vecinos
 from flowsint_enrichers.registry import flowsint_enricher
 from flowsint_types.individual import Individual
 from flowsint_types.organization import Organization
@@ -97,11 +99,13 @@ class EsIndividualToOrgsBormeEnricher(Enricher):
         inscritos del BORME del rango y crea Organization por cada sociedad donde aparece,
         con la relación Individual -[CARGO]-> Organization (EX_<CARGO> si consta cese).
         Requiere todos los documentos provinciales del rango (se cachean en SQLite).
-        Cuidado con homónimos: el BORME no publica DNI.
+        El BORME no publica DNI: salvo en la empresa ya vinculada a la persona en el sketch,
+        la relación es POSIBLE_<CARGO> (POSIBLE_EX_<CARGO>) porque puede ser un homónimo.
         """
 
     async def scan(self, data: List[InputType]) -> List[OutputType]:
         self.mapping, out = [], []
+        mod = bc.borme()
         for ind in data:
             nombre = (
                 ind.full_name
@@ -111,9 +115,21 @@ class EsIndividualToOrgsBormeEnricher(Enricher):
             if not nombre:
                 continue
             try:
+                enlazadas = vecinos(self._graph_service, self.sketch_id, nombre)[
+                    "empresas_directas"
+                ]
+            except (
+                Exception
+            ) as exc:  # sin contexto se busca igual: todo queda como posible
+                ev.fallo(self, bc.FUENTE, nombre, exc)
+                enlazadas = []
+            vinculadas = {mod.normalizar_denominacion(e)["base"] for e in enlazadas} - {
+                ""
+            }
+            try:
                 res = await bc.buscar_persona(nombre, self.params)
             except Exception as exc:
-                Logger.error(self.sketch_id, {"message": f"[BORME] {nombre}: {exc}"})
+                ev.fallo(self, bc.FUENTE, nombre, exc)
                 continue
             Logger.info(
                 self.sketch_id,
@@ -122,7 +138,13 @@ class EsIndividualToOrgsBormeEnricher(Enricher):
                     f"coste {res['coste']}"
                 },
             )
-            for emp in res["empresas"]:
+            bases = [
+                mod.normalizar_denominacion(e["empresa"] or "")["base"]
+                for e in res["empresas"]
+            ]
+            for emp, base in zip(res["empresas"], bases):
+                # Dos sociedades con la denominación vinculada: no se sabe cuál es la del sketch
+                confirmada = base in vinculadas and bases.count(base) == 1
                 org = Organization(
                     name=emp["empresa"],
                     source="BORME",
@@ -139,17 +161,24 @@ class EsIndividualToOrgsBormeEnricher(Enricher):
                         if c["cargo_codigo"] in vig
                         else f"EX_{c['cargo_codigo']}"
                     )
+                    etiqueta = etiqueta if confirmada else f"POSIBLE_{etiqueta}"
                     if etiqueta in vistos:
                         continue
                     vistos.add(etiqueta)
-                    self.mapping.append(
-                        (
-                            ind,
-                            org,
-                            etiqueta,
-                            f"{c['fecha']} {c['accion']} {c['cargo']} "
-                            f"({c['persona']}) {c.get('url_pdf') or ''}",
-                        )
+                    resumen = (
+                        f"{c['fecha']} {c['accion']} {c['cargo']} ({c['persona']}) "
+                        f"{c.get('url_pdf') or ''}"
+                    ).strip()
+                    self.mapping.append((ind, org, etiqueta, resumen))
+                    ev.anotar(
+                        self,
+                        bc.FUENTE,
+                        nombre,
+                        etiqueta,
+                        emp["empresa"],
+                        "confirmada" if confirmada else "posible",
+                        evidence=[resumen],
+                        url=c.get("url_pdf"),
                     )
         return out
 

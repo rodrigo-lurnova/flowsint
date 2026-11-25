@@ -181,7 +181,7 @@ def load_all_enrichers() -> None:
 
     Features:
     - Only imports modules once (cached via _enrichers_loaded flag)
-    - Ignores private modules (starting with _)
+    - Ignores private modules (starting with _) and "tests" directories
     - Only imports .py files
     - Recursively scans subdirectories (domain/, ip/, etc.) even without __init__.py
     - Uses os.walk for comprehensive discovery
@@ -214,8 +214,8 @@ def load_all_enrichers() -> None:
 
     # Walk through all directories and files
     for root, dirs, files in os.walk(package_path):
-        # Skip __pycache__ directories
-        dirs[:] = [d for d in dirs if not d.startswith("__pycache__")]
+        # Skip __pycache__ and test directories (e.g. es-enrichers/tests once mounted)
+        dirs[:] = [d for d in dirs if d != "tests" and not d.startswith("__pycache__")]
 
         # Calculate the module prefix for this directory
         rel_path = os.path.relpath(root, package_path)

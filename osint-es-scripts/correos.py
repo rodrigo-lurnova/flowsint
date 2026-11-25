@@ -103,6 +103,15 @@ PROVEEDORES = {
 }
 
 
+# Pruebas estructuradas de un candidato (las evidencias en texto son solo para leer)
+SIN_PRUEBAS = {
+    "publicado_web": False,
+    "github_commit": False,
+    "hunter_verificacion": None,
+    "url": None,
+}
+
+
 def _vars(p: dict) -> dict:
     n, a1, a2, n2 = (
         p.get("nombre", ""),
@@ -173,12 +182,33 @@ def mx(dominio: str, client: httpx.Client) -> dict:
         via = "dns"
     except ImportError:
         via = "doh"
-        r = client.get(
-            "https://cloudflare-dns.com/dns-query",
-            params={"name": dominio, "type": "MX"},
-            headers={"Accept": "application/dns-json"},
-        )
-        for a in r.json().get("Answer", []) or []:
+        try:
+            r = client.get(
+                "https://cloudflare-dns.com/dns-query",
+                params={"name": dominio, "type": "MX"},
+                headers={"Accept": "application/dns-json"},
+            )
+            r.raise_for_status()
+            resp = r.json()
+        except (httpx.HTTPError, ValueError) as e:
+            return {
+                "tiene_mx": False,
+                "hosts": [],
+                "proveedor": None,
+                "error": type(e).__name__,
+                "via": via,
+                "fallo": True,
+            }
+        if resp.get("Status") not in (None, 0, 3):  # 3 = NXDOMAIN
+            return {
+                "tiene_mx": False,
+                "hosts": [],
+                "proveedor": None,
+                "error": f"DNS {resp['Status']}",
+                "via": via,
+                "fallo": True,
+            }
+        for a in resp.get("Answer", []) or []:
             if a.get("type") == 15:
                 pref, host = a["data"].split(None, 1)
                 hosts.append((int(pref), host.rstrip(".")))
@@ -190,6 +220,7 @@ def mx(dominio: str, client: httpx.Client) -> dict:
             "proveedor": None,
             "error": type(e).__name__,
             "via": "dns",
+            "fallo": type(e).__name__ not in ("NXDOMAIN", "NoAnswer"),
         }
     prov = None
     for _, h in hosts:
@@ -210,12 +241,18 @@ def mx(dominio: str, client: httpx.Client) -> dict:
 
 
 def correos_web(
-    dominio: str, max_paginas: int = 12, client: httpx.Client | None = None
+    dominio: str,
+    max_paginas: int = 12,
+    client: httpx.Client | None = None,
+    errores: list | None = None,
 ) -> list[dict]:
     """Correos que aparecen en la web del dominio: [{email, url, contexto}] (solo @dominio o subdominios)."""
     out: dict[str, dict] = {}
     raiz = host_raiz(dominio)
-    for pag in crawl_web(dominio, max_paginas=max_paginas, client=client):
+    paginas = crawl_web(dominio, max_paginas=max_paginas, client=client)
+    if errores is not None and paginas and paginas[0]["status"] >= 400:
+        errores.append(f"Web: HTTP {paginas[0]['status']} en {paginas[0]['url']}")
+    for pag in paginas:
         parsed = parsear_html(pag["html"])
         for e in extraer_emails(pag["html"], parsed):
             d = e.split("@", 1)[1]
@@ -237,17 +274,27 @@ def _gh_headers() -> dict:
     return h
 
 
-def github_commits(q: str, client: httpx.Client, per_page: int = 30) -> list[dict]:
-    """Búsqueda de commits públicos -> [{autor, email, repo, url, fecha}]. [] si rate limit."""
-    r = client.get(
-        "https://api.github.com/search/commits",
-        params={"q": q, "per_page": per_page},
-        headers=_gh_headers(),
-    )
-    if r.status_code != 200:
+def github_commits(
+    q: str, client: httpx.Client, per_page: int = 30, errores: list | None = None
+) -> list[dict]:
+    """Búsqueda de commits públicos -> [{autor, email, repo, url, fecha}]. [] si falla (p. ej. rate limit),
+    con el motivo en `errores`."""
+    errores = [] if errores is None else errores
+    try:
+        r = client.get(
+            "https://api.github.com/search/commits",
+            params={"q": q, "per_page": per_page},
+            headers=_gh_headers(),
+        )
+        if r.status_code != 200:
+            errores.append(f"GitHub: HTTP {r.status_code}")
+            return []
+        items = r.json().get("items", [])
+    except (httpx.HTTPError, ValueError) as e:
+        errores.append(f"GitHub: {type(e).__name__}")
         return []
     out = []
-    for it in r.json().get("items", []):
+    for it in items:
         a = it.get("commit", {}).get("author", {}) or {}
         out.append(
             {
@@ -262,30 +309,53 @@ def github_commits(q: str, client: httpx.Client, per_page: int = 30) -> list[dic
     return out
 
 
-def gravatar(email: str, client: httpx.Client) -> dict | None:
+def gravatar(
+    email: str, client: httpx.Client, errores: list | None = None
+) -> dict | None:
+    errores = [] if errores is None else errores
     h = hashlib.sha256(email.strip().lower().encode()).hexdigest()
     try:
         r = client.get(
             f"https://gravatar.com/avatar/{h}", params={"d": "404", "s": "80"}
         )
-    except httpx.HTTPError:
+    except httpx.HTTPError as e:
+        errores.append(f"Gravatar: {type(e).__name__}")
         return None
     if r.status_code == 200:
         return {
             "avatar": f"https://gravatar.com/avatar/{h}",
             "perfil": f"https://gravatar.com/{h}",
         }
+    if r.status_code != 404:  # 404 = no hay cuenta
+        errores.append(f"Gravatar: HTTP {r.status_code}")
     return None
 
 
 def hunter(dominio: str, nombre: str | None, client: httpx.Client, key: str) -> dict:
+    """Los fallos quedan en error_domain_search / error_email_finder (ver errores_hunter)."""
     out: dict = {}
-    r = client.get(
-        "https://api.hunter.io/v2/domain-search",
-        params={"domain": dominio, "limit": 10, "api_key": key},
-    )
-    if r.status_code == 200:
-        d = r.json().get("data", {})
+
+    def pedir(ruta: str, clave_error: str, **params) -> dict | None:
+        try:
+            r = client.get(
+                f"https://api.hunter.io/v2/{ruta}",
+                params={"domain": dominio, **params, "api_key": key},
+            )
+            if r.status_code == 200:
+                return r.json().get("data") or {}
+        except (httpx.HTTPError, ValueError) as e:
+            out[clave_error] = type(e).__name__
+            return None
+        if (
+            r.status_code == 451
+        ):  # la persona pidió a Hunter que no trate sus datos: no es un fallo
+            out["aviso"] = "Hunter: HTTP 451 (datos retirados a petición del titular)"
+        else:
+            out[clave_error] = f"HTTP {r.status_code}: {r.text[:150]}"
+        return None
+
+    d = pedir("domain-search", "error_domain_search", limit=10)
+    if d is not None:
         out["patron"] = d.get("pattern")
         out["organizacion"] = d.get("organization")
         out["correos"] = [
@@ -296,36 +366,43 @@ def hunter(dominio: str, nombre: str | None, client: httpx.Client, key: str) -> 
                     x for x in (e.get("first_name"), e.get("last_name")) if x
                 ),
                 "cargo": e.get("position"),
-                "fuentes": [s.get("uri") for s in e.get("sources", [])][:3],
+                "verificacion": (e.get("verification") or {}).get("status"),
+                "fuentes": [s.get("uri") for s in e.get("sources") or []][:3],
             }
-            for e in d.get("emails", [])
+            for e in d.get("emails") or []
         ]
-    else:
-        out["error_domain_search"] = f"HTTP {r.status_code}: {r.text[:150]}"
     if nombre:
         interp = (partir_nombre(nombre) or [{}])[0]
         ap = " ".join(
             x for x in (interp.get("apellido1"), interp.get("apellido2")) if x
         )
-        r = client.get(
-            "https://api.hunter.io/v2/email-finder",
-            params={
-                "domain": dominio,
-                "first_name": interp.get("nombre"),
-                "last_name": ap,
-                "api_key": key,
-            },
+        d = pedir(
+            "email-finder",
+            "error_email_finder",
+            first_name=interp.get("nombre"),
+            last_name=ap,
         )
-        if r.status_code == 200:
-            d = r.json().get("data", {})
+        if d is not None:
             out["finder"] = {
                 "email": d.get("email"),
                 "score": d.get("score"),
                 "cargo": d.get("position"),
+                "verificacion": (d.get("verification") or {}).get("status"),
+                "fuentes": [s.get("uri") for s in d.get("sources") or []][:3],
             }
-        else:
-            out["error_email_finder"] = f"HTTP {r.status_code}: {r.text[:150]}"
     return out
+
+
+def errores_hunter(res: dict | None) -> list[str]:
+    """Fallos de Hunter (no avisos) en el resultado de hunter()."""
+    return [
+        f"Hunter {n}: {res[k]}"
+        for k, n in (
+            ("error_domain_search", "domain-search"),
+            ("error_email_finder", "email-finder"),
+        )
+        if (res or {}).get(k)
+    ]
 
 
 # ------------------------------------------------------------------ patrón de la empresa
@@ -405,15 +482,22 @@ def analizar_dominio(
     propio = client is None
     client = client or httpx.Client(headers=HEADERS, timeout=20, follow_redirects=True)
     try:
-        res = {"dominio": dominio, "mx": mx(dominio, client)}
+        errores: list[str] = []
+        res = {"dominio": dominio, "mx": mx(dominio, client), "errores": errores}
+        if res["mx"].get("fallo"):
+            errores.append(f"MX: {res['mx'].get('error')}")
         try:
-            res["correos_publicos"] = correos_web(dominio, max_paginas, client)
+            res["correos_publicos"] = correos_web(dominio, max_paginas, client, errores)
         except httpx.HTTPError as e:
             res["correos_publicos"], res["error_web"] = [], f"{type(e).__name__}: {e}"
-        res["github"] = github_commits(f'"{dominio}"', client) if github else []
+            errores.append(f"Web: {res['error_web']}")
+        res["github"] = (
+            github_commits(f'"{dominio}"', client, errores=errores) if github else []
+        )
         res["github"] = [c for c in res["github"] if c["email"].endswith("@" + dominio)]
         hk = hunter_key or os.getenv("HUNTER_API_KEY")
         res["hunter"] = hunter(dominio, None, client, hk) if hk else None
+        errores += errores_hunter(res["hunter"])
         res["patron"] = detectar_patron(res["correos_publicos"], res["github"], dominio)
         if (
             res["hunter"]
@@ -451,19 +535,38 @@ def buscar_correos(
     apellidos_primero: bool | None = None,
     dominio_info: dict | None = None,
 ) -> dict:
-    """Candidatos puntuados para (persona, dominio). `dominio_info` permite reutilizar analizar_dominio()."""
+    """Candidatos puntuados para (persona, dominio). `dominio_info` permite reutilizar analizar_dominio().
+
+    Cada candidato lleva, además de las evidencias en texto, los campos publicado_web, github_commit,
+    hunter_verificacion (estado que da Hunter o None) y url (dónde se vio, si se sabe). `errores` del
+    resultado son las fuentes que han fallado."""
     with httpx.Client(headers=HEADERS, timeout=20, follow_redirects=True) as c:
         hk = hunter_key or os.getenv("HUNTER_API_KEY")
         info = dominio_info or analizar_dominio(dominio, max_paginas, github, c, hk)
         dominio = info["dominio"]
         cands = generar_candidatos(nombre, dominio, apellidos_primero)
+        errores = list(info.get("errores") or [])
+
+        def nuevo(
+            email: str, patron: str, confianza: float, evidencias: list[str]
+        ) -> dict:
+            return {
+                "email": email,
+                "patron": patron,
+                "prior": 0,
+                "confianza": confianza,
+                "evidencias": evidencias,
+                **SIN_PRUEBAS,
+            }
+
         por_email = {
             x["email"]: {
                 **x,
+                **SIN_PRUEBAS,
+                "confianza": x["prior"],
                 "evidencias": [
                     f"patrón {x['patron']} (frecuencia a priori {x['prior']:.0%})"
                 ],
-                "confianza": x["prior"],
             }
             for x in cands
         }
@@ -486,11 +589,13 @@ def buscar_correos(
             if e in publicos:
                 c_["confianza"] = 0.95
                 c_["evidencias"].append(f"publicado en {publicos[e]['url']}")
+                c_["publicado_web"], c_["url"] = True, publicos[e]["url"]
             if e in gh:
                 c_["confianza"] = max(c_["confianza"], 0.9)
                 c_["evidencias"].append(
                     f"commit público en GitHub ({gh[e].get('repo')})"
                 )
+                c_["github_commit"], c_["url"] = True, c_["url"] or gh[e].get("url")
 
         # correos públicos que encajan con el nombre aunque no estén en los patrones
         for e, p in publicos.items():
@@ -500,30 +605,40 @@ def buscar_correos(
                 and e.split("@")[0] not in GENERICOS
             ):
                 por_email[e] = {
-                    "email": e,
-                    "patron": "publicado",
-                    "prior": 0,
-                    "confianza": 0.7,
-                    "evidencias": [f"publicado junto al nombre en {p['url']}"],
+                    **nuevo(
+                        e,
+                        "publicado",
+                        0.7,
+                        [f"publicado junto al nombre en {p['url']}"],
+                    ),
+                    "publicado_web": True,
+                    "url": p["url"],
                 }
 
         hunter_res = None
         if hk:
             hunter_res = hunter(dominio, nombre, c, hk)
+            errores += errores_hunter(hunter_res)
             f = hunter_res.get("finder") or {}
             if f.get("email"):
-                x = por_email.setdefault(
-                    f["email"],
-                    {
-                        "email": f["email"],
-                        "patron": "hunter",
-                        "prior": 0,
-                        "confianza": 0,
-                        "evidencias": [],
-                    },
-                )
+                x = por_email.setdefault(f["email"], nuevo(f["email"], "hunter", 0, []))
                 x["confianza"] = max(x["confianza"], (f.get("score") or 50) / 100)
                 x["evidencias"].append(f"Hunter email-finder score {f.get('score')}")
+                x["hunter_verificacion"] = f.get("verificacion")
+                x["url"] = x["url"] or next(iter(f.get("fuentes") or []), None)
+            for h in hunter_res.get("correos") or []:
+                # domain-search devuelve correos de toda la empresa: solo cuenta si no es de otra persona
+                x = por_email.get(h["email"])
+                if not x or (
+                    h.get("nombre") and coincidencia_nombre(nombre, h["nombre"]) < 0.67
+                ):
+                    continue
+                if h.get("verificacion") == "valid" or not x["hunter_verificacion"]:
+                    x["hunter_verificacion"] = h.get("verificacion")
+                x["evidencias"].append(
+                    f"Hunter domain-search (verificación: {h.get('verificacion') or 'sin dato'})"
+                )
+                x["url"] = x["url"] or next(iter(h.get("fuentes") or []), None)
 
         orden = sorted(por_email.values(), key=lambda x: -x["confianza"])
         # verificaciones pasivas sobre los mejores candidatos
@@ -533,7 +648,9 @@ def buscar_correos(
                     time.sleep(
                         0.6 if os.getenv("GITHUB_TOKEN") else 6.5
                     )  # 10 búsquedas/min sin token
-                hits = github_commits(f"author-email:{x['email']}", c, per_page=5)
+                hits = github_commits(
+                    f"author-email:{x['email']}", c, per_page=5, errores=errores
+                )
                 if hits:
                     x["confianza"] = max(x["confianza"], 0.9)
                     x["evidencias"].append(
@@ -541,15 +658,16 @@ def buscar_correos(
                         f"({hits[0].get('repo')}; login {hits[0].get('login')})"
                     )
                     x["github_login"] = hits[0].get("login")
+                    x["github_commit"], x["url"] = True, x["url"] or hits[0].get("url")
             if gravatar_on:
-                g = gravatar(x["email"], c)
+                g = gravatar(x["email"], c, errores)
                 if g:
                     x["confianza"] += 0.25
                     x["evidencias"].append(
                         "tiene Gravatar (cuenta registrada con este correo)"
                     )
                     x["gravatar"] = g["avatar"]
-        if not info["mx"]["tiene_mx"]:
+        if not info["mx"]["tiene_mx"] and not info["mx"].get("fallo"):
             for x in orden:
                 x["confianza"] *= 0.2
                 x["evidencias"].append("¡el dominio no tiene MX!")
@@ -566,6 +684,7 @@ def buscar_correos(
             "github_dominio": info["github"],
             "hunter": hunter_res or info.get("hunter"),
             "candidatos": orden,
+            "errores": list(dict.fromkeys(errores)),
         }
 
 
@@ -607,6 +726,8 @@ def main() -> int:
         if a.json:
             json.dump(res, sys.stdout, ensure_ascii=False, indent=1)
             return 0
+        for e in res["errores"]:
+            print(f"aviso: {e}", file=sys.stderr)
         m = res["mx"]
         print(
             f"{res['dominio']}  MX: {', '.join(m['hosts']) or 'NINGUNO'}  ({m.get('proveedor')})"
@@ -637,6 +758,8 @@ def main() -> int:
     if a.json:
         json.dump(res, sys.stdout, ensure_ascii=False, indent=1)
         return 0
+    for e in res["errores"]:
+        print(f"aviso: {e}", file=sys.stderr)
     m = res["mx"]
     print(
         f"{res['persona']} @ {res['dominio']}   MX: {', '.join(m['hosts']) or 'NINGUNO'} ({m.get('proveedor')})"

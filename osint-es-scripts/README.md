@@ -84,8 +84,8 @@ Se montan como `flowsint_enrichers.es` y reutilizan estos scripts (montados en `
 |---|---|---|
 | `es_org_resolver_identidad` | Organization → Organization | completa nif/lei/web; homónimos POSIBLE_IDENTIDAD; WEB_PROBABLE |
 | `es_org_to_registry_borme` | Organization → Organization | ficha registral en el propio nodo |
-| `es_org_to_officers_borme` | Organization → Individual | ADM_UNICO, CONSEJERO, APODERADO, SOCIO_UNICO… (EX_* si consta cese) |
-| `es_individual_to_companies_borme` | Individual → Organization | cargos en otras empresas (caro: usa PROVINCIA) |
+| `es_org_to_officers_borme` | Organization → Individual | ADM_UNICO, CONSEJERO, APODERADO, SOCIO_UNICO… (EX_* si consta cese; POSIBLE_* si la coincidencia no es única y exacta) |
+| `es_individual_to_companies_borme` | Individual → Organization | POSIBLE_<CARGO> (posibles homónimos), <CARGO> en la empresa ya vinculada (caro: usa PROVINCIA) |
 | `es_org_to_subvenciones_bdns` | Organization → Document | RECIBE_SUBVENCION, CONCEDIDA_POR |
 | `es_org_to_registros_cnmv` | Organization → Document | REGISTRO_CNMV |
 | `es_org_to_edictos_boe` | Organization → Document | MENCIONADA_EN_EDICTO, PUBLICADO_POR |
@@ -101,7 +101,8 @@ Se montan como `flowsint_enrichers.es` y reutilizan estos scripts (montados en `
 | `es_org_to_linkedin_employees` | Organization → Individual | WORKS_AT + HAS_LINKEDIN (Apify) |
 | `es_individual_to_socials` (opcional) | Individual → SocialAccount | HAS_PROFILE; sin empresa vinculada no busca |
 
-Los enrichers de personas toman la empresa y el dominio de los vecinos del Individual en el grafo.
+Los enrichers de personas toman la empresa y el dominio de los vecinos del Individual en el grafo, sin seguir
+relaciones `POSIBLE_*` ni `BORME_COINCIDENCIA_PARCIAL`.
 
 Flows (`../flows/`, importables con `python flows/build_flows.py --token <JWT>`):
 «Ficha de empresa (España)», «Empresa → personas y huella digital», «Persona vinculada: huella profesional» y

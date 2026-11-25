@@ -81,6 +81,15 @@ def searxng(consulta: str, client: httpx.Client) -> list[dict]:
         params={"q": consulta, "format": "json", "engines": MOTORES},
     )
     r.raise_for_status()
+    datos = r.json()
+    if not datos.get("results") and datos.get("unresponsive_engines"):
+        raise RuntimeError(
+            "motores sin respuesta: "
+            + ", ".join(
+                " ".join(str(x) for x in m) if isinstance(m, (list, tuple)) else str(m)
+                for m in datos["unresponsive_engines"]
+            )
+        )
     return [
         {
             "url": x.get("url"),
@@ -88,14 +97,19 @@ def searxng(consulta: str, client: httpx.Client) -> list[dict]:
             "snippet": x.get("content") or "",
             "motor": x.get("engine"),
         }
-        for x in r.json().get("results", [])
+        for x in datos.get("results", [])
     ]
 
 
-def google_apify(consultas: list[str]) -> list[dict]:
+def google_apify(
+    consultas: list[str], token: str | None = None, errores: list | None = None
+) -> list[dict]:
     from apify_actores import google
 
-    return [{**h, "motor": "google(apify)"} for h in google(consultas)]
+    return [
+        {**h, "motor": "google(apify)"}
+        for h in google(consultas, token=token, errores=errores)
+    ]
 
 
 def perfil_de(url: str, red: str) -> str | None:
@@ -137,21 +151,35 @@ def puntuar(
 
 
 def github_usuarios(
-    nombre: str, empresa: str, dominio: str | None, client: httpx.Client
+    nombre: str,
+    empresa: str,
+    dominio: str | None,
+    client: httpx.Client,
+    errores: list | None = None,
 ) -> list[dict]:
+    errores = [] if errores is None else errores
     h = {"Accept": "application/vnd.github+json"}
     if os.getenv("GITHUB_TOKEN"):
         h["Authorization"] = f"Bearer {os.environ['GITHUB_TOKEN']}"
-    r = client.get(
-        "https://api.github.com/search/users",
-        params={"q": f'"{nombre}" in:name', "per_page": 10},
-        headers=h,
+
+    def pedir(url: str, **params) -> dict | None:
+        try:
+            r = client.get(url, params=params or None, headers=h)
+            if r.status_code == 200:
+                return r.json()
+            errores.append(f"GitHub: HTTP {r.status_code}")
+        except (httpx.HTTPError, ValueError) as e:
+            errores.append(f"GitHub: {type(e).__name__}")
+        return None
+
+    res = pedir(
+        "https://api.github.com/search/users", q=f'"{nombre}" in:name', per_page=10
     )
-    if r.status_code != 200:
-        return []
     out = []
-    for u in r.json().get("items", [])[:10]:
-        p = client.get(u["url"], headers=h).json()
+    for u in (res or {}).get("items", [])[:10]:
+        p = pedir(u["url"])
+        if p is None:
+            continue
         texto = " ".join(
             str(p.get(k) or "") for k in ("company", "blog", "email", "bio")
         )
@@ -181,7 +209,10 @@ def buscar_perfiles(
     redes: list[str] | None = None,
     apify: bool = False,
     min_confianza: float = 0.5,
+    *,
+    apify_token: str | None = None,
 ) -> dict:
+    """`errores` son las fuentes que han fallado; `avisos` los incluye. Sin `apify_token` se usa APIFY_TOKEN."""
     if not empresa:
         raise ValueError("Se requiere la empresa vinculada (minimización RGPD).")
     redes = redes or list(REDES)
@@ -191,7 +222,7 @@ def buscar_perfiles(
     consultas.append(
         (None, f"{nombre} {sorted(claves_empresa(empresa, dominio), key=len)[-1]}")
     )
-    hits, avisos = [], []
+    hits, errores = [], []
     with httpx.Client(headers=HEADERS, timeout=30, follow_redirects=True) as c:
         for i, (red, q) in enumerate(consultas):
             if i:
@@ -199,13 +230,17 @@ def buscar_perfiles(
             try:
                 hits += [{**h, "consulta": q} for h in searxng(q, c)]
             except Exception as e:
-                avisos.append(f"SearXNG «{q}»: {type(e).__name__}: {e}")
+                errores.append(f"SearXNG «{q}»: {type(e).__name__}: {e}")
         if apify:
             try:
-                hits += google_apify([q for _, q in consultas])
+                hits += google_apify([q for _, q in consultas], apify_token, errores)
             except Exception as e:
-                avisos.append(f"Apify: {e}")
-        gh = github_usuarios(nombre, empresa, dominio, c) if "github" in redes else []
+                errores.append(f"Apify: {e}")
+        gh = (
+            github_usuarios(nombre, empresa, dominio, c, errores)
+            if "github" in redes
+            else []
+        )
 
     perfiles: dict[str, dict] = {}
     for h in hits:
@@ -241,12 +276,14 @@ def buscar_perfiles(
         (p for p in perfiles.values() if p["confianza"] >= min_confianza),
         key=lambda p: -p["confianza"],
     )
+    errores = list(dict.fromkeys(errores))
     return {
         "persona": nombre,
         "empresa": empresa,
         "dominio": dominio,
         "perfiles": orden,
-        "avisos": avisos,
+        "avisos": list(errores),
+        "errores": errores,
     }
 
 

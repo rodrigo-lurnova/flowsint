@@ -9,31 +9,50 @@ from typing import Dict, List
 
 # Las propiedades se guardan aplanadas ("nodeProperties.<campo>") y el tipo en nodeType.
 CYPHER = """
-MATCH (i {sketch_id: $sketch_id})-[*1..2]-(n {sketch_id: $sketch_id})
+MATCH p = (i {sketch_id: $sketch_id})-[*1..2]-(n {sketch_id: $sketch_id})
 WHERE i.nodeType = 'individual'
   AND (i.`nodeProperties.full_name` = $nombre OR i.nodeLabel = $nombre)
   AND n.nodeType IN ['organization', 'domain', 'website']
-RETURN DISTINCT n.nodeType AS tipo, n.`nodeProperties.name` AS name, n.`nodeProperties.domain` AS domain,
-       n.`nodeProperties.url` AS url, n.`nodeProperties.linkedin_url` AS linkedin_url
+  AND ALL(r IN relationships(p) WHERE NOT type(r) STARTS WITH 'POSIBLE_'
+                                  AND type(r) <> 'BORME_COINCIDENCIA_PARCIAL')
+WITH n, collect(DISTINCT [r IN relationships(p) | type(r)]) AS caminos
+RETURN n.nodeType AS tipo, n.`nodeProperties.name` AS name, n.`nodeProperties.domain` AS domain,
+       n.`nodeProperties.url` AS url, n.`nodeProperties.linkedin_url` AS linkedin_url, caminos
 LIMIT 25
 """
 
 
+def _camino_fiable(camino: List[str]) -> bool:
+    return not any(
+        t.startswith("POSIBLE_") or t == "BORME_COINCIDENCIA_PARCIAL" for t in camino
+    )
+
+
 def vecinos(graph_service, sketch_id: str, nombre: str) -> Dict[str, List[str]]:
-    """{"empresas": [...], "dominios": [...], "linkedin": [...]} vecinos del Individual `nombre`."""
-    out: Dict[str, List[str]] = {"empresas": [], "dominios": [], "linkedin": []}
+    """{"empresas", "empresas_directas", "dominios", "linkedin"}: vecinos del Individual `nombre`.
+
+    empresas_directas son las enlazadas sin nodos intermedios.
+    No sigue relaciones POSIBLE_* ni BORME_COINCIDENCIA_PARCIAL: podrían llevar a la empresa o al dominio
+    de un homónimo. Los errores del grafo llegan a quien llama.
+    """
+    out: Dict[str, List[str]] = {
+        "empresas": [],
+        "empresas_directas": [],
+        "dominios": [],
+        "linkedin": [],
+    }
     if not graph_service or not nombre:
         return out
-    try:
-        filas = (
-            graph_service.query(CYPHER, {"sketch_id": sketch_id, "nombre": nombre})
-            or []
-        )
-    except Exception:
-        return out
-    for f in filas:
+    for f in (
+        graph_service.query(CYPHER, {"sketch_id": sketch_id, "nombre": nombre}) or []
+    ):
+        caminos = [c for c in f.get("caminos") or [] if _camino_fiable(c)]
+        if not caminos:
+            continue
         if f.get("tipo") == "organization" and f.get("name"):
             out["empresas"].append(str(f["name"]))
+            if any(len(c) == 1 for c in caminos):
+                out["empresas_directas"].append(str(f["name"]))
             if f.get("linkedin_url"):
                 out["linkedin"].append(f["linkedin_url"])
         elif f.get("tipo") == "domain" and f.get("domain"):

@@ -13,6 +13,7 @@ from flowsint_enrichers.es._scripts import load
 from flowsint_types.individual import Individual
 from flowsint_types.organization import Organization
 
+FUENTE = "BORME"
 PARTICULAS = {
     "DE",
     "DEL",
@@ -167,6 +168,18 @@ async def buscar_persona(nombre: str, params: Dict[str, Any]) -> dict:
         0.5,
         int(params.get("MAX_PETICIONES") or 1500),
     )
+
+
+def misma_forma(a: dict, b: dict) -> bool:
+    """Formas jurídicas compatibles entre dos denominaciones normalizadas (SL = SLU; si falta una, se acepta)."""
+    fa, fb = a["forma"], b["forma"]
+    return not fa or not fb or fa.rstrip("U") == fb.rstrip("U")
+
+
+def url_acto(actos: List[dict], borme_ids: List[str]) -> Optional[str]:
+    """URL del último de los `borme_ids` que la tenga."""
+    urls = {a.get("borme_id"): a.get("url_pdf") or a.get("url_html") for a in actos}
+    return next((urls[i] for i in reversed(borme_ids) if urls.get(i)), None)
 
 
 def es_persona_juridica(nombre: str) -> bool:

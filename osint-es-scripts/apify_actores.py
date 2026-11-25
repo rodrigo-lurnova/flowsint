@@ -84,8 +84,10 @@ def ejecutar(
     max_items: int | None = None,
     max_usd: float | None = None,
     timeout: int = 240,
+    errores: list | None = None,
 ) -> list[dict]:
-    """Ejecuta un actor en modo síncrono y devuelve los items del dataset."""
+    """Ejecuta un actor en modo síncrono y devuelve los items del dataset. Si agota el tiempo pero hay
+    resultados parciales, los devuelve y lo anota en `errores`."""
     token = token or os.getenv("APIFY_TOKEN")
     if not token:
         raise SinToken("Falta APIFY_TOKEN: integración Apify desactivada (se omite).")
@@ -122,11 +124,17 @@ def ejecutar(
                     headers=hdr,
                     timeout=60,
                 ).json()
-                if items:
+                if items and isinstance(items, list):
+                    if errores is not None:
+                        errores.append(
+                            f"Apify {actor_id}: tiempo agotado, resultados parciales ({len(items)})"
+                        )
                     return items
     if r.status_code >= 400:
         raise RuntimeError(f"Apify {actor_id}: HTTP {r.status_code} {r.text[:300]}")
     data = r.json()
+    if isinstance(data, dict) and data.get("error"):
+        raise RuntimeError(f"Apify {actor_id}: {str(data['error'])[:300]}")
     return data if isinstance(data, list) else data.get("items", [])
 
 
@@ -218,6 +226,7 @@ def linkedin_buscar(
     ubicacion: str | None = None,
     max_items: int = 10,
     token: str | None = None,
+    errores: list | None = None,
 ) -> list[dict]:
     """Busca perfiles por nombre (+ filtro de empresa si se da su URL de LinkedIn). Puntúa por empresa."""
     first, last = nombre_apellidos(nombre)
@@ -233,7 +242,9 @@ def linkedin_buscar(
         entrada["currentCompanies"] = [empresa_url]
     if ubicacion:
         entrada["locations"] = [ubicacion]
-    items = ejecutar(actor("linkedin_buscar"), entrada, token, max_items=max_items)
+    items = ejecutar(
+        actor("linkedin_buscar"), entrada, token, max_items=max_items, errores=errores
+    )
     out = []
     for it in items:
         p = perfil_linkedin(it)
@@ -261,6 +272,7 @@ def linkedin_empleados(
     busqueda: str | None = None,
     cargos: list[str] | None = None,
     token: str | None = None,
+    errores: list | None = None,
 ) -> list[dict]:
     entrada = {
         "companies": [empresa_url],
@@ -280,12 +292,16 @@ def linkedin_empleados(
             token,
             max_items=max_items,
             timeout=480,
+            errores=errores,
         )
     ]
 
 
 def google(
-    consultas: list[str], token: str | None = None, pais: str = "es"
+    consultas: list[str],
+    token: str | None = None,
+    pais: str = "es",
+    errores: list | None = None,
 ) -> list[dict]:
     """Resultados orgánicos [{url,titulo,snippet,consulta}] vía apify/google-search-scraper."""
     items = ejecutar(
@@ -297,6 +313,7 @@ def google(
             "languageCode": "es",
         },
         token,
+        errores=errores,
     )
     out = []
     for it in items:
