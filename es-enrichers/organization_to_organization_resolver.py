@@ -49,7 +49,8 @@ class OrgToIdentidadEs(OrgEsEnricher):
         denominaciones y web; si hay homonimia NO rellena el NIF y crea cada candidato como
         Organization aparte («DENOMINACIÓN (NIF)») con la relación POSIBLE_IDENTIDAD, para que
         el analista elija. Los dominios que resuelven se crean como Domain con WEB_PROBABLE
-        (propiedad confianza: alta si la portada muestra el NIF). Si el candidato se elige por
+        si la portada muestra el NIF de la empresa y POSIBLE_WEB_PROBABLE si no
+        (propiedad confianza: alta si muestra algún NIF de los candidatos). Si el candidato se elige por
         nombre, el nodo lleva identidad_certeza="probable" y lo que se busque con ese NIF no
         pasa de probable; un candidato con otra forma jurídica no se elige. `max_resultados` = máximo de
         candidatos creados.
@@ -74,7 +75,7 @@ class OrgToIdentidadEs(OrgEsEnricher):
             ids = org_ids(org)
             consulta = ids["nif"] or ids["nombre"]
             if not consulta:
-                self.fallo(org.name, "sin NIF ni denominación utilizable")
+                self.aviso(org.name, "sin NIF ni denominación utilizable")
                 continue
             try:
                 r = await asyncio.to_thread(
@@ -85,7 +86,18 @@ class OrgToIdentidadEs(OrgEsEnricher):
                 results.append(org)
                 continue
             for err in r.get("errores") or []:
-                self.fallo(consulta, err["error"], err["fuente"])
+                # DNS y Web: dominios adivinados, uno a uno; lo demás son fuentes caídas
+                adivinado = err["fuente"] in ("DNS", "Web")
+                (self.aviso if adivinado else self.fallo)(
+                    consulta, err["error"], err["fuente"]
+                )
+            if r.get("dns_caido"):
+                n = sum(err["fuente"] == "DNS" for err in r["errores"])
+                self.fallo(
+                    consulta,
+                    f"ningún dominio probado ha tenido respuesta ({n})",
+                    "DNS",
+                )
             for av in r["avisos"]:
                 self.log(f"{consulta}: {av}")
             exactos = [c for c in r["candidatos"] if c["coincidencia"] == "exacta"]
@@ -142,11 +154,14 @@ class OrgToIdentidadEs(OrgEsEnricher):
                     )
                     # El NIF de la portada tiene que ser el de la empresa, no el de un homónimo.
                     propia = w["confianza"] == "alta" and nif in w["nif_en_portada"]
+                    certeza = limitar(
+                        "probable" if propia else "posible", org_ids(destino)
+                    )
                     h = Hallazgo(
                         dom,
-                        "WEB_PROBABLE",
+                        ev.relacion("WEB_PROBABLE", certeza),
                         url=w.get("url"),
-                        certainty="probable" if propia else "posible",
+                        certainty=certeza,
                     )
                     self.hallazgos.append((destino, h))
                     ev.anotar(
@@ -155,7 +170,7 @@ class OrgToIdentidadEs(OrgEsEnricher):
                         org.nodeLabel,
                         h.relacion,
                         w["dominio"],
-                        limitar(h.certainty, org_ids(destino)),
+                        certeza,
                         evidence=[f"NIF en portada: {n}" for n in w["nif_en_portada"]]
                         or [f"confianza {w['confianza']}"],
                         url=h.url,

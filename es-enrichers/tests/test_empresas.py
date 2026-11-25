@@ -138,9 +138,10 @@ def test_certainty_is_capped_by_identity(correr, org, certeza):
     assert set(certezas(correr(Fuente, [org]))) == {certeza}
 
 
-def test_skipped_org_is_a_failure(correr):
+def test_unusable_org_is_a_warning(correr):
     e = correr(Fuente, [Organization(name="SL")])
-    assert e.failures == ["FUENTE: SL: sin NIF ni denominación utilizable"]
+    assert e.failures == []
+    assert e.warnings == ["FUENTE: SL: sin NIF ni denominación utilizable"]
 
 
 def test_org_ids_exposes_identity_certainty():
@@ -624,7 +625,7 @@ def test_lei_certainty_depends_on_how_it_matched(resolver):
     assert (f.url, f.source) == ("https://example.com/lei", "GLEIF")
 
 
-def test_probable_web_domains(resolver):
+def test_probable_web_domains(resolver, grafo):
     def web(dominio, confianza, nifs=()):
         return {
             "dominio": dominio,
@@ -642,10 +643,11 @@ def test_probable_web_domains(resolver):
     e = resolver(cand(), org=ACME_NIF, webs=webs)
     assert resumen(e)[1:] == [
         ("WEB_PROBABLE", "a.example.com", "probable"),
-        ("WEB_PROBABLE", "b.example.com", "posible"),
-        ("WEB_PROBABLE", "d.example.com", "posible"),  # NIF de otra empresa
+        ("POSIBLE_WEB_PROBABLE", "b.example.com", "posible"),
+        ("POSIBLE_WEB_PROBABLE", "d.example.com", "posible"),  # NIF de otra empresa
     ]
     assert e.findings[1].url == "https://a.example.com/"
+    assert [r[1:] for r in grafo.relaciones] == [r[:2] for r in resumen(e)[1:]]
 
 
 def test_resolver_source_errors_reach_failures_but_notices_do_not(resolver):
@@ -659,11 +661,11 @@ def test_resolver_source_errors_reach_failures_but_notices_do_not(resolver):
     assert resolver(cand(), avisos=["HOMONIMIA: dos entidades"]).failures == []
 
 
-def test_resolver_exception_and_empty_name_are_failures(correr, monkeypatch):
+def test_resolver_exception_is_a_failure_and_empty_name_a_warning(correr, monkeypatch):
     monkeypatch.setattr(load("resolver_empresa"), "resolver", falla)
     e = correr(OrgToIdentidadEs, [ACME, Organization(name="")])
-    assert len(e.failures) == 2 and "fuente caída" in e.failures[0]
-    assert "denominación" in e.failures[1]
+    assert len(e.failures) == 1 and "fuente caída" in e.failures[0]
+    assert len(e.warnings) == 1 and "denominación" in e.warnings[0]
 
 
 def test_resolver_script_separates_errors_from_notices(monkeypatch):
@@ -700,6 +702,38 @@ def webs(monkeypatch, http):
         return r["errores"], {w["dominio"]: w["confianza"] for w in r["webs"]}
 
     return _webs
+
+
+GUESSED = [
+    {"fuente": "DNS", "error": "acme.es: sin respuesta"},
+    {"fuente": "Web", "error": "acme.com: ConnectError"},
+    {"fuente": "Web", "error": "acme.eu: HTTP 503"},
+]
+
+
+def test_guessed_domain_misses_are_warnings(resolver):
+    e = resolver(
+        cand(), errores=[*GUESSED, {"fuente": "GLEIF", "error": "ConnectError: x"}]
+    )
+    assert e.failures == ["GLEIF: ACME SL: ConnectError: x"]
+    assert len(e.warnings) == 3 and "acme.es: sin respuesta" in e.warnings[0]
+    assert resolver(cand(), errores=GUESSED).source_run().status == "ok"
+
+
+def test_dns_down_is_a_failure(webs, correr, monkeypatch):
+    import socket
+
+    caido = {"acme.es": socket.EAI_AGAIN, "acme.com": socket.EAI_AGAIN}
+    webs(caido, lambda req: httpx.Response(200))  # deja simulados DNS y web
+    res = load("resolver_empresa")
+    e = correr(OrgToIdentidadEs, [ACME], fuentes="ninguna")
+    assert e.source_run().status == "failed"
+    assert len(e.failures) == 1 and "DNS" in e.failures[0] and "2" in e.failures[0]
+    assert len(e.warnings) == 2
+    caido.pop("acme.com")
+    e = correr(OrgToIdentidadEs, [ACME], fuentes="ninguna")
+    assert e.failures == [] and len(e.warnings) == 1
+    assert res.resolver("ACME SL", (), True)["dns_caido"] is False
 
 
 def test_resolver_script_reports_each_unanswered_domain(webs):
@@ -960,9 +994,17 @@ def test_officers_of_a_company_with_a_different_nif_are_possible(borme, grafo):
     ]
     e = borme(emp, org=ACME_NIF, clase=BormeEmpresa)
     assert certezas(e) == ["posible"] and "otro NIF" in str(e.findings[0].evidence)
-    assert [x[1] for x in grafo.relaciones] == ["POSIBLE_ADM_UNICO"]
+    # cuelgan de un nodo aparte, con su NIF, como en la ficha registral
+    aparte = f"ACME SL ({OTRO_NIF})"
+    assert e.findings[0].subject == aparte
+    assert grafo.relaciones == [
+        (aparte, "BORME_COINCIDENCIA_PARCIAL", "ACME SL"),
+        ("Ana Ejemplo Ficticia", "POSIBLE_ADM_UNICO", aparte),
+    ]
+    assert e.resultados == []
+    assert next(n for n in grafo.nodos if n.nodeLabel == aparte).nif == OTRO_NIF
     e = borme(emp, org=Organization(name="ACME SL", nif=OTRO_NIF), clase=BormeEmpresa)
-    assert certezas(e) == ["confirmada"]
+    assert certezas(e) == ["confirmada"] and len(e.resultados) == 1
 
 
 def test_nif_obtained_by_name_from_borme_is_probable(borme):
@@ -1190,6 +1232,242 @@ def test_sumario_without_section_a_is_uncovered(correr, boe_dias):
     assert len(correr(BormeFicha, [ACME], **SEMANA).failures) == 1
 
 
+# ------------------------------------------------------------------ BORME: días y fechas
+
+FILAS_INDICE = "<tr><td>OTRA SL</td><td><p>BORME-A-2026-1-28</p></td><td>(1)</td></tr>"
+
+
+@pytest.fixture
+def boe_http(monkeypatch, tmp_path, http):
+    """boe_http({AAAAMMDD: estado}): boe.es simulado; devuelve la lista de URLs pedidas."""
+    mod = load("borme")
+    monkeypatch.setattr(mod, "DEFAULT_DB", str(tmp_path / "borme.sqlite"))
+
+    def _boe(estados, todos=200):
+        urls = []
+
+        def responder(req):
+            urls.append(str(req.url))
+            dia = re.search(r"sumario/(\d{8})|id=BORME-A-(\d{8})", str(req.url))
+            clave = dia[1] or f"doc{dia[2]}"
+            estado = estados.get(clave, todos if dia[1] else 200)
+            if estado != 200:
+                return httpx.Response(estado)
+            if dia[2]:
+                return httpx.Response(200, text=FILAS_INDICE)
+            item = {"identificador": f"BORME-A-{dia[1]}-99", "titulo": "ÍNDICE"}
+            seccion = {"codigo": "A", "item": [item]}
+            return httpx.Response(
+                200, json={"data": {"sumario": {"diario": [{"seccion": [seccion]}]}}}
+            )
+
+        http(responder)
+        return urls
+
+    return _boe
+
+
+@pytest.mark.parametrize("clase", [BormeFicha, BormeEmpresa])
+@pytest.mark.parametrize("roto", ["20260107", "doc20260107"])
+def test_a_day_with_5xx_is_uncovered_and_the_rest_is_searched(
+    correr, boe_http, clase, roto
+):
+    urls = boe_http({roto: 503})
+    e = correr(clase, [ACME], **SEMANA)
+    assert e.coverage == "BORME BOE 2026-01-05 a 2026-01-11"
+    assert e.failures == ["BORME: ACME SL: 1 día sin cubrir (2026-01-07)"]
+    assert any("20260105" in u for u in urls)  # va de más reciente a más antiguo
+
+
+def test_all_days_with_5xx_is_a_failed_source(correr, boe_http):
+    boe_http({}, todos=503)
+    e = correr(BormeFicha, [ACME], **SEMANA)
+    assert e.coverage is None and len(e.failures) == 1
+    assert "HTTPStatusError" in e.failures[0] and "503" in e.failures[0]
+
+
+def test_a_long_outage_does_not_ask_for_every_day(correr, boe_http):
+    urls = boe_http({}, todos=503)
+    correr(BormeFicha, [ACME], DESDE="2026-01-01", HASTA="2026-03-31")
+    assert len({u for u in urls}) <= 5
+
+
+def test_blocked_by_boe_still_stops_the_search(correr, boe_http):
+    boe_http({"20260107": 403})
+    e = correr(BormeFicha, [ACME], **SEMANA)
+    assert e.coverage is None and "403" in e.failures[0]
+
+
+def test_summary_without_section_a_is_not_cached(http):
+    import sqlite3
+    from datetime import date
+
+    mod = load("borme")
+    http(lambda req: httpx.Response(200, json={"data": {"sumario": {"diario": []}}}))
+    db = sqlite3.connect(":memory:")
+    db.execute("CREATE TABLE sumarios (fecha, estado, items, ts)")
+    assert mod.sumario(db, mod.Descargador(0), date(2026, 1, 7)) == []
+    assert db.execute("SELECT count(*) FROM sumarios").fetchone() == (0,)
+    db.execute("INSERT INTO sumarios VALUES ('20260107', 'ok', '[]', '')")  # antigua
+    dl = mod.Descargador(0)
+    assert mod.sumario(db, dl, date(2026, 1, 7)) == [] and dl.peticiones == 1
+
+
+@pytest.mark.parametrize("clase, entrada, _", ENTRADAS)
+def test_coverage_names_the_provinces(correr, boe_dias, clase, entrada, _):
+    boe_dias({})
+    e = correr(clase, [entrada], PROVINCIA=" Madrid, 48 ", **SEMANA)
+    assert e.coverage == ("BORME BOE 2026-01-05 a 2026-01-11 (provincias: Madrid, 48)")
+
+
+def test_apispain_coverage_does_not_name_provinces(borme):
+    vacio = {"backend": "apispain", "coste": {}, "empresas": []}
+    e = borme(apispain=lambda *a: vacio, APISPAIN_API_KEY="k1234", PROVINCIA="Madrid")
+    assert e.coverage == COBERTURA_APISPAIN
+
+
+@pytest.mark.parametrize("clase, entrada, _", ENTRADAS)
+def test_inverted_dates_are_a_failure(correr, boe_dias, clase, entrada, _):
+    boe_dias({})
+    e = correr(clase, [entrada], DESDE="2026-02-01", HASTA="2026-01-01")
+    assert e.coverage is None and len(e.failures) == 1
+    assert "invertido" in e.failures[0]
+
+
+# ------------------------------------------------------------------ BORME: denominación y NIF
+
+CON_NIF = Organization(name=NIF, nif=NIF, denominacion_normalizada="ACME SL")
+
+
+def test_org_ids_never_uses_a_nif_as_the_name():
+    assert org_ids(Organization(name=NIF, nif=NIF))["nombre"] == ""
+    assert org_ids(CON_NIF)["nombre"] == "ACME SL"
+    assert org_ids(Organization(name=NIF, nom_raison_sociale="ACME SL")) == {
+        **org_ids(ACME_NIF),
+        "nombre": "ACME SL",
+    }
+    assert (
+        org_ids(Organization(name=NIF, denominaciones=["ACME SL"], nif=NIF))["base"]
+        == org_ids(ACME)["base"]
+    )
+
+
+@pytest.mark.parametrize("clase", [BormeFicha, BormeEmpresa])
+def test_borme_searches_the_resolved_name_when_the_node_is_a_nif(
+    borme, monkeypatch, clase
+):
+    buscados = []
+
+    def boe(nombre, *a):
+        buscados.append(nombre)
+        return res_boe(emp_con_cargo())
+
+    e = borme(boe=boe, org=CON_NIF, clase=clase)
+    assert buscados == ["ACME SL"] and e.failures == []
+    assert certezas(e) == ["confirmada"]
+    assert e.findings[0].subject == NIF
+    # la comparación de NIF no cambia
+    e = borme(emp_con_cargo(nif=OTRO_NIF), org=CON_NIF, clase=clase)
+    assert certezas(e) == ["posible"]
+
+
+@pytest.mark.parametrize("clase", [BormeFicha, BormeEmpresa])
+def test_borme_without_a_usable_name_is_a_failure(borme, clase):
+    e = borme(emp_borme(), org=Organization(name=NIF, nif=NIF), clase=clase)
+    assert e.llamadas == [] and e.coverage is None
+    assert len(e.failures) == 1 and e.failures[0].startswith(f"BORME: {NIF}: ")
+    assert "denominación" in e.failures[0]
+
+
+@pytest.mark.parametrize("clase", [BormeFicha, BormeEmpresa])
+def test_borme_ignores_the_identifier_after_the_name(borme, clase):
+    buscados = []
+
+    def boe(nombre, *a):
+        buscados.append(nombre)
+        return res_boe()
+
+    borme(boe=boe, org=Organization(name=f"ACME SL ({NIF})"), clase=clase)
+    assert buscados == ["ACME SL"]
+
+
+def test_resolved_name_reaches_borme(resolver, borme):
+    e = resolver(cand(), org=Organization(name=NIF))
+    assert e.resultados[0].nodeLabel == NIF
+    e = borme(emp_borme(), org=e.resultados[0])
+    assert certezas(e) == ["confirmada"] and e.resultados[0].nodeLabel == NIF
+
+
+def emp_con_cargo(
+    nombre="ACME SL", nif=None, hoja="M 1", persona="EJEMPLO FICTICIA ANA"
+):
+    emp = emp_borme(nombre, nif, hoja)
+    emp["actos"][0]["cargos"] = [
+        {
+            "persona": persona,
+            "cargo": "Adm. Unico",
+            "cargo_codigo": "ADM_UNICO",
+            "accion": "nombramiento",
+        }
+    ]
+    return emp
+
+
+@pytest.mark.parametrize("clase", [BormeFicha, BormeEmpresa])
+@pytest.mark.parametrize("otro", [OTRO_NIF, None])
+def test_the_only_homonym_with_the_known_nif_is_the_match(borme, clase, otro):
+    empresas = [emp_con_cargo(nif=otro, hoja="M 2"), emp_con_cargo(nif=NIF)]
+    e = borme(*empresas, org=ACME_NIF, clase=clase)
+    principales = [f for f in e.findings if f.relation != "NIF"]
+    assert [f.certainty for f in principales] == ["posible", "confirmada"]
+    assert len(e.resultados) == 1
+
+
+@pytest.mark.parametrize("clase", [BormeFicha, BormeEmpresa])
+@pytest.mark.parametrize(
+    "org, nifs",
+    [
+        (ACME_NIF, (NIF, NIF)),
+        (ACME_NIF, (None, OTRO_NIF)),
+        (ACME_PROBABLE, (NIF, None)),
+        (ACME, (NIF, OTRO_NIF)),
+    ],
+)
+def test_homonyms_without_a_single_firm_nif_match_stay_possible(
+    borme, clase, org, nifs
+):
+    empresas = [emp_con_cargo(nif=n, hoja=f"M {i}") for i, n in enumerate(nifs)]
+    e = borme(*empresas, org=org, clase=clase)
+    assert certezas(e) == ["posible"] * 2
+
+
+def test_nif_match_does_not_excuse_another_legal_form(borme):
+    e = borme(
+        emp_con_cargo("ACME SA", nif=NIF),
+        emp_con_cargo(nif=OTRO_NIF, hoja="M 2"),
+        org=ACME_NIF,
+        clase=BormeEmpresa,
+    )
+    assert certezas(e) == ["posible"] * 2
+
+
+def test_officers_of_an_ambiguous_company_with_another_nif_hang_from_their_node(
+    borme, grafo
+):
+    empresas = [emp_con_cargo(nif=OTRO_NIF), emp_con_cargo(hoja="M 2")]
+    e = borme(*empresas, org=ACME_NIF, clase=BormeEmpresa)
+    assert [f.subject for f in e.findings] == [f"ACME SL ({OTRO_NIF})", "ACME SL"]
+    assert e.resultados == []  # ningún cargo posible sigue aguas abajo
+
+
+def test_partial_match_with_another_nif_uses_the_labelled_node(borme, grafo):
+    emp = emp_con_cargo("ACME TRADING SL", nif=OTRO_NIF)
+    e = borme(emp, org=ACME_NIF, clase=BormeEmpresa)
+    assert [f.subject for f in e.findings] == [f"ACME TRADING SL ({OTRO_NIF})"]
+    etiqueta = next(r[0] for r in grafo.relaciones if "PARCIAL" in r[1])
+    assert etiqueta == borme(emp, org=ACME_NIF).findings[0].object  # misma que la ficha
+
+
 def test_index_without_rows_is_not_cached_as_read(http):
     mod = load("borme")
     import sqlite3
@@ -1385,9 +1663,10 @@ RIPE = {
 def test_asn_by_name_is_possible_and_names_its_sources(asn, grafo):
     e = asn(PDB, RIPE)
     assert [(f.relation, f.object, f.certainty, f.source) for f in e.findings] == [
-        ("BELONGS_TO", "AS64500", "posible", "PeeringDB, RIPEstat")
+        ("POSIBLE_BELONGS_TO", "AS64500", "posible", "PeeringDB, RIPEstat")
     ]
-    assert e.failures == [] and grafo.relaciones
+    assert e.failures == []
+    assert [r[1] for r in grafo.relaciones] == ["POSIBLE_BELONGS_TO"]
 
 
 def test_asn_source_failures(asn, entorno, monkeypatch):
@@ -1409,8 +1688,9 @@ def test_asn_cymru_failures_keep_the_result(asn):
         assert e.failures[0].startswith("Team Cymru: AS64500: ")
 
 
-def test_asn_without_usable_name_is_a_failure(asn):
-    assert len(asn(org=Organization(name="···")).failures) == 1
+def test_asn_without_usable_name_is_a_warning(asn):
+    e = asn(org=Organization(name="···"))
+    assert e.failures == [] and len(e.warnings) == 1
 
 
 # ------------------------------------------------------------------ contexto

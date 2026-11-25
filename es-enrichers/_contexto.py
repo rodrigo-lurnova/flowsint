@@ -8,8 +8,12 @@ es administrador según BORME y el Domain de esa Organization).
 from typing import Any, Dict, List
 
 from flowsint_enrichers.es import _borme_comun as bc
+from flowsint_enrichers.es._scripts import load
 
 # Las propiedades se guardan aplanadas ("nodeProperties.<campo>") y el tipo en nodeType.
+# Sin etiqueta de nodo: al fusionar nodos, la etiqueta la pone quien llama y puede no ser el nodeType.
+# verificado: dominios con el NIF de la empresa en la portada o web inscrita en el BORME; van primero para
+# que LIMIT no los deje fuera.
 # dudosas: organizaciones con una relación viva POSIBLE_*/parcial con la persona, aunque además tengan otra normal.
 CYPHER = """
 MATCH (i {sketch_id: $sketch_id})
@@ -26,26 +30,58 @@ WHERE n.nodeType IN ['organization', 'domain', 'website']
   AND ALL(r IN relationships(p) WHERE r.deleted_at IS NULL
                                   AND NOT type(r) STARTS WITH 'POSIBLE_'
                                   AND type(r) <> 'BORME_COINCIDENCIA_PARCIAL')
-WITH n, dudosas, min(length(p)) AS largo, collect(DISTINCT {
+WITH n, dudosas, min(length(p)) AS largo,
+     max(CASE WHEN n.nodeType <> 'organization'
+               AND any(x IN nodes(p) WHERE x.nodeType = 'organization'
+                       AND (type(last(relationships(p))) = 'HAS_WEBSITE'
+                            OR n.`nodeProperties.nif_en_portada` CONTAINS x.`nodeProperties.nif`))
+              THEN 1 ELSE 0 END) AS verificado, collect(DISTINCT {
        relaciones: [r IN relationships(p) | type(r)],
-       nodos: [x IN nodes(p) | {id: elementId(x), tipo: x.nodeType, name: x.`nodeProperties.name`}],
+       nodos: [x IN nodes(p) | {id: elementId(x), tipo: x.nodeType, name: x.`nodeProperties.name`,
+                                nif: x.`nodeProperties.nif`, certeza: x.`nodeProperties.identidad_certeza`}],
        borrado: any(x IN nodes(p) WHERE x.deleted_at IS NOT NULL)
                 OR any(r IN relationships(p) WHERE r.deleted_at IS NOT NULL)}) AS caminos
 RETURN n.nodeType AS tipo, n.`nodeProperties.name` AS name, n.`nodeProperties.domain` AS domain,
-       n.`nodeProperties.url` AS url, n.`nodeProperties.linkedin_url` AS linkedin_url, caminos,
-       [o IN dudosas | {id: elementId(o), name: o.`nodeProperties.name`}] AS dudosas
-ORDER BY largo
+       n.`nodeProperties.url` AS url, n.`nodeProperties.linkedin_url` AS linkedin_url,
+       n.`nodeProperties.nif_en_portada` AS nif_en_portada, caminos,
+       [o IN dudosas | {id: elementId(o), name: o.`nodeProperties.name`,
+                        nif: o.`nodeProperties.nif`, certeza: o.`nodeProperties.identidad_certeza`}] AS dudosas
+ORDER BY verificado DESC, largo, n.nodeType, n.nodeLabel, elementId(n)
 LIMIT 25
 """
 
 
 def _es_dudosa(org: Dict[str, Any], dudosas: List[Dict[str, Any]]) -> bool:
-    """Por nodo o por denominación: «OTRA SL» y «Otra, S.L.» son nodos distintos de la misma empresa."""
+    """Por nodo o por denominación: «OTRA SL» y «Otra, S.L.» son nodos distintos de la misma empresa,
+    salvo que los dos tengan NIF propio y sea distinto."""
     return any(
         org.get("id") == d.get("id")
         or bc.misma_empresa(org.get("name") or "", d.get("name") or "")
+        and not _otro_nif(org, d)
         for d in dudosas
     )
+
+
+def _otro_nif(a: Dict[str, Any], b: Dict[str, Any]) -> bool:
+    # Un NIF deducido por nombre no distingue a dos homónimas
+    nifs = {"" if n.get("certeza") else _nif(n) for n in (a, b)}
+    return "" not in nifs and len(nifs) == 2
+
+
+def _nif(nodo: Dict[str, Any]) -> str:
+    return load("resolver_empresa").limpiar_nif(str(nodo.get("nif") or ""))
+
+
+def _verificado(fila: Dict[str, Any], caminos: List[Dict[str, Any]]) -> bool:
+    """Dominio con el NIF de la empresa en la portada, o web inscrita en el BORME."""
+    portada = str(fila.get("nif_en_portada") or "")
+    for c in caminos:
+        orgs = [n for n in c.get("nodos") or [] if n.get("tipo") == "organization"]
+        if orgs and c["relaciones"][-1] == "HAS_WEBSITE":
+            return True
+        if any(_nif(o) and _nif(o) in portada for o in orgs):
+            return True
+    return False
 
 
 def _camino_fiable(camino: Dict[str, Any], dudosas: List[Dict[str, Any]]) -> bool:
@@ -70,7 +106,7 @@ def vecinos(graph_service, sketch_id: str, nombre: str) -> Dict[str, List[str]]:
     empresas_directas son las enlazadas sin nodos intermedios y por algo más que WORKS_AT.
     No sigue relaciones POSIBLE_* ni BORME_COINCIDENCIA_PARCIAL, ni pasa por empresas que tengan una con
     la persona: podrían llevar a la empresa o al dominio de un homónimo. Tampoco usa datos borrados.
-    Los errores del grafo llegan a quien llama.
+    Los dominios verificados van primero. Los errores del grafo llegan a quien llama.
     """
     out: Dict[str, List[str]] = {
         "empresas": [],
@@ -78,6 +114,7 @@ def vecinos(graph_service, sketch_id: str, nombre: str) -> Dict[str, List[str]]:
         "dominios": [],
         "linkedin": [],
     }
+    dominios: List[tuple] = []
     if not graph_service or not nombre:
         return out
     for f in (
@@ -97,10 +134,12 @@ def vecinos(graph_service, sketch_id: str, nombre: str) -> Dict[str, List[str]]:
             if f.get("linkedin_url"):
                 out["linkedin"].append(f["linkedin_url"])
         elif f.get("tipo") == "domain" and f.get("domain"):
-            out["dominios"].append(f["domain"])
+            dominios.append((not _verificado(f, caminos), f["domain"]))
         elif f.get("tipo") == "website" and f.get("url"):
             host = str(f["url"]).split("//", 1)[-1].split("/", 1)[0]
-            out["dominios"].append(host.removeprefix("www."))
+            dominios.append((not _verificado(f, caminos), host.removeprefix("www.")))
+    # Los verificados, primero; entre iguales, el orden de la consulta
+    out["dominios"] = [d for _, d in sorted(dominios, key=lambda x: x[0])]
     return {k: list(dict.fromkeys(v)) for k, v in out.items()}
 
 

@@ -2,11 +2,13 @@
 
 import math
 import os
-from typing import Any, Iterable, Optional
+from collections import Counter
+from typing import Any, Iterable, List, Optional
 
 from flowsint_core.core.enricher_base import Enricher, mask_secret
 from flowsint_core.core.findings import Finding
 from flowsint_core.core.logger import Logger
+from flowsint_enrichers.es._scripts import load
 
 UMBRAL_PROBABLE = 0.8
 SIN_TOKEN = "APIFY_TOKEN no configurado"
@@ -83,6 +85,45 @@ def fallo(
     )
     enricher.add_failure(f"{source}: {subject}: {mask_secret(detalle, secreto)}")
     Logger.error(enricher.sketch_id, {"message": enricher.failures[-1]})
+
+
+def aviso(
+    enricher: Enricher,
+    source: str,
+    subject: str,
+    detalle: str,
+    secreto: Optional[str] = None,
+) -> None:
+    """Registra algo que limita el resultado sin ser un fallo de la fuente (add_warning + log)."""
+    enricher.add_warning(f"{source}: {subject}: {mask_secret(detalle, secreto)}")
+    Logger.info(enricher.sketch_id, {"message": enricher.warnings[-1]})
+
+
+def error_de_fuente(
+    enricher: Enricher,
+    source: str,
+    subject: str,
+    error: str,
+    secreto: Optional[str] = None,
+) -> None:
+    """Error que devuelve un script: aviso si solo afecta a un candidato o es un límite de peticiones."""
+    limite = load("personas_comun").LIMITE_GITHUB
+    leve = error.startswith("Gravatar: ") or limite in error
+    (aviso if leve else fallo)(enricher, source, subject, error, secreto)
+
+
+def sin_buscar(
+    enricher: Enricher, source: str, que: str, total: int, motivos: List[str]
+) -> None:
+    """Un aviso por motivo con cuántas entradas no se han buscado («2 de 5 personas sin buscar: …»)."""
+    for motivo, n in Counter(motivos).items():
+        enricher.add_warning(f"{source}: {n} de {total} {que} sin buscar: {motivo}")
+        Logger.info(enricher.sketch_id, {"message": enricher.warnings[-1]})
+
+
+def relacion(nombre: str, certeza: str) -> str:
+    """Relación con prefijo POSIBLE_ si el hallazgo solo es posible."""
+    return f"POSIBLE_{nombre}" if certeza == "posible" else nombre
 
 
 def clave(enricher: Enricher, nombre: str) -> Optional[str]:

@@ -7,7 +7,6 @@ usarlos es decisión del usuario.
 from typing import Any, Dict, List, Optional
 
 from flowsint_core.core.enricher_base import Enricher
-from flowsint_core.core.logger import Logger
 from flowsint_enrichers.es import _evidencias as ev
 from flowsint_enrichers.es._scripts import load
 from flowsint_enrichers.es.individual_to_linkedin_apify import FUENTE, perfil_a_social
@@ -90,7 +89,8 @@ class EsOrgToLinkedinEmployeesEnricher(Enricher):
         harvestapi/linkedin-company-employees (sin cookies). Si no se da la URL de
         la página de empresa, la busca con apify/google-search-scraper
         (`site:linkedin.com/company "<nombre>"`). Crea Individual + SocialAccount
-        con la relación WORKS_AT / HAS_LINKEDIN. Requiere APIFY_TOKEN; sin token lo
+        con las relaciones WORKS_AT y HAS_LINKEDIN
+        (POSIBLE_HAS_LINKEDIN sin confianza suficiente). Requiere APIFY_TOKEN; sin token lo
         registra como fallo.
         AVISO: el scraping de LinkedIn incumple sus condiciones de uso.
         """
@@ -117,6 +117,7 @@ class EsOrgToLinkedinEmployeesEnricher(Enricher):
         cargos = [
             c.strip() for c in (self.params.get("cargos") or "").split(",") if c.strip()
         ] or None
+        omitidas: List[str] = []
         for org in data:
             errores: List[str] = []
             try:
@@ -124,10 +125,8 @@ class EsOrgToLinkedinEmployeesEnricher(Enricher):
                     apify, org, token, errores
                 )
                 if not url:
-                    Logger.info(
-                        self.sketch_id,
-                        {"message": f"[APIFY] {org.name}: sin página de LinkedIn"},
-                    )
+                    if not errores:
+                        omitidas.append("sin página de LinkedIn")
                     continue
                 empleados = apify.linkedin_empleados(
                     url, max_items=maxr, cargos=cargos, token=token, errores=errores
@@ -148,10 +147,12 @@ class EsOrgToLinkedinEmployeesEnricher(Enricher):
                     social_media_profiles=[p["url"]] if p.get("url") else None,
                 )
                 out.append(ind)
-                self.mapping.append(
-                    (org, ind, perfil_a_social(p) if p.get("url") else None, p, url)
-                )
                 conf, enlace = p.get("confianza"), p.get("url")
+                certeza = ev.certeza(conf)
+                relacion = ev.relacion("HAS_LINKEDIN", certeza)
+                self.mapping.append(
+                    (org, ind, perfil_a_social(p) if enlace else None, p, relacion)
+                )
                 pruebas = p.get("evidencias") or [
                     f"página de empresa {url}",
                     p.get("titular"),
@@ -162,7 +163,7 @@ class EsOrgToLinkedinEmployeesEnricher(Enricher):
                     org.name,
                     "WORKS_AT",
                     p["nombre"],
-                    ev.certeza(conf),
+                    certeza,
                     conf,
                     pruebas,
                     enlace,
@@ -171,25 +172,26 @@ class EsOrgToLinkedinEmployeesEnricher(Enricher):
                     self,
                     FUENTE,
                     p["nombre"],
-                    "HAS_LINKEDIN",
+                    relacion,
                     enlace,
-                    ev.certeza(conf),
+                    certeza,
                     conf,
                     pruebas,
                     enlace,
                 )
+        ev.sin_buscar(self, FUENTE, "empresas", len(data), omitidas)
         return out
 
     def postprocess(
         self, results: List[OutputType], original_input: List[InputType] = None
     ) -> List[OutputType]:
-        for org, ind, acc, p, url in self.mapping:
+        for org, ind, acc, p, relacion in self.mapping:
             self.create_node(org)
             self.create_node(ind)
             self.create_relationship(ind, org, "WORKS_AT")
             if acc:
                 self.create_node(acc)
-                self.create_relationship(ind, acc, "HAS_LINKEDIN")
+                self.create_relationship(ind, acc, relacion)
             self.log_graph_message(
                 f"{org.name} <- {p['nombre']} ({p.get('cargo') or p.get('titular') or '?'})"
             )

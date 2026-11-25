@@ -118,21 +118,22 @@ class EsIndividualToSocialsEnricher(Enricher):
             ev.sin_token(self)  # las fuentes gratuitas se consultan igual
             apify = False
         self.mapping, out = [], []
+        omitidas: List[str] = []
         for ind in data:
-            nombre = nombre_de(ind)
+            nombre, sin_contexto = nombre_de(ind), False
+            if not nombre:
+                omitidas.append("sin nombre utilizable")
+                continue
             try:
                 ctx = vecinos(self._graph_service, self.sketch_id, nombre)
             except Exception as exc:
                 ev.fallo(self, FUENTE, nombre, exc)
+                sin_contexto = True  # ya está anotado como fallo
                 ctx = {"empresas": [], "dominios": [], "linkedin": []}
             empresa = self.params.get("empresa") or (ctx["empresas"] or [None])[0]
-            if not nombre or not empresa:
-                Logger.info(
-                    self.sketch_id,
-                    {
-                        "message": f"[PERFILES] {nombre or '?'}: sin empresa vinculada, se omite"
-                    },
-                )
+            if not empresa:
+                if not sin_contexto:
+                    omitidas.append("sin empresa vinculada")
                 continue
             try:
                 res = perfiles.buscar_perfiles(
@@ -149,7 +150,7 @@ class EsIndividualToSocialsEnricher(Enricher):
                 continue
             errores = res.get("errores") or []
             for error in errores:
-                ev.fallo(self, FUENTE, nombre, error, token)
+                ev.error_de_fuente(self, FUENTE, nombre, error, token)
             for av in [a for a in res["avisos"] if a not in errores]:
                 Logger.info(self.sketch_id, {"message": f"[PERFILES] {av}"})
             for p in res["perfiles"]:
@@ -163,27 +164,30 @@ class EsIndividualToSocialsEnricher(Enricher):
                     profile_picture_url=p.get("foto"),
                 )
                 out.append(acc)
-                self.mapping.append((ind, acc, p))
+                certeza = ev.certeza(p.get("confianza"))
+                relacion = ev.relacion("HAS_PROFILE", certeza)
+                self.mapping.append((ind, acc, p, relacion))
                 ev.anotar(
                     self,
                     FUENTE,
                     nombre,
-                    "HAS_PROFILE",
+                    relacion,
                     p["url"],
-                    ev.certeza(p.get("confianza")),
+                    certeza,
                     p.get("confianza"),
                     p.get("evidencias"),
                     p["url"],
                 )
+        ev.sin_buscar(self, FUENTE, "personas", len(data), omitidas)
         return out
 
     def postprocess(
         self, results: List[OutputType], original_input: List[InputType] = None
     ) -> List[OutputType]:
-        for ind, acc, p in self.mapping:
+        for ind, acc, p, relacion in self.mapping:
             self.create_node(ind)
             self.create_node(acc)
-            self.create_relationship(ind, acc, "HAS_PROFILE")
+            self.create_relationship(ind, acc, relacion)
             self.log_graph_message(
                 f"{nombre_de(ind)} -> {p['red']} {p['url']} ({ev.pct(p.get('confianza'))}: "
                 f"{'; '.join((p.get('evidencias') or [])[:2])})"

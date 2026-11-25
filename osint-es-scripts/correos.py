@@ -49,6 +49,7 @@ from personas_comun import (
     coincidencia_nombre,
     contexto_email,
     crawl_web,  # noqa: E402
+    error_github,
     extraer_emails,
     host_raiz,
     parsear_html,
@@ -289,7 +290,7 @@ def github_commits(
             headers=_gh_headers(),
         )
         if r.status_code != 200:
-            errores.append(f"GitHub: HTTP {r.status_code}")
+            errores.append(error_github(r))
             return []
         items = r.json().get("items", [])
     except (httpx.HTTPError, ValueError) as e:
@@ -345,6 +346,7 @@ def hunter(dominio: str, nombre: str | None, client: httpx.Client, key: str) -> 
                 headers={
                     "X-API-KEY": key.strip()
                 },  # en la URL acabaría en el log de httpx
+                follow_redirects=False,  # reenviaría la clave a otro host
             )
             if r.status_code == 200:
                 return r.json().get("data") or {}

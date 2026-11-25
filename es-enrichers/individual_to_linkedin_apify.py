@@ -129,7 +129,7 @@ class EsIndividualToLinkedinEnricher(Enricher):
         harvestapi/linkedin-profile-search-by-name (sin cookies; configurable con
         APIFY_ACTOR_LINKEDIN_BUSCAR) y puntúa cada candidato por coincidencia de
         nombre y de empresa. Gasto máximo por ejecución: APIFY_MAX_USD (0,10 $).
-        Requiere APIFY_TOKEN; sin token no hace ninguna petición y lo registra como fallo.
+        Sin empresa (parámetros o grafo) no busca. Requiere APIFY_TOKEN; sin token no hace ninguna petición y lo registra como fallo.
         AVISO: el scraping de LinkedIn incumple sus condiciones de uso.
         """
 
@@ -142,8 +142,12 @@ class EsIndividualToLinkedinEnricher(Enricher):
             return []
         minc = float(self.params.get("min_confianza") or 0.5)
         maxr = int(self.params.get("max_resultados") or 3)
+        omitidas: List[str] = []
         for ind in data:
             nombre = nombre_de(ind)
+            if not nombre:
+                omitidas.append("sin nombre utilizable")
+                continue
             try:
                 ctx = vecinos(self._graph_service, self.sketch_id, nombre)
             except Exception as exc:
@@ -159,6 +163,10 @@ class EsIndividualToLinkedinEnricher(Enricher):
                 self.params.get("empresa_linkedin_url")
                 or (ctx["linkedin"] or [None])[0]
             )
+            if not empresa and not url_emp:
+                # No se paga una búsqueda solo por nombre: saldrían homónimos
+                omitidas.append("sin empresa")
+                continue
             errores: List[str] = []
             try:
                 perfiles = apify.linkedin_buscar(
@@ -179,27 +187,30 @@ class EsIndividualToLinkedinEnricher(Enricher):
             ]:
                 acc = perfil_a_social(p)
                 out.append(acc)
-                self.mapping.append((ind, acc, p))
+                certeza = ev.certeza(p.get("confianza"))
+                relacion = ev.relacion("HAS_LINKEDIN", certeza)
+                self.mapping.append((ind, acc, p, relacion))
                 ev.anotar(
                     self,
                     FUENTE,
                     nombre,
-                    "HAS_LINKEDIN",
+                    relacion,
                     p.get("url"),
-                    ev.certeza(p.get("confianza")),
+                    certeza,
                     p.get("confianza"),
                     p.get("evidencias"),
                     p.get("url"),
                 )
+        ev.sin_buscar(self, FUENTE, "personas", len(data), omitidas)
         return out
 
     def postprocess(
         self, results: List[OutputType], original_input: List[InputType] = None
     ) -> List[OutputType]:
-        for ind, acc, p in self.mapping:
+        for ind, acc, p, relacion in self.mapping:
             self.create_node(ind)
             self.create_node(acc)
-            self.create_relationship(ind, acc, "HAS_LINKEDIN")
+            self.create_relationship(ind, acc, relacion)
             self.log_graph_message(
                 f"{nombre_de(ind)} -> {p['url']} ({ev.pct(p.get('confianza'))}: "
                 f"{'; '.join(p.get('evidencias') or [])})"

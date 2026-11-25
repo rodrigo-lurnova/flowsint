@@ -46,6 +46,11 @@ def limitar(certainty: str, ids: Dict[str, Optional[str]]) -> str:
     return min(certainty, tope, key=NIVELES.index)
 
 
+def sin_identificador(nombre: Any) -> str:
+    """ "EMPRESA SL (B12345678)" -> "EMPRESA SL"."""
+    return re.sub(r"\s*[\[(][A-Z0-9]{9,11}[\])]\s*$", "", str(nombre or "").strip())
+
+
 def org_ids(org: Organization) -> Dict[str, Optional[str]]:
     """NIF, LEI y denominación de un nodo Organization (los campos nif/lei son propiedades extra)."""
     res = load("resolver_empresa")
@@ -60,12 +65,28 @@ def org_ids(org: Organization) -> Dict[str, Optional[str]]:
     if lei and not re.fullmatch(r"[A-Z0-9]{18}\d{2}", lei):
         lei = None
     certeza = str(extra.get("identidad_certeza") or "").strip().lower()
-    nombre = str(org.nom_raison_sociale or org.name or "").strip()
-    nombre = re.sub(
-        r"\s*[\[(][A-Z0-9]{9,11}[\])]\s*$", "", nombre
-    )  # "EMPRESA SL (B12345678)" -> "EMPRESA SL"
-    if not nif and res.parece_nif(nombre):
-        nif, nombre = res.limpiar_nif(nombre), ""
+    nombre = sin_identificador(org.nom_raison_sociale or org.name)
+    if not nif and res.parece_nif(str(org.name or "")):
+        nif = res.limpiar_nif(str(org.name))
+    if res.parece_nif(nombre):
+        nif = nif or res.limpiar_nif(nombre)
+        # El nodo se llama como su NIF: la denominación es la que haya resuelto un enricher
+        denominaciones = extra.get("denominaciones")
+        nombre = next(
+            (
+                n
+                for n in map(
+                    sin_identificador,
+                    (
+                        org.name,
+                        extra.get("denominacion_normalizada"),
+                        *(denominaciones if isinstance(denominaciones, list) else ()),
+                    ),
+                )
+                if n and not res.parece_nif(n)
+            ),
+            "",
+        )
     return {
         "nif": nif,
         "lei": lei,
@@ -188,6 +209,9 @@ class OrgEsEnricher(Enricher):
     def fallo(self, sujeto: Any, error: Any, fuente: Optional[str] = None) -> None:
         ev.fallo(self, fuente or self.fuente, str(sujeto), error)
 
+    def aviso(self, sujeto: Any, detalle: str, fuente: Optional[str] = None) -> None:
+        ev.aviso(self, fuente or self.fuente, str(sujeto), detalle)
+
     def base_o_fallo(self, ids: Dict[str, Optional[str]]) -> str:
         """Denominación para las fuentes que no buscan por NIF; si no se consigue, "" y el fallo anotado."""
         if ids["base"]:
@@ -207,7 +231,7 @@ class OrgEsEnricher(Enricher):
         for org in data:
             ids = org_ids(org)
             if not ids["nif"] and len(ids["base"]) < 3:
-                self.fallo(org.name, "sin NIF ni denominación utilizable")
+                self.aviso(org.name, "sin NIF ni denominación utilizable")
                 continue
             try:
                 items = await asyncio.to_thread(self.consultar, ids)

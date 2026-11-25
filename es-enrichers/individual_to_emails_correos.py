@@ -3,7 +3,6 @@
 from typing import Any, Dict, List, Optional
 
 from flowsint_core.core.enricher_base import Enricher
-from flowsint_core.core.logger import Logger
 from flowsint_enrichers.es import _evidencias as ev
 from flowsint_enrichers.es._contexto import nombre_de, vecinos
 from flowsint_enrichers.es._scripts import load
@@ -102,7 +101,7 @@ class EsIndividualToEmailsEnricher(Enricher):
         de los nodos Domain/Website conectados a la persona o a su empresa.
         La confianza y las evidencias se registran en los hallazgos y en el log del sketch.
         Certeza «probable» si está publicado en la web, firma un commit público o Hunter lo
-        verifica; «posible» en el resto.
+        verifica; «posible» en el resto. La relación es PROBABLE_EMAIL o POSIBLE_EMAIL.
         """
 
     async def scan(self, data: List[InputType]) -> List[OutputType]:
@@ -111,8 +110,12 @@ class EsIndividualToEmailsEnricher(Enricher):
         hk = ev.clave(self, "HUNTER_API_KEY")
         minc = float(self.params.get("min_confianza") or 0.4)
         maxr = int(self.params.get("max_resultados") or 3)
+        omitidas: List[str] = []
         for ind in data:
             nombre = nombre_de(ind)
+            if not nombre:
+                omitidas.append("sin nombre utilizable")
+                continue
             try:
                 dominios = (
                     [self.params["dominio"]]
@@ -124,13 +127,8 @@ class EsIndividualToEmailsEnricher(Enricher):
             except Exception as exc:
                 ev.fallo(self, FUENTE, nombre, exc)
                 continue
-            if not nombre or not dominios:
-                Logger.info(
-                    self.sketch_id,
-                    {
-                        "message": f"[CORREOS] {nombre or '?'}: sin dominio asociado, se omite"
-                    },
-                )
+            if not dominios:
+                omitidas.append("sin dominio verificado")
                 continue
             for dom in dominios[:2]:
                 try:
@@ -141,33 +139,38 @@ class EsIndividualToEmailsEnricher(Enricher):
                     ev.fallo(self, FUENTE, f"{nombre} @ {dom}", exc, hk)
                     continue
                 for error in res.get("errores") or []:
-                    ev.fallo(self, FUENTE, f"{nombre} @ {dom}", error, hk)
+                    ev.error_de_fuente(self, FUENTE, f"{nombre} @ {dom}", error, hk)
                 for c in [
                     c for c in res["candidatos"] if ev.supera(c.get("confianza"), minc)
                 ][:maxr]:
                     email = Email(email=c["email"])
+                    certeza = certeza_correo(c)
+                    relacion = (
+                        "POSIBLE_EMAIL" if certeza == "posible" else "PROBABLE_EMAIL"
+                    )
                     out.append(email)
                     ev.anotar(
                         self,
                         FUENTE,
                         nombre,
-                        "PROBABLE_EMAIL",
+                        relacion,
                         c["email"],
-                        certeza_correo(c),
+                        certeza,
                         c.get("confianza"),
                         c.get("evidencias"),
                         c.get("url"),
                     )
-                    self.mapping.append((ind, email, c))
+                    self.mapping.append((ind, email, c, relacion))
+        ev.sin_buscar(self, FUENTE, "personas", len(data), omitidas)
         return out
 
     def postprocess(
         self, results: List[OutputType], original_input: List[InputType] = None
     ) -> List[OutputType]:
-        for ind, email, c in self.mapping:
+        for ind, email, c, relacion in self.mapping:
             self.create_node(ind)
             self.create_node(email)
-            self.create_relationship(ind, email, "PROBABLE_EMAIL")
+            self.create_relationship(ind, email, relacion)
             self.log_graph_message(
                 f"{nombre_de(ind)} -> {email.email} ({ev.pct(c.get('confianza'))}: "
                 f"{'; '.join((c.get('evidencias') or [])[:3])})"

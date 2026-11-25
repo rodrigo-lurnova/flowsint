@@ -38,6 +38,10 @@ ACME = Organization(name="ACME SL")
 URL_PERFIL = "https://www.linkedin.com/in/ana-ejemplo"
 
 
+def prefijada(relacion, certeza):
+    return f"POSIBLE_{relacion}" if certeza == "posible" else relacion
+
+
 def falla(*args, **kwargs):
     raise RuntimeError("fuente caída")
 
@@ -202,7 +206,7 @@ def test_email_finding_keeps_confidence_and_evidence(emails):
     assert (f.object, f.confidence, f.evidence) == ("a@b.es", 0.7, ["patrón web"])
     assert (f.subject, f.relation, f.source) == (
         "Ana Ejemplo Ficticia",
-        "PROBABLE_EMAIL",
+        "POSIBLE_EMAIL",
         "Correos",
     )
 
@@ -228,10 +232,12 @@ def test_email_finding_keeps_confidence_and_evidence(emails):
         ({"confianza": 0.99}, "posible"),
     ],
 )
-def test_email_certainty_comes_from_structured_fields(emails, campos, certeza):
+def test_email_certainty_comes_from_structured_fields(emails, grafo, campos, certeza):
     f = emails(candidato(**campos)).findings[0]
     assert f.certainty == certeza
     assert f.url == campos.get("url")
+    assert f.relation == f"{certeza.upper()}_EMAIL"
+    assert [r[1] for r in grafo.relaciones] == [f.relation]
 
 
 @pytest.mark.parametrize("valor", [None, math.nan, "alta"])
@@ -856,17 +862,19 @@ def test_linkedin_context_error(grafo, correr, monkeypatch):
     "conf, esperado",
     [(0.8, (0.8, "probable")), (0.79, (0.79, "posible")), (None, (None, "posible"))],
 )
-def test_linkedin_certainty(monkeypatch, correr, conf, esperado):
+def test_linkedin_certainty(monkeypatch, correr, grafo, conf, esperado):
     monkeypatch.setattr(
         load("apify_actores"),
         "linkedin_buscar",
         lambda *a, **k: [perfil(confianza=conf)],
     )
-    f = correr(Linkedin, [ANA], APIFY_TOKEN="t").findings[0]
+    f = correr(Linkedin, [ANA], APIFY_TOKEN="t", empresa="ACME").findings[0]
+    relacion = prefijada("HAS_LINKEDIN", f.certainty)
     assert (f.confidence, f.certainty) == esperado
+    assert [r[1] for r in grafo.relaciones] == [relacion]
     assert (f.subject, f.relation, f.object, f.url) == (
         "Ana Ejemplo Ficticia",
-        "HAS_LINKEDIN",
+        relacion,
         URL_PERFIL,
         URL_PERFIL,
     )
@@ -878,7 +886,7 @@ def test_linkedin_source_error_calls_add_failure(monkeypatch, correr, entorno):
         raise RuntimeError("Apify HTTP 500 Bearer token-t")
 
     monkeypatch.setattr(load("apify_actores"), "linkedin_buscar", buscar)
-    e = correr(Linkedin, [ANA], APIFY_TOKEN="token-t")
+    e = correr(Linkedin, [ANA], APIFY_TOKEN="token-t", empresa="ACME")
     assert e.source_run().status == "failed"
     assert "LinkedIn (Apify): Ana Ejemplo Ficticia" in e.failures[0]
     assert "token-t" not in "".join(e.failures + entorno)
@@ -893,7 +901,7 @@ def test_missing_apify_token_calls_add_failure(correr, clase, entrada):
 @pytest.mark.parametrize(
     "conf, esperado", [(None, (None, "posible")), (0.85, (0.85, "probable"))]
 )
-def test_company_employees(monkeypatch, correr, conf, esperado):
+def test_company_employees(monkeypatch, correr, grafo, conf, esperado):
     p = perfil()
     p.pop("confianza")
     p.pop("evidencias")
@@ -910,8 +918,9 @@ def test_company_employees(monkeypatch, correr, conf, esperado):
     )
     assert [(f.subject, f.relation, f.object) for f in e.findings] == [
         ("ACME SL", "WORKS_AT", "Ana Ejemplo"),
-        ("Ana Ejemplo", "HAS_LINKEDIN", URL_PERFIL),
+        ("Ana Ejemplo", prefijada("HAS_LINKEDIN", esperado[1]), URL_PERFIL),
     ]
+    assert [r[1] for r in grafo.relaciones] == [f.relation for f in e.findings]
     assert all(
         (f.confidence, f.certainty, f.url) == (*esperado, URL_PERFIL)
         for f in e.findings
@@ -995,14 +1004,15 @@ def red(**kw):
 @pytest.mark.parametrize(
     "conf, certeza", [(0.8, "probable"), (0.7, "posible"), (None, "posible")]
 )
-def test_socials_certainty(socials, conf, certeza):
+def test_socials_certainty(socials, grafo, conf, certeza):
     f = socials(red(confianza=conf)).findings[0]
     assert (f.certainty, f.confidence, f.source) == (certeza, conf, "Perfiles públicos")
     assert (f.relation, f.object, f.url) == (
-        "HAS_PROFILE",
+        prefijada("HAS_PROFILE", certeza),
         "https://github.com/ana",
         "https://github.com/ana",
     )
+    assert [r[1] for r in grafo.relaciones] == [f.relation]
 
 
 def test_apify_token_not_written_to_environ(socials):
@@ -1090,6 +1100,286 @@ def test_searxng_blocked_engines_are_an_error():
     assert (
         perfiles.searxng("q", cliente(httpx.Response(200, json={"results": []}))) == []
     )
+
+
+# ------------------------------------------------------------------ avisos y no buscados
+
+LUIS = Individual(full_name="Luis Inventado", first_name="Luis", last_name="Inventado")
+SIN_NOMBRE = Individual()
+
+
+@pytest.mark.parametrize(
+    "clase, motivo, params",
+    [
+        (Correos, "sin dominio verificado", {}),
+        (Perfiles, "sin empresa vinculada", {}),
+        (Linkedin, "sin empresa", {"APIFY_TOKEN": "clave-apify"}),
+    ],
+)
+def test_people_not_searched_are_counted(correr, monkeypatch, clase, motivo, params):
+    for modulo, funcion in (
+        ("correos", "buscar_correos"),
+        ("perfiles", "buscar_perfiles"),
+        ("apify_actores", "linkedin_buscar"),
+    ):
+        monkeypatch.setattr(load(modulo), funcion, falla)
+    e = correr(clase, [ANA, LUIS, SIN_NOMBRE], **params)
+    assert e.failures == [] and e.findings == []
+    assert [w.split(": ", 1)[1] for w in e.warnings] == [
+        f"2 de 3 personas sin buscar: {motivo}",
+        "1 de 3 personas sin buscar: sin nombre utilizable",
+    ]
+
+
+def test_searched_people_give_no_warning(emails, socials):
+    assert emails(candidato()).warnings == []
+    assert socials(red()).warnings == []
+
+
+def test_linkedin_does_not_pay_without_company(correr, monkeypatch, grafo):
+    llamadas = []
+    monkeypatch.setattr(
+        load("apify_actores"),
+        "linkedin_buscar",
+        lambda nombre, **k: (
+            llamadas.append((nombre, k["empresa"], k["empresa_url"])) or []
+        ),
+    )
+    correr(Linkedin, [ANA], APIFY_TOKEN="t")
+    correr(Linkedin, [SIN_NOMBRE], APIFY_TOKEN="t", empresa="ACME")
+    assert llamadas == []
+    correr(Linkedin, [ANA], APIFY_TOKEN="t", empresa_linkedin_url="https://l/acme")
+    grafo.filas = [fila_empresa("ACME SL", ["ADM_UNICO"])]
+    correr(Linkedin, [ANA], APIFY_TOKEN="t")
+    assert llamadas == [
+        (ANA.full_name, None, "https://l/acme"),
+        (ANA.full_name, "ACME SL", None),
+    ]
+    grafo.filas = [fila_empresa("ACME SL", ["POSIBLE_ADM_UNICO"])]
+    correr(Linkedin, [ANA], APIFY_TOKEN="t")
+    assert len(llamadas) == 2
+
+
+def test_companies_without_linkedin_page_are_counted(correr, monkeypatch):
+    apify = load("apify_actores")
+    monkeypatch.setattr(
+        apify,
+        "google",
+        lambda q, **k: (
+            [] if "OTRA" in q[0] else [{"url": "https://www.linkedin.com/company/acme"}]
+        ),
+    )
+    monkeypatch.setattr(apify, "linkedin_empleados", lambda *a, **k: [])
+    orgs = [ACME, Organization(name="OTRA SL")]
+    e = correr(Empleados, orgs, APIFY_TOKEN="clave-apify")
+    assert e.failures == []
+    assert [w.split(": ", 1)[1] for w in e.warnings] == [
+        "1 de 2 empresas sin buscar: sin página de LinkedIn"
+    ]
+
+
+def test_unnamed_person_in_borme_is_a_warning(correr, monkeypatch):
+    monkeypatch.setattr(bc, "buscar_persona", falla)
+    e = correr(BormePersona, [SIN_NOMBRE])
+    assert e.failures == [] and len(e.warnings) == 1
+
+
+@pytest.mark.parametrize(
+    "respuesta",
+    [
+        httpx.Response(429),
+        httpx.Response(403, headers={"x-ratelimit-remaining": "0"}),
+        httpx.Response(403, json={"message": "API rate limit exceeded for 192.0.2.1"}),
+        httpx.Response(403, headers={"retry-after": "60"}),
+    ],
+)
+def test_github_rate_limit_is_a_warning(emails, socials, monkeypatch, respuesta):
+    errores = []
+    load("correos").github_commits("q", cliente(respuesta), errores=errores)
+    load("perfiles").github_usuarios(
+        "Ana", "ACME", None, cliente(respuesta), errores=errores
+    )
+    assert len(errores) == 2
+    for error, buscar in ((errores[0], emails), (errores[1], socials)):
+        e = buscar(errores=[error])
+        assert e.failures == [] and len(e.warnings) == 1 and "GitHub" in e.warnings[0]
+
+
+def test_gravatar_errors_are_warnings(emails):
+    def corte(req):
+        raise httpx.ConnectError("sin conexión")
+
+    errores = []
+    load("correos").gravatar("a@b.es", cliente(httpx.Response(503)), errores)
+    load("correos").gravatar(
+        "a@b.es", httpx.Client(transport=httpx.MockTransport(corte)), errores
+    )
+    e = emails(candidato(), errores=errores)
+    assert e.failures == [] and len(e.warnings) == 2
+
+
+@pytest.mark.parametrize("estado", [401, 403, 500])
+def test_github_outage_is_still_a_failure(emails, estado):
+    errores = []
+    load("correos").github_commits(
+        "q", cliente(httpx.Response(estado)), errores=errores
+    )
+    e = emails(candidato(), errores=errores)
+    assert len(e.failures) == 1 and e.warnings == []
+
+
+def test_warnings_hide_environment_keys(grafo, entorno):
+    e = Correos(sketch_id="s", graph_service=grafo)
+    _evidencias.aviso(e, "Correos", "Ana", "GET ?k=clave-entorno", "clave-entorno")
+    assert e.warnings == ["Correos: Ana: GET ?k=***"]
+    assert "clave-entorno" not in str(entorno)
+
+
+def test_hunter_key_is_not_sent_to_another_host():
+    hosts = []
+
+    def responder(req):
+        hosts.append(req.url.host)
+        return httpx.Response(302, headers={"location": "https://otro.example.com/x"})
+
+    c = httpx.Client(transport=httpx.MockTransport(responder), follow_redirects=True)
+    r = load("correos").hunter("acme.example.com", "Ana Ejemplo", c, "clave")
+    assert hosts == ["api.hunter.io"] * 2
+    assert all("HTTP 302" in x for x in load("correos").errores_hunter(r))
+
+
+@pytest.mark.parametrize(
+    "respuesta, texto",
+    [
+        (httpx.Response(500), "HTTPStatusError HTTP 500"),
+        (httpx.ConnectError("buscador-ficticio:9000"), "ConnectError"),
+    ],
+)
+def test_searxng_error_hides_the_internal_url(monkeypatch, respuesta, texto):
+    perfiles = load("perfiles")
+    monkeypatch.setattr(perfiles, "SEARXNG_URL", "http://buscador-ficticio:9000")
+    monkeypatch.setattr(perfiles.time, "sleep", lambda s: None)
+    original = httpx.Client
+
+    def responder(req):
+        if isinstance(respuesta, Exception):
+            raise respuesta
+        return respuesta
+
+    monkeypatch.setattr(
+        perfiles.httpx,
+        "Client",
+        lambda **k: original(transport=httpx.MockTransport(responder)),
+    )
+    res = perfiles.buscar_perfiles("Ana Ejemplo", "ACME", redes=["x"])
+    assert len(res["errores"]) == 2 and "buscador-ficticio" not in str(res)
+    assert all(e.endswith(f": {texto}") for e in res["errores"])
+
+
+# ------------------------------------------------------------------ cargos no confirmados
+
+
+@pytest.mark.parametrize("empresas", [("ACME SL", "ACME SA"), ("ACME TRADING SL",)])
+def test_uncertain_officers_stay_in_the_graph_only(borme_empresa, grafo, empresas):
+    e = borme_empresa(*empresas)
+    assert e.resultados == []
+    persona = next(n for n in grafo.nodos if isinstance(n, Individual))
+    assert persona.model_dump(exclude_unset=True, exclude={"nodeLabel"}) == {
+        "full_name": "Ana Ejemplo Ficticia",
+        "first_name": "Ana",
+        "last_name": "Ejemplo Ficticia",
+    }
+
+
+def test_confirmed_officers_go_downstream_with_their_data(borme_empresa):
+    e = borme_empresa("ACME SL")
+    assert [(p.full_name, p.employer, p.job_title) for p in e.resultados] == [
+        ("Ana Ejemplo Ficticia", "ACME SL", "Adm. Unico")
+    ]
+
+
+def test_uncertain_legal_person_is_a_bare_node(monkeypatch, correr, grafo):
+    cargo = {
+        "persona": "GESTORA FICTICIA SL",
+        "cargo": "Adm. Unico",
+        "cargo_codigo": "ADM_UNICO",
+        "accion": "nombramiento",
+    }
+    acto = {"fecha": "2026-01-02", "num": 1, "tipos": [], "cargos": [cargo]}
+
+    async def buscar(nombre, p, api_key):
+        return {"coste": {}, "empresas": [{"empresa": "ACME SA", "actos": [acto]}]}
+
+    monkeypatch.setattr(bc, "buscar_empresa", buscar)
+    correr(BormeEmpresa, [ACME])
+    gestora = next(n for n in grafo.nodos if n.nodeLabel == "GESTORA FICTICIA SL")
+    assert gestora.model_dump(exclude_unset=True, exclude={"nodeLabel"}) == {
+        "name": "GESTORA FICTICIA SL"
+    }
+
+
+# ------------------------------------------------------------------ contexto: orden y dudosas
+
+
+def con_nif(nombre, nif, **kw):
+    return {**nodo(nombre), "nif": nif, **kw}
+
+
+def test_verified_domains_come_first(grafo):
+    org = con_nif("ACME SL", "B00000000")
+
+    def dominio(nombre, relacion, portada=None, tipo="domain"):
+        p = {**camino(["ADM_UNICO", relacion]), "nodos": [org]}
+        fila = {**fila_dominio(nombre, p), "nif_en_portada": portada}
+        if tipo == "website":
+            fila.update(tipo="website", domain=None, url=f"https://www.{nombre}/x")
+        return fila
+
+    grafo.filas = [
+        dominio("a.example.com", "WEB_PROBABLE", "B11111111"),
+        dominio("b.example.com", "HAS_DOMAIN", "B00000000"),
+        dominio("c.example.com", "WEB_PROBABLE", "B11111111, B00000000"),
+        dominio("d.example.com", "HAS_WEBSITE", tipo="website"),
+        dominio("e.example.com", "POSIBLE_WEB_PROBABLE", "B00000000"),
+    ]
+    assert _contexto.vecinos(grafo, "s", "Ana")["dominios"] == [
+        "b.example.com",
+        "c.example.com",
+        "d.example.com",
+        "a.example.com",
+    ]
+
+
+def test_context_query_is_deterministic_and_verified_first():
+    cypher = " ".join(_contexto.CYPHER.split())
+    orden = cypher[cypher.index("ORDER BY") : cypher.index("LIMIT")]
+    assert "verificado DESC" in orden and "elementId(n)" in orden
+    assert "AS verificado" in cypher and "AS nif_en_portada" in cypher
+
+
+def test_company_with_another_nif_does_not_make_the_subject_doubtful(grafo):
+    def fila(propia, ajena):
+        return {
+            **fila_empresa("ACME SL", {**camino(["ADM_UNICO"]), "nodos": [propia]}),
+            "dudosas": [{**ajena, "id": "otro-nodo"}],
+        }
+
+    def empresas(propia, ajena):
+        grafo.filas = [fila(propia, ajena)]
+        return _contexto.vecinos(grafo, "s", "Ana")["empresas"]
+
+    acme = con_nif("ACME SL", "B-00000000")
+    assert empresas(acme, con_nif("ACME, S.L.", "B11111111")) == ["ACME SL"]
+    # sin los dos NIF, con el mismo, o con uno deducido por nombre, sigue siendo dudosa
+    assert empresas(acme, con_nif("ACME SL", None)) == []
+    assert empresas(acme, con_nif("ACME SL", "B00000000")) == []
+    assert empresas(nodo("ACME SL"), con_nif("ACME SL", "B11111111")) == []
+    dudoso = con_nif("ACME SL", "B00000000", certeza="probable")
+    assert empresas(dudoso, con_nif("ACME SL", "B11111111")) == []
+    # y el propio nodo con relación POSIBLE_ lo es siempre
+    grafo.filas = [fila(acme, con_nif("ACME SL", "B11111111"))]
+    grafo.filas[0]["dudosas"][0]["id"] = acme["id"]
+    assert _contexto.vecinos(grafo, "s", "Ana")["empresas"] == []
 
 
 # ------------------------------------------------------------------ evidencias y carga

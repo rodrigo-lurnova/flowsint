@@ -385,9 +385,12 @@ def webs_probables(
     nifs: list[str],
     tlds=TLDS,
     errores: list | None = None,
+    *,
+    dns: list | None = None,
 ) -> list[dict]:
     """Prueba <base>.<tld> (sin espacios y con guiones). Devuelve los que resuelven, con indicios.
-    En `errores`, los dominios que no se han podido comprobar: sin respuesta DNS, sin conexión o HTTP 5xx."""
+    En `errores`, los dominios que no se han podido comprobar: sin respuesta DNS, sin conexión o HTTP 5xx.
+    En `dns`, el estado DNS de cada dominio probado (None = sin respuesta)."""
     errores = [] if errores is None else errores
     slug = re.sub(r"[^a-z0-9 ]", "", base.lower()).strip()
     if not slug:
@@ -396,6 +399,8 @@ def webs_probables(
     dominios = sorted({f"{v}.{t}" for v in variantes for t in tlds})
     with cf.ThreadPoolExecutor(8) as ex:
         estados = list(ex.map(_resuelve, dominios))
+    if dns is not None:
+        dns += estados
     vivos = [d for d, ok in zip(dominios, estados) if ok]
     errores += [
         {"fuente": "DNS", "error": f"{d}: sin respuesta"}
@@ -449,7 +454,8 @@ def resolver(
     max_candidatos: int = 15,
     client: httpx.Client | None = None,
 ) -> dict:
-    """Devuelve {"consulta", "normalizado", "nif_consulta", "candidatos", "homonimia", "avisos", "errores", "webs"}.
+    """Devuelve {"consulta", "normalizado", "nif_consulta", "candidatos", "homonimia", "avisos", "errores",
+    "dns_caido", "webs"}. `dns_caido`: ningún dominio probado ha tenido respuesta DNS.
     `errores` son las fuentes y dominios que han fallado: [{"fuente", "error"}]; las fuentes, también en `avisos`."""
     own = client is None
     client = client or httpx.Client(headers=HEADERS, timeout=40, follow_redirects=True)
@@ -597,9 +603,14 @@ def resolver(
             else (None if nif else texto)
         )
         base = normalizar(nombre_web)["base"] if nombre_web else ""
+        dns: list[bool | None] = []
         webs = (
             webs_probables(
-                client, base, [c["nif"] for c in cands if c["nif"]], errores=errores
+                client,
+                base,
+                [c["nif"] for c in cands if c["nif"]],
+                errores=errores,
+                dns=dns,
             )
             if web and base
             else []
@@ -618,6 +629,7 @@ def resolver(
             "homonimia": homonimia,
             "avisos": avisos,
             "errores": errores,
+            "dns_caido": bool(dns) and all(e is None for e in dns),
             "webs": webs,
         }
     finally:

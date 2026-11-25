@@ -106,7 +106,7 @@ class EsIndividualToOrgsBormeEnricher(Enricher):
 
     async def scan(self, data: List[InputType]) -> List[OutputType]:
         self.mapping, out = [], []
-        mod = bc.borme()
+        mod, sin_nombre = bc.borme(), []
         for ind in data:
             nombre = (
                 ind.full_name
@@ -114,6 +114,7 @@ class EsIndividualToOrgsBormeEnricher(Enricher):
                 or ""
             ).strip()
             if not nombre:
+                sin_nombre.append("sin nombre utilizable")
                 continue
             try:
                 enlazadas = vecinos(self._graph_service, self.sketch_id, nombre)[
@@ -189,6 +190,7 @@ class EsIndividualToOrgsBormeEnricher(Enricher):
                         evidence=[resumen],
                         url=c.get("url_pdf"),
                     )
+        ev.sin_buscar(self, bc.FUENTE, "personas", len(data), sin_nombre)
         return out
 
     def postprocess(

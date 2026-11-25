@@ -122,13 +122,12 @@ class EsOrgToOrgBormeEnricher(Enricher):
         ident = f.get("nif") or f.get("hoja_registral")
         if not ident:
             return None
-        etiqueta = f"{emp['empresa']} ({ident})"
-        return self._ficha(Organization(name=emp["empresa"], nom_complet=etiqueta), emp)
+        return self._ficha(bc.empresa_aparte(emp, ident), emp)
 
     async def scan(self, data: List[InputType]) -> List[OutputType]:
         self.mapping, out = [], []
         for org in data:
-            res = await bc.consultar_empresa(self, str(org.name))
+            res = await bc.consultar_empresa(self, org)
             if res is None:
                 out.append(org)
                 continue

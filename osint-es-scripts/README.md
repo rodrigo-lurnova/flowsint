@@ -82,9 +82,9 @@ Se montan como `flowsint_enrichers.es` y reutilizan estos scripts (montados en `
 
 | Enricher | Entrada → salida | Relaciones |
 |---|---|---|
-| `es_org_resolver_identidad` | Organization → Organization | completa nif/lei/web; homónimos POSIBLE_IDENTIDAD; WEB_PROBABLE |
+| `es_org_resolver_identidad` | Organization → Organization | completa nif/lei/web; homónimos POSIBLE_IDENTIDAD; WEB_PROBABLE si la portada muestra el NIF, si no POSIBLE_WEB_PROBABLE |
 | `es_org_to_registry_borme` | Organization → Organization | ficha registral en el propio nodo |
-| `es_org_to_officers_borme` | Organization → Individual | ADM_UNICO, CONSEJERO, APODERADO, SOCIO_UNICO… (EX_* si consta cese; POSIBLE_* si la coincidencia no es única y exacta) |
+| `es_org_to_officers_borme` | Organization → Individual | ADM_UNICO, CONSEJERO, APODERADO, SOCIO_UNICO… (EX_* si consta cese; POSIBLE_* si la coincidencia no es única y exacta: sin datos de la persona y sin seguir aguas abajo) |
 | `es_individual_to_companies_borme` | Individual → Organization | POSIBLE_<CARGO> (posibles homónimos), <CARGO> en la empresa ya vinculada (caro: usa PROVINCIA) |
 | `es_org_to_subvenciones_bdns` | Organization → Document | RECIBE_SUBVENCION, CONCEDIDA_POR |
 | `es_org_to_registros_cnmv` | Organization → Document | REGISTRO_CNMV |
@@ -92,14 +92,14 @@ Se montan como `flowsint_enrichers.es` y reutilizan estos scripts (montados en `
 | `es_org_to_sentencias_cendoj` | Organization → Document | MENCIONADA_EN_SENTENCIA (máx. 50) |
 | `es_org_to_contratos_placsp` / `es_org_to_contratos_ted` | Organization → Document | ADJUDICATARIA, LICITADO_POR |
 | `es_org_to_sanciones_ue` | Organization → Document | SANCIONADA / POSIBLE_SANCIONADA / POSIBLE_COINCIDENCIA_SANCIONES |
-| `es_org_to_asn` | Organization → ASN | sustituto sin clave de `org_to_asn` (PeeringDB + RIPEstat + Team Cymru) |
+| `es_org_to_asn` | Organization → ASN | sustituto sin clave de `org_to_asn` (PeeringDB + RIPEstat + Team Cymru); POSIBLE_BELONGS_TO |
 | `es_domain_to_web_emails` | Domain → Email | PUBLISHES_EMAIL |
 | `es_domain_to_dns_records` | Domain → DNSRecord | HAS_MX/TXT/DMARC/NS/CAA/SOA_RECORD; describe SPF y verificaciones SaaS |
 | `es_ip_to_ports_internetdb` | Ip → Port | OPEN_PORT + RUNS (software por CPE) desde Shodan InternetDB, pasivo y sin clave |
-| `es_individual_to_emails` | Individual → Email | PROBABLE_EMAIL (dominio del parámetro o del grafo) |
-| `es_individual_to_linkedin` | Individual → SocialAccount | HAS_LINKEDIN (Apify) |
-| `es_org_to_linkedin_employees` | Organization → Individual | WORKS_AT + HAS_LINKEDIN (Apify) |
-| `es_individual_to_socials` (opcional) | Individual → SocialAccount | HAS_PROFILE; sin empresa vinculada no busca |
+| `es_individual_to_emails` | Individual → Email | PROBABLE_EMAIL o POSIBLE_EMAIL (dominio del parámetro o del grafo) |
+| `es_individual_to_linkedin` | Individual → SocialAccount | HAS_LINKEDIN o POSIBLE_HAS_LINKEDIN (Apify); sin empresa no busca |
+| `es_org_to_linkedin_employees` | Organization → Individual | WORKS_AT + HAS_LINKEDIN o POSIBLE_HAS_LINKEDIN (Apify) |
+| `es_individual_to_socials` (opcional) | Individual → SocialAccount | HAS_PROFILE o POSIBLE_HAS_PROFILE; sin empresa vinculada no busca |
 
 Los enrichers de personas toman la empresa y el dominio de los vecinos del Individual en el grafo, sin seguir
 relaciones `POSIBLE_*` ni `BORME_COINCIDENCIA_PARCIAL`.

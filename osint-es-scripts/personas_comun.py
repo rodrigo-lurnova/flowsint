@@ -479,6 +479,22 @@ def contexto_email(bloques: list[dict], email: str, ventana: int = 2) -> str:
 # --------------------------------------------------------------------------- crawl
 
 
+LIMITE_GITHUB = "límite de peticiones"
+
+
+def error_github(r: httpx.Response) -> str:
+    """Distingue el límite de peticiones (pasajero) de un fallo de GitHub."""
+    limite = r.status_code == 429 or (
+        r.status_code == 403
+        and (
+            r.headers.get("x-ratelimit-remaining") == "0"
+            or "retry-after" in r.headers
+            or "rate limit" in r.text.lower()
+        )
+    )
+    return f"GitHub: HTTP {r.status_code}" + (f" ({LIMITE_GITHUB})" if limite else "")
+
+
 def url_base(dominio_o_url: str) -> str:
     s = dominio_o_url.strip()
     if not re.match(r"^https?://", s):

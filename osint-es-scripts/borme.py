@@ -522,8 +522,12 @@ def sumario(db, dl: Descargador | None, fecha: dt.date) -> list[dict] | None:
     row = db.execute(
         "SELECT estado, items FROM sumarios WHERE fecha=?", (f,)
     ).fetchone()
-    if row:
-        return json.loads(row[1]) if row[0] == "ok" else None
+    if row and row[0] != "ok":
+        return None
+    items = json.loads(row[1]) if row else []
+    # Un "ok" sin Sección A, de una caché antigua, se vuelve a pedir
+    if items or row and dl is None:
+        return items
     if dl is None:
         return None
     r = dl.get(SUMARIO_URL.format(fecha=f), headers={"Accept": "application/json"})
@@ -536,7 +540,6 @@ def sumario(db, dl: Descargador | None, fecha: dt.date) -> list[dict] | None:
             db.commit()
         return None
     r.raise_for_status()
-    items = []
     for diario in r.json()["data"]["sumario"].get("diario", []):
         diario = diario if isinstance(diario, list) else [diario]
         for d in diario:
@@ -555,11 +558,12 @@ def sumario(db, dl: Descargador | None, fecha: dt.date) -> list[dict] | None:
                             or TXT_URL.format(id=it["identificador"]),
                         }
                     )
-    db.execute(
-        "INSERT OR REPLACE INTO sumarios VALUES (?,?,?,?)",
-        (f, "ok", json.dumps(items), _ahora()),
-    )
-    db.commit()
+    if items:  # sin Sección A no está completo: no se guarda
+        db.execute(
+            "INSERT OR REPLACE INTO sumarios VALUES (?,?,?,?)",
+            (f, "ok", json.dumps(items), _ahora()),
+        )
+        db.commit()
     return items
 
 
@@ -679,6 +683,9 @@ def dias_habiles(desde: dt.date, hasta: dt.date):
         d -= dt.timedelta(days=1)
 
 
+MAX_DIAS_CAIDOS = 5
+
+
 def cubrir(
     db,
     dl: Descargador | None,
@@ -690,7 +697,9 @@ def cubrir(
     exacta: bool = False,
 ) -> dict:
     """Asegura en caché los documentos necesarios del rango. Devuelve estadística de cobertura.
-    `cubiertos` y `sin_cubrir` son los días con BORME que se han podido consultar y los que no."""
+    `cubiertos` y `sin_cubrir` son los días con BORME que se han podido consultar y los que no.
+    Un día con error 5xx queda sin cubrir; si no se cubre ninguno, se lanza el error. Tras
+    MAX_DIAS_CAIDOS días seguidos con error no se piden más: el resto queda sin cubrir."""
     est = {
         "dias_habiles": 0,
         "dias_con_borme": 0,
@@ -699,41 +708,65 @@ def cubrir(
         "cubiertos": [],
         "sin_cubrir": [],
     }
+    error, caidos = None, 0
     for d in dias_habiles(desde, hasta):
         est["dias_habiles"] += 1
-        items = sumario(db, dl, d)
-        if items is None:
-            continue
-        if not items:  # sumario sin Sección A
+        if caidos >= MAX_DIAS_CAIDOS:
             est["sin_cubrir"].append(d)
             continue
-        est["dias_con_borme"] += 1
-        provs = [i for i in items if not i["id"].endswith("-99")]
-        if provincias or completo:
-            objetivo = [i for i in provs if _prov_ok(i, provincias)]
-            cubierto = bool(provs)
+        try:
+            cubierto = _cubrir_dia(
+                db, dl, d, est, provincias, completo, consulta, exacta
+            )
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code < 500:
+                raise
+            error, cubierto = e, False
+            caidos += 1
         else:
-            i99 = next((i for i in items if i["id"].endswith("-99")), None)
-            cubierto = bool(i99) and indice_dia(db, dl, i99, d)
-            if not cubierto or consulta is None:
-                objetivo = []
-            else:
-                ids = {
-                    doc
-                    for doc, en in db.execute(
-                        "SELECT doc_id, empresa_norm FROM indice WHERE fecha=? AND empresa_norm LIKE ?",
-                        (d.isoformat(), f"%{consulta['base']}%"),
-                    )
-                    if coincide(consulta, normalizar_denominacion(en), exacta)
-                }
-                objetivo = [i for i in provs if i["id"] in ids]
-        for it in objetivo:
-            if documento(db, dl, it, d):
-                est["docs"] += 1
-            else:
-                cubierto = False
-        est["cubiertos" if cubierto else "sin_cubrir"].append(d)
+            caidos = 0
+        if cubierto is not None:
+            est["cubiertos" if cubierto else "sin_cubrir"].append(d)
+    if error and not est["cubiertos"]:
+        raise error
     return est
+
+
+def _cubrir_dia(
+    db, dl, d: dt.date, est: dict, provincias, completo, consulta, exacta
+) -> bool | None:
+    """True si el día se ha podido consultar entero, False si no, None si no hay BORME."""
+    items = sumario(db, dl, d)
+    if items is None:
+        return None
+    if not items:  # sumario sin Sección A
+        return False
+    est["dias_con_borme"] += 1
+    provs = [i for i in items if not i["id"].endswith("-99")]
+    if provincias or completo:
+        objetivo = [i for i in provs if _prov_ok(i, provincias)]
+        cubierto = bool(provs)
+    else:
+        i99 = next((i for i in items if i["id"].endswith("-99")), None)
+        cubierto = bool(i99) and indice_dia(db, dl, i99, d)
+        if not cubierto or consulta is None:
+            objetivo = []
+        else:
+            ids = {
+                doc
+                for doc, en in db.execute(
+                    "SELECT doc_id, empresa_norm FROM indice WHERE fecha=? AND empresa_norm LIKE ?",
+                    (d.isoformat(), f"%{consulta['base']}%"),
+                )
+                if coincide(consulta, normalizar_denominacion(en), exacta)
+            }
+            objetivo = [i for i in provs if i["id"] in ids]
+    for it in objetivo:
+        if documento(db, dl, it, d):
+            est["docs"] += 1
+        else:
+            cubierto = False
+    return cubierto
 
 
 def cobertura(desde: dt.date, hasta: dt.date, est: dict) -> dict:
@@ -899,6 +932,8 @@ def _agrupar(actos: list[dict]) -> list[dict]:
 def rango(desde=None, hasta=None, dias: int = 90) -> tuple[dt.date, dt.date]:
     hasta = parse_fecha(hasta) or dt.date.today()
     desde = parse_fecha(desde) or hasta - dt.timedelta(days=dias)
+    if desde > hasta:
+        raise ValueError(f"Rango de fechas invertido: {desde} es posterior a {hasta}")
     return desde, hasta
 
 
@@ -1257,7 +1292,7 @@ def main() -> int:
                 a.solo_cache,
                 prog,
             )
-    except (RuntimeError, ValueError) as e:
+    except (RuntimeError, ValueError, httpx.HTTPError) as e:
         print(f"Error: {e}", file=sys.stderr)
         return 2
     if a.json:

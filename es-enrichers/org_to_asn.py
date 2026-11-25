@@ -32,6 +32,7 @@ RIPESTAT_URL = "https://stat.ripe.net/data/searchcomplete/data.json"
 CYMRU_ZONE = "asn.cymru.com"
 HTTP_TIMEOUT = 15
 USER_AGENT = "flowsint-es-enrichers/1.0"
+RELACION = ev.relacion("BELONGS_TO", "posible")  # siempre por nombre
 
 
 def _norm(text: str) -> str:
@@ -122,7 +123,7 @@ class EsOrgToAsnEnricher(Enricher):
         for org in data:
             tokens = _norm(org.name).split()
             if not tokens:
-                ev.fallo(self, "ASN", str(org.name), "sin denominación utilizable")
+                ev.aviso(self, "ASN", str(org.name), "sin denominación utilizable")
                 continue
             found: Dict[int, Dict[str, Any]] = {}
             for source, fn in (
@@ -170,7 +171,7 @@ class EsOrgToAsnEnricher(Enricher):
                     self,
                     ", ".join(sorted(info["sources"])),
                     org.nodeLabel,
-                    "BELONGS_TO",
+                    RELACION,
                     asns[number].asn_str,
                     "posible",
                     evidence=[info["label"]],
@@ -192,7 +193,7 @@ class EsOrgToAsnEnricher(Enricher):
             if asn.asn_str not in created:
                 self.create_node(asn)
                 created.add(asn.asn_str)
-            self.create_relationship(org, asn, "BELONGS_TO")
+            self.create_relationship(org, asn, RELACION)
             self.log_graph_message(f"{org.name} -> {asn.asn_str} ({asn.name or '?'})")
         return results
 

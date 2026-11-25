@@ -9,7 +9,7 @@ import re
 from typing import Any, Dict, List, Optional
 
 from flowsint_enrichers.es import _evidencias as ev
-from flowsint_enrichers.es._org import org_ids
+from flowsint_enrichers.es._org import org_ids, sin_identificador
 from flowsint_enrichers.es._scripts import load
 from flowsint_types.individual import Individual
 from flowsint_types.organization import Organization
@@ -199,8 +199,26 @@ async def buscar_persona(nombre: str, params: Dict[str, Any]) -> dict:
     )
 
 
-async def consultar_empresa(enricher, nombre: str) -> Optional[dict]:
+def denominacion(org: Organization) -> str:
+    """Nombre con el que buscar en el BORME, que no publica el NIF: el del nodo o, si el nodo se llama como
+    su NIF, la denominación resuelta. "" si no hay ninguna."""
+    nombre = sin_identificador(org.name)
+    if not nombre or load("resolver_empresa").parece_nif(nombre):
+        nombre = org_ids(org)["nombre"]
+    return nombre if len(borme().normalizar_denominacion(nombre)["base"]) >= 2 else ""
+
+
+async def consultar_empresa(enricher, org: Organization) -> Optional[dict]:
     """buscar_empresa anotando fallos y cobertura en el enricher. None si no hay respuesta."""
+    nombre = denominacion(org)
+    if not nombre:
+        ev.fallo(
+            enricher,
+            FUENTE,
+            str(org.name),
+            "sin denominación utilizable (el BORME no publica el NIF)",
+        )
+        return None
     api_key = api_key_de(enricher)
     try:
         res = await buscar_empresa(nombre, enricher.params, api_key)
@@ -216,12 +234,15 @@ async def consultar_empresa(enricher, nombre: str) -> Optional[dict]:
     return res
 
 
-def cobertura(res: dict) -> Optional[str]:
+def cobertura(res: dict, provincias: Optional[List[str]] = None) -> Optional[str]:
     """Texto de cobertura según el backend y las fechas con las que se ha consultado."""
     if res.get("backend") == "apispain":
         return f"{APISPAIN} desde 2024-01-01 (parcial: hasta 20 empresas y sus actos recientes)"
     rango = res.get("cubierto", [res.get("desde"), res.get("hasta")])
-    return f"BORME BOE {rango[0]} a {rango[1]}" if rango and all(rango) else None
+    if not rango or not all(rango):
+        return None
+    limite = f" (provincias: {', '.join(provincias)})" if provincias else ""
+    return f"BORME BOE {rango[0]} a {rango[1]}{limite}"
 
 
 def anotar_cobertura(enricher, res: dict, nombre: str) -> None:
@@ -232,7 +253,7 @@ def anotar_cobertura(enricher, res: dict, nombre: str) -> None:
         dias = "1 día" if len(sin) == 1 else f"{len(sin)} días"
         ev.fallo(enricher, FUENTE, nombre, f"{dias} sin cubrir ({tramo})")
     textos = enricher.coverage.split("; ") if enricher.coverage else []
-    texto = cobertura(res)
+    texto = cobertura(res, p_list(enricher.params.get("PROVINCIA")))
     if texto and texto not in textos:
         enricher.coverage = "; ".join([*textos, texto])
 
@@ -240,25 +261,50 @@ def anotar_cobertura(enricher, res: dict, nombre: str) -> None:
 def dudas(org: Organization, empresas: List[dict]) -> List[tuple]:
     """Por empresa: (denominación exacta, motivo de duda o None si es la consultada sin ambigüedad)."""
     norm = borme().normalizar_denominacion
-    limpiar = load("resolver_empresa").limpiar_nif
-    nombre, nif = str(org.name), org_ids(org)["nif"]
+    nombre, ids = denominacion(org), org_ids(org)
+    nif = ids["nif"]
     q = norm(nombre)
     normas = [norm(e["empresa"] or "") for e in empresas]
-    exactas = sum(n["base"] == q["base"] for n in normas)
+    exactas = [i for i, n in enumerate(normas) if n["base"] == q["base"]]
+    # Entre homónimas, el NIF propio del nodo (no uno deducido por nombre) dice cuál es si solo casa una
+    con_nif = [
+        i
+        for i in exactas
+        if nif and not ids["identidad_certeza"] and nif_de(empresas[i]) == nif
+    ]
+    unica = con_nif[0] if len(con_nif) == 1 else None
     out = []
-    for e, n in zip(empresas, normas):
-        otro = (e.get("ficha") or {}).get("nif")
-        exacta, duda = n["base"] == q["base"], None
+    for i, (e, n) in enumerate(zip(empresas, normas)):
+        otro = nif_de(e)
+        exacta, duda = i in exactas, None
         if not exacta:
             duda = f"coincidencia parcial con «{nombre}»"
-        elif exactas > 1:
-            duda = f"{exactas} sociedades con la misma denominación"
+        elif len(exactas) > 1 and i != unica:
+            duda = f"{len(exactas)} sociedades con la misma denominación"
         elif not misma_forma(n, q):
             duda = f"distinta forma jurídica que «{nombre}»"
-        elif nif and otro and limpiar(otro) != nif:
+        elif nif and otro and otro != nif:
             duda = f"otro NIF ({otro})"
         out.append((exacta, duda))
     return out
+
+
+def nif_de(empresa: dict) -> Optional[str]:
+    nif = (empresa.get("ficha") or {}).get("nif")
+    return load("resolver_empresa").limpiar_nif(str(nif)) if nif else None
+
+
+def tiene_otro_nif(org: Organization, empresa: dict) -> bool:
+    """La empresa del BORME tiene un NIF conocido distinto del de `org`."""
+    nif, otro = org_ids(org)["nif"], nif_de(empresa)
+    return bool(nif and otro and nif != otro)
+
+
+def empresa_aparte(empresa: dict, ident: str) -> Organization:
+    """Nodo propio, con su identificador en la etiqueta para no escribir sobre otro nodo del sketch."""
+    return Organization(
+        name=empresa["empresa"], nom_complet=f"{empresa['empresa']} ({ident})"
+    )
 
 
 def misma_forma(a: dict, b: dict) -> bool:
@@ -336,6 +382,14 @@ def individuo(persona_borme: str, **extra) -> Individual:
         aliases=[persona_borme],
         source="BORME",
         **extra,
+    )
+
+
+def individuo_sin_datos(persona_borme: str) -> Individual:
+    """Solo el nombre, en orden natural."""
+    i = individuo(persona_borme)
+    return Individual(
+        full_name=i.full_name, first_name=i.first_name, last_name=i.last_name
     )
 
 

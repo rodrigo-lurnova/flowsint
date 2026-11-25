@@ -92,14 +92,16 @@ class EsOrgToIndividualsBormeEnricher(Enricher):
         consta cese/revocación). Los cargos 'vigentes' son una inferencia parcial sobre el
         rango consultado (por defecto 90 días). El BORME no publica DNI: posibles homónimos.
         Si la coincidencia es parcial o hay varias sociedades con la misma denominación, la
-        relación es POSIBLE_<CARGO> (POSIBLE_EX_<CARGO>).
+        relación es POSIBLE_<CARGO> (POSIBLE_EX_<CARGO>), la persona se crea sin más datos que el
+        nombre y no sigue aguas abajo. Si la sociedad tiene otro NIF, sus cargos cuelgan de un nodo
+        aparte («DENOMINACIÓN (NIF)»).
         """
 
     async def scan(self, data: List[InputType]) -> List[OutputType]:
         self.mapping, out = [], []
         solo_vig = bc.p_bool(self.params.get("SOLO_VIGENTES"))
         for org in data:
-            res = await bc.consultar_empresa(self, str(org.name))
+            res = await bc.consultar_empresa(self, org)
             if res is None:
                 continue
             Logger.info(
@@ -112,10 +114,19 @@ class EsOrgToIndividualsBormeEnricher(Enricher):
             estados = bc.dudas(org, res["empresas"])
             for emp, (exacta, duda) in zip(res["empresas"], estados):
                 confirmada = duda is None
-                destino = (
-                    org if exacta else Organization(name=emp["empresa"], source="BORME")
-                )
-                if not exacta:
+                if bc.tiene_otro_nif(org, emp):
+                    # Otra sociedad: no se cuelga nada de la consultada
+                    ident = emp["ficha"]["nif"]
+                    destino = bc.org_actualizada(
+                        bc.empresa_aparte(emp, ident), nif=ident, source="BORME"
+                    )
+                    self.mapping.append(
+                        ("org", destino, org, "BORME_COINCIDENCIA_PARCIAL", None)
+                    )
+                elif exacta:
+                    destino = org
+                else:
+                    destino = Organization(name=emp["empresa"], source="BORME")
                     self.mapping.append(
                         ("org", org, destino, "BORME_COINCIDENCIA_PARCIAL", None)
                     )
@@ -135,7 +146,16 @@ class EsOrgToIndividualsBormeEnricher(Enricher):
                         )
                         + f" [BORME {', '.join(h['borme_ids'][:3])}]"
                     )
-                    if bc.es_persona_juridica(h["persona"]):
+                    juridica = bc.es_persona_juridica(h["persona"])
+                    if not confirmada:
+                        # Los nodos se fusionan por nombre: sin más datos, para no escribir sobre el
+                        # de la persona real. No siguen aguas abajo, solo quedan en el grafo.
+                        nodo = (
+                            Organization(name=h["persona"])
+                            if juridica
+                            else bc.individuo_sin_datos(h["persona"])
+                        )
+                    elif juridica:
                         nodo = Organization(
                             name=h["persona"], source="BORME", borme_cargos=[resumen]
                         )
@@ -156,7 +176,7 @@ class EsOrgToIndividualsBormeEnricher(Enricher):
                     ev.anotar(
                         self,
                         bc.FUENTE,
-                        destino.name,
+                        destino.nodeLabel,
                         etiqueta,
                         getattr(nodo, "full_name", None) or nodo.name,
                         "confirmada" if confirmada else "posible",

@@ -34,7 +34,7 @@ import time
 from urllib.parse import urlparse
 
 import httpx
-from personas_comun import HEADERS, coincidencia_nombre, normalizar
+from personas_comun import HEADERS, coincidencia_nombre, error_github, normalizar
 
 SEARXNG_URL = os.getenv("SEARXNG_URL", "http://localhost:9000")
 MOTORES = os.getenv("SEARXNG_ENGINES", "yandex,seznam")
@@ -75,6 +75,16 @@ NO_PERFIL_GITHUB = {
 }
 
 
+class MotoresSinRespuesta(RuntimeError):
+    pass
+
+
+def motivo(e: Exception) -> str:
+    """Tipo del error y estado HTTP, sin el texto: puede llevar la URL interna de SearXNG."""
+    estado = getattr(getattr(e, "response", None), "status_code", None)
+    return type(e).__name__ + (f" HTTP {estado}" if estado else "")
+
+
 def searxng(consulta: str, client: httpx.Client) -> list[dict]:
     r = client.get(
         f"{SEARXNG_URL}/search",
@@ -83,7 +93,7 @@ def searxng(consulta: str, client: httpx.Client) -> list[dict]:
     r.raise_for_status()
     datos = r.json()
     if not datos.get("results") and datos.get("unresponsive_engines"):
-        raise RuntimeError(
+        raise MotoresSinRespuesta(
             "motores sin respuesta: "
             + ", ".join(
                 " ".join(str(x) for x in m) if isinstance(m, (list, tuple)) else str(m)
@@ -167,7 +177,7 @@ def github_usuarios(
             r = client.get(url, params=params or None, headers=h)
             if r.status_code == 200:
                 return r.json()
-            errores.append(f"GitHub: HTTP {r.status_code}")
+            errores.append(error_github(r))
         except (httpx.HTTPError, ValueError) as e:
             errores.append(f"GitHub: {type(e).__name__}")
         return None
@@ -230,7 +240,7 @@ def buscar_perfiles(
             try:
                 hits += [{**h, "consulta": q} for h in searxng(q, c)]
             except Exception as e:
-                errores.append(f"SearXNG «{q}»: {type(e).__name__}: {e}")
+                errores.append(f"SearXNG «{q}»: {motivo(e)}")
         if apify:
             try:
                 hits += google_apify([q for _, q in consultas], apify_token, errores)
