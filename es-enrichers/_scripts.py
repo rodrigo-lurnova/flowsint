@@ -3,6 +3,7 @@
 Los scripts son CLIs autocontenidos (solo httpx + stdlib) que también exponen
 funciones importables; docker-compose.prod.yml los monta en SCRIPTS_DIR.
 """
+
 import importlib
 import os
 import sys
