@@ -1,6 +1,8 @@
 from typing import Any, Dict, List, Optional
 
-from flowsint_enrichers.es._org import Hallazgo, OrgEsEnricher, org_ids
+from flowsint_enrichers.es import _evidencias as ev
+from flowsint_enrichers.es._borme_comun import misma_forma
+from flowsint_enrichers.es._org import Hallazgo, OrgEsEnricher, limitar, org_ids
 from flowsint_enrichers.es._scripts import load
 from flowsint_enrichers.registry import flowsint_enricher
 from flowsint_types.domain import Domain
@@ -47,7 +49,9 @@ class OrgToIdentidadEs(OrgEsEnricher):
         denominaciones y web; si hay homonimia NO rellena el NIF y crea cada candidato como
         Organization aparte («DENOMINACIÓN (NIF)») con la relación POSIBLE_IDENTIDAD, para que
         el analista elija. Los dominios que resuelven se crean como Domain con WEB_PROBABLE
-        (propiedad confianza: alta si la portada muestra el NIF). `max_resultados` = máximo de
+        (propiedad confianza: alta si la portada muestra el NIF). Si el candidato se elige por
+        nombre, el nodo lleva identidad_certeza="probable" y lo que se busque con ese NIF no
+        pasa de probable; un candidato con otra forma jurídica no se elige. `max_resultados` = máximo de
         candidatos creados.
         """
 
@@ -70,29 +74,41 @@ class OrgToIdentidadEs(OrgEsEnricher):
             ids = org_ids(org)
             consulta = ids["nif"] or ids["nombre"]
             if not consulta:
+                self.fallo(org.name, "sin NIF ni denominación utilizable")
                 continue
             try:
                 r = await asyncio.to_thread(
                     res_mod.resolver, consulta, fuentes, web, 15
                 )
             except Exception as e:
-                self.log(
-                    f"Error resolviendo {consulta}: {type(e).__name__}: {e}", error=True
-                )
+                self.fallo(consulta, e)
                 results.append(org)
                 continue
+            for err in r.get("errores") or []:
+                self.fallo(consulta, err["error"], err["fuente"])
             for av in r["avisos"]:
                 self.log(f"{consulta}: {av}")
             exactos = [c for c in r["candidatos"] if c["coincidencia"] == "exacta"]
             elegido = exactos[0] if len(exactos) == 1 else None
+            if elegido and not ids["nif"] and not self._forma_compatible(ids, elegido):
+                elegido = None
 
             if elegido:
+                props = self._props(elegido, r)
+                # Elegido solo por nombre, ahora o en una ejecución anterior.
+                # Con NIF propio del nodo no hay tope.
+                certeza = ids["identidad_certeza"] or (
+                    "confirmada" if ids["nif"] else "probable"
+                )
+                if certeza != "confirmada":
+                    props["identidad_certeza"] = certeza
                 actualizado = Organization(
-                    **{**org.model_dump(exclude_unset=True), **self._props(elegido, r)}
+                    **{**org.model_dump(exclude_unset=True), **props}
                 )
                 self.hallazgos.append(
                     (org, Hallazgo(actualizado, ""))
                 )  # "" = actualizar el nodo de entrada
+                self._anotar_identidad(org, elegido, certeza)
                 destino = actualizado
             else:
                 destino = org
@@ -100,7 +116,20 @@ class OrgToIdentidadEs(OrgEsEnricher):
                 if c is elegido:
                     continue
                 cand = self._candidato(c, r)
-                self.hallazgos.append((destino, Hallazgo(cand, "POSIBLE_IDENTIDAD")))
+                self.hallazgos.append(
+                    (destino, Hallazgo(cand, "POSIBLE_IDENTIDAD", certainty="posible"))
+                )
+                ev.anotar(
+                    self,
+                    ", ".join(c["fuentes"]),
+                    org.nodeLabel,
+                    "POSIBLE_IDENTIDAD",
+                    cand.nodeLabel,
+                    "posible",
+                    evidence=[f"coincidencia de nombre: {c['coincidencia']}"],
+                    url=(c.get("gleif") or {}).get("url"),
+                )
+            nif = ids["nif"] or (elegido and elegido["nif"])
             if web:
                 for w in r["webs"]:
                     if w["confianza"] == "baja":
@@ -111,11 +140,69 @@ class OrgToIdentidadEs(OrgEsEnricher):
                         titulo_web=w.get("titulo"),
                         nif_en_portada=", ".join(w["nif_en_portada"]) or None,
                     )
-                    self.hallazgos.append((destino, Hallazgo(dom, "WEB_PROBABLE")))
+                    # El NIF de la portada tiene que ser el de la empresa, no el de un homónimo.
+                    propia = w["confianza"] == "alta" and nif in w["nif_en_portada"]
+                    h = Hallazgo(
+                        dom,
+                        "WEB_PROBABLE",
+                        url=w.get("url"),
+                        certainty="probable" if propia else "posible",
+                    )
+                    self.hallazgos.append((destino, h))
+                    ev.anotar(
+                        self,
+                        "Web",
+                        org.nodeLabel,
+                        h.relacion,
+                        w["dominio"],
+                        limitar(h.certainty, org_ids(destino)),
+                        evidence=[f"NIF en portada: {n}" for n in w["nif_en_portada"]]
+                        or [f"confianza {w['confianza']}"],
+                        url=h.url,
+                    )
             # Aguas abajo del flow solo sigue la empresa investigada (resuelta o no), nunca los homónimos:
             # los candidatos y webs quedan en el grafo vía postprocess.
             results.append(destino)
         return results
+
+    @staticmethod
+    def _forma_compatible(ids: Dict[str, Optional[str]], c: Dict[str, Any]) -> bool:
+        """«ACME SA» no identifica a «ACME SL»."""
+        norm = load("resolver_empresa").normalizar
+        q = norm(ids["nombre"])
+        return not c["denominaciones"] or any(
+            misma_forma(q, norm(d)) for d in c["denominaciones"]
+        )
+
+    def _anotar_identidad(
+        self, org: Organization, c: Dict[str, Any], certeza: str
+    ) -> None:
+        g = c.get("gleif") or {}
+        evidencia = [f"denominaciones: {' | '.join(c['denominaciones'][:4])}"]
+        fuentes = [f for f in c["fuentes"] if f != "GLEIF"] or c["fuentes"]
+        ev.anotar(
+            self,
+            ", ".join(fuentes),
+            org.nodeLabel,
+            "NIF",
+            c["nif"],
+            certeza,
+            evidence=evidencia
+            + ([] if c["valido"] else ["dígito de control incorrecto"]),
+        )
+        # GLEIF enlaza el LEI con el NIF por denominación, salvo que lo tenga registrado.
+        if not g.get("por_nif") and c["nif"]:
+            certeza = "posible"
+        ev.anotar(
+            self,
+            "GLEIF",
+            org.nodeLabel,
+            "LEI",
+            c["lei"],
+            certeza,
+            evidence=evidencia,
+            url=g.get("url"),
+        )
 
     @staticmethod
     def _props(c: Dict[str, Any], r: Dict[str, Any]) -> Dict[str, Any]:

@@ -7,7 +7,6 @@ from flowsint_enrichers.es._org import (
     Hallazgo,
     OrgEsEnricher,
     documento,
-    nombre_por_nif,
     recorta,
 )
 from flowsint_enrichers.es._scripts import load
@@ -41,24 +40,28 @@ class OrgToSentenciasCendoj(OrgEsEnricher):
 
     def consultar(self, ids: Dict[str, Optional[str]]) -> List[Hallazgo]:
         cendoj = load("cendoj")
-        base = ids["base"] or (nombre_por_nif(ids["nif"]) if ids["nif"] else "")
+        base = self.base_o_fallo(ids)
         if not base:
-            self.log(
-                "Sin denominación para buscar en el CENDOJ (no se busca por NIF)",
-                error=True,
-            )
             return []
         texto = f'"{base}"' if " " in base else base
         tope = min(self.max_resultados, TOPE_CENDOJ)
         with httpx.Client(
             headers=cendoj.HEADERS, timeout=40, follow_redirects=True
         ) as c:
-            c.get(cendoj.BASE + "indexAN.jsp")
+            c.get(cendoj.BASE + "indexAN.jsp").raise_for_status()
             total, items = cendoj.pagina(c, texto, 1)
             while len(items) < min(tope, total):
                 time.sleep(1.5)
-                _, more = cendoj.pagina(c, texto, len(items) + 1)
+                try:
+                    _, more = cendoj.pagina(c, texto, len(items) + 1)
+                except Exception as e:  # se conservan las páginas ya leídas
+                    self.fallo(texto, e)
+                    break
                 if not more:
+                    self.fallo(
+                        texto,
+                        f"página sin resultados legibles tras {len(items)} de {total}",
+                    )
                     break
                 items.extend(more)
         self.log(
@@ -81,7 +84,7 @@ class OrgToSentenciasCendoj(OrgEsEnricher):
                 recurso=i.get("Nº Recurso"),
                 consulta=texto,
             )
-            out.append(Hallazgo(doc, "MENCIONADA_EN_SENTENCIA"))
+            out.append(Hallazgo(doc, "MENCIONADA_EN_SENTENCIA", certainty="posible"))
         return out
 
 

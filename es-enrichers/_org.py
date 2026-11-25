@@ -12,11 +12,14 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from flowsint_core.core.enricher_base import Enricher
+from flowsint_core.core.findings import Certainty
 from flowsint_core.core.logger import Logger
+from flowsint_enrichers.es import _evidencias as ev
 from flowsint_enrichers.es._scripts import load
 from flowsint_types.document import Document
 from flowsint_types.organization import Organization
 
+NIVELES = ("posible", "probable", "confirmada")
 MAX_DURO = 100  # tope absoluto de nodos por organización, se pida lo que se pida
 
 
@@ -27,6 +30,19 @@ class Hallazgo:
     nodo: Any
     relacion: str
     extra: List[tuple] = field(default_factory=list)  # (desde, hacia, etiqueta)
+    url: Optional[str] = None  # si falta, la source_url del nodo
+    certainty: Certainty = "confirmada"  # "confirmada" = encontrado por NIF o LEI
+
+    def __post_init__(self) -> None:
+        self.url = self.url or getattr(self.nodo, "source_url", None)
+
+
+def limitar(certainty: str, ids: Dict[str, Optional[str]]) -> str:
+    """Tope por identidad: sin NIF ni LEI, «posible»; con un NIF deducido por nombre, su certeza."""
+    tope = ids["identidad_certeza"] or "confirmada"
+    if not ids["nif"] and not ids["lei"]:
+        tope = "posible"
+    return min(certainty, tope, key=NIVELES.index)
 
 
 def org_ids(org: Organization) -> Dict[str, Optional[str]]:
@@ -42,6 +58,7 @@ def org_ids(org: Organization) -> Dict[str, Optional[str]]:
     lei = str(extra.get("lei") or "").strip().upper() or None
     if lei and not re.fullmatch(r"[A-Z0-9]{18}\d{2}", lei):
         lei = None
+    certeza = str(extra.get("identidad_certeza") or "").strip().lower()
     nombre = str(org.nom_raison_sociale or org.name or "").strip()
     nombre = re.sub(
         r"\s*[\[(][A-Z0-9]{9,11}[\])]\s*$", "", nombre
@@ -52,6 +69,8 @@ def org_ids(org: Organization) -> Dict[str, Optional[str]]:
         "nif": nif,
         "lei": lei,
         "nombre": nombre,
+        # "probable": el NIF lo asignó un enricher por coincidencia de nombre
+        "identidad_certeza": certeza if certeza in NIVELES[:2] else None,
         "base": res.normalizar(nombre)["base"] if nombre else "",
     }
 
@@ -161,27 +180,54 @@ class OrgEsEnricher(Enricher):
             self.sketch_id, {"message": f"{self.FUENTE} {msg}"}
         )
 
+    @property
+    def fuente(self) -> str:
+        return self.FUENTE.strip("[]")
+
+    def fallo(self, sujeto: Any, error: Any, fuente: Optional[str] = None) -> None:
+        ev.fallo(self, fuente or self.fuente, str(sujeto), error)
+
+    def base_o_fallo(self, ids: Dict[str, Optional[str]]) -> str:
+        """Denominación para las fuentes que no buscan por NIF; si no se consigue, "" y el fallo anotado."""
+        if ids["base"]:
+            return ids["base"]
+        try:
+            base = nombre_por_nif(ids["nif"])
+        except Exception as e:
+            self.fallo(ids["nif"], e, "BDNS")
+            return ""
+        if not base:
+            self.fallo(ids["nif"], "no busca por NIF y no se encontró la denominación")
+        return base
+
     async def scan(self, data: List[Organization]) -> List[Any]:
         self.hallazgos = []
         results: List[Any] = []
         for org in data:
             ids = org_ids(org)
             if not ids["nif"] and len(ids["base"]) < 3:
-                self.log(f"{org.name}: sin NIF ni denominación utilizable", error=True)
+                self.fallo(org.name, "sin NIF ni denominación utilizable")
                 continue
             try:
                 items = await asyncio.to_thread(self.consultar, ids)
             except Exception as e:  # la fuente puede caer o cambiar: no tumbar el resto
-                self.log(
-                    f"Error consultando {ids['nif'] or ids['nombre']}: {type(e).__name__}: {e}",
-                    error=True,
-                )
+                self.fallo(ids["nif"] or ids["nombre"], e)
                 continue
             items = items[: self.max_resultados]
             self.log(f"{ids['nif'] or ids['nombre']}: {len(items)} resultados")
             for h in items:
                 self.hallazgos.append((org, h))
                 results.append(h.nodo)
+                ev.anotar(
+                    self,
+                    self.fuente,
+                    org.nodeLabel,
+                    h.relacion,
+                    h.nodo.nodeLabel,
+                    limitar(h.certainty, ids),
+                    evidence=[getattr(h.nodo, "description", None)],
+                    url=h.url,
+                )
         return results
 
     def postprocess(

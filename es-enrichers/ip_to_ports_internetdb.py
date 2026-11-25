@@ -12,11 +12,13 @@ import requests
 
 from flowsint_core.core.enricher_base import Enricher
 from flowsint_core.core.logger import Logger
+from flowsint_enrichers.es import _evidencias as ev
 from flowsint_enrichers.registry import flowsint_enricher
 from flowsint_types.ip import Ip
 from flowsint_types.port import Port
 from flowsint_types.technology import Technology
 
+FUENTE = "Shodan InternetDB"
 INTERNETDB = "https://internetdb.shodan.io/{}"
 
 
@@ -79,35 +81,48 @@ class EsIpToPortsInternetdbEnricher(Enricher):
                     continue
                 r.raise_for_status()
                 d = r.json()
-            except Exception as exc:
-                Logger.error(
-                    self.sketch_id, {"message": f"[INTERNETDB] {ip.address}: {exc}"}
-                )
-                continue
-            ports = [
-                Port(number=p, protocol="tcp", state="open") for p in d.get("ports", [])
-            ]
-            techs = []
-            for c in d.get("cpes", []):
-                # cpe:/a:f5:nginx:1.26.3 -> producto "nginx", versión "1.26.3"
-                partes = c.removeprefix("cpe:/").split(":")
-                if len(partes) < 3:
-                    continue
-                nombre = (
-                    f"{partes[1]} httpd"
-                    if partes[2] == "http_server"
-                    else partes[2].replace("_", " ")
-                )
-                techs.append(
-                    Technology(
-                        name=nombre,
-                        version=partes[3] if len(partes) > 3 else None,
-                        category="os" if partes[0] == "o" else "software",
-                        source="Shodan InternetDB",
+                ports = [
+                    Port(number=p, protocol="tcp", state="open")
+                    for p in d.get("ports", [])
+                ]
+                techs = []
+                for c in d.get("cpes", []):
+                    # cpe:/a:f5:nginx:1.26.3 -> producto "nginx", versión "1.26.3"
+                    partes = c.removeprefix("cpe:/").split(":")
+                    if len(partes) < 3:
+                        continue
+                    nombre = (
+                        f"{partes[1]} httpd"
+                        if partes[2] == "http_server"
+                        else partes[2].replace("_", " ")
                     )
-                )
+                    techs.append(
+                        Technology(
+                            name=nombre,
+                            version=partes[3] if len(partes) > 3 else None,
+                            category="os" if partes[0] == "o" else "software",
+                            source=FUENTE,
+                        )
+                    )
+            except Exception as exc:
+                ev.fallo(self, FUENTE, ip.address, exc)
+                continue
             out += ports
             self.mapping.append((ip, ports, techs, d))
+            objetos = [("OPEN_PORT", f"{p.number}/{p.protocol}") for p in ports]
+            objetos += [
+                ("RUNS", " ".join(x for x in (t.name, t.version) if x)) for t in techs
+            ]
+            for relacion, objeto in objetos:
+                ev.anotar(
+                    self,
+                    FUENTE,
+                    ip.address,
+                    relacion,
+                    objeto,
+                    "confirmada",
+                    url=INTERNETDB.format(ip.address),
+                )
         return out
 
     def postprocess(

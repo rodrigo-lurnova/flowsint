@@ -91,7 +91,17 @@ class OrgToContratosTed(OrgEsEnricher):
             extra = []
             if self.p_bool("incluir_compradores", True) and i["comprador"]:
                 extra.append((doc, Organization(name=i["comprador"]), "LICITADO_POR"))
-            out.append(Hallazgo(doc, "ADJUDICATARIA", extra))
+            por_nif = ids["nif"] and ids["nif"] in {
+                res.limpiar_nif(x) for x in i["identificadores"]
+            }
+            out.append(
+                Hallazgo(
+                    doc,
+                    "ADJUDICATARIA",
+                    extra,
+                    certainty="confirmada" if por_nif else "posible",
+                )
+            )
         return out
 
 

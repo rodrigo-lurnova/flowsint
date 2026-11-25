@@ -367,25 +367,34 @@ def desde_cnmv(client: httpx.Client, texto: str) -> list[dict]:
 
 
 # --- Web probable ----------------------------------------------------------------------
-def _resuelve(dominio: str) -> bool:
+def _resuelve(dominio: str) -> bool | None:
+    """True/False; None si el DNS no ha respondido (no se sabe si existe)."""
     try:
         socket.getaddrinfo(dominio, 443)
         return True
-    except OSError:
-        return False
+    except OSError as e:
+        return None if getattr(e, "errno", None) == socket.EAI_AGAIN else False
 
 
 def webs_probables(
-    client: httpx.Client, base: str, nifs: list[str], tlds=TLDS
+    client: httpx.Client,
+    base: str,
+    nifs: list[str],
+    tlds=TLDS,
+    errores: list | None = None,
 ) -> list[dict]:
-    """Prueba <base>.<tld> (sin espacios y con guiones). Devuelve los que resuelven, con indicios."""
+    """Prueba <base>.<tld> (sin espacios y con guiones). Devuelve los que resuelven, con indicios.
+    Si el DNS no responde a ninguno, lo anota en `errores`."""
     slug = re.sub(r"[^a-z0-9 ]", "", base.lower()).strip()
     if not slug:
         return []
     variantes = {slug.replace(" ", ""), slug.replace(" ", "-")}
     dominios = sorted({f"{v}.{t}" for v in variantes for t in tlds})
     with cf.ThreadPoolExecutor(8) as ex:
-        vivos = [d for d, ok in zip(dominios, ex.map(_resuelve, dominios)) if ok]
+        estados = list(ex.map(_resuelve, dominios))
+    vivos = [d for d, ok in zip(dominios, estados) if ok]
+    if errores is not None and all(ok is None for ok in estados):
+        errores.append({"fuente": "DNS", "error": "sin respuesta del resolutor"})
     out = []
     for d in vivos:
         item = {
@@ -426,11 +435,19 @@ def resolver(
     max_candidatos: int = 15,
     client: httpx.Client | None = None,
 ) -> dict:
-    """Devuelve {"consulta", "normalizado", "nif_consulta", "candidatos", "homonimia", "avisos", "webs"}."""
+    """Devuelve {"consulta", "normalizado", "nif_consulta", "candidatos", "homonimia", "avisos", "errores", "webs"}.
+    `errores` son las fuentes que han fallado: [{"fuente", "error"}]; también figuran en `avisos`."""
     own = client is None
     client = client or httpx.Client(headers=HEADERS, timeout=40, follow_redirects=True)
     nif = limpiar_nif(texto) if parece_nif(texto) else None
-    avisos, crudos = [], []
+    avisos, crudos, errores = [], [], []
+
+    def fallo(f: str, e: Exception) -> None:
+        avisos.append(f"{f}: {type(e).__name__}: {e}"[:200])
+        error = {"fuente": f.upper(), "error": f"{type(e).__name__}: {e}"[:200]}
+        if error not in errores:
+            errores.append(error)
+
     try:
         tareas = {
             "bdns": lambda: desde_bdns(client, texto),
@@ -442,7 +459,7 @@ def resolver(
             try:
                 crudos += tareas[f]()
             except Exception as e:  # una fuente caída no invalida las demás
-                avisos.append(f"{f}: {type(e).__name__}: {e}"[:200])
+                fallo(f, e)
         if (
             nif and "gleif" in fuentes
         ):  # GLEIF no indexa el NIF: probar con la denominación que dio otra fuente
@@ -454,7 +471,7 @@ def resolver(
                 try:
                     crudos += desde_gleif(client, nombre, max_items=5)
                 except Exception as e:
-                    avisos.append(f"gleif: {type(e).__name__}: {e}"[:200])
+                    fallo("gleif", e)
 
         # Agrupar por NIF (las grafías distintas del mismo NIF son la misma entidad).
         por_nif: dict[str, dict] = {}
@@ -567,7 +584,9 @@ def resolver(
         )
         base = normalizar(nombre_web)["base"] if nombre_web else ""
         webs = (
-            webs_probables(client, base, [c["nif"] for c in cands if c["nif"]])
+            webs_probables(
+                client, base, [c["nif"] for c in cands if c["nif"]], errores=errores
+            )
             if web and base
             else []
         )
@@ -584,6 +603,7 @@ def resolver(
             "candidatos": cands,
             "homonimia": homonimia,
             "avisos": avisos,
+            "errores": errores,
             "webs": webs,
         }
     finally:

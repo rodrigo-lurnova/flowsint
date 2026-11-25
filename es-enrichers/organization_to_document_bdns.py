@@ -63,7 +63,14 @@ class OrgToSubvencionesBdns(OrgEsEnricher):
                         "fija la propiedad nif del nodo para filtrar."
                     )
             for t in terceros[:5]:
-                for i in bdns.concesiones(c, t["id"], self.max_resultados):
+                nif = res.limpiar_nif(t["descripcion"].partition(" - ")[0])
+                try:
+                    concesiones = bdns.concesiones(c, t["id"], self.max_resultados)
+                except Exception as e:  # un beneficiario no invalida los demás
+                    self.fallo(t["descripcion"], e)
+                    continue
+                for i in concesiones:
+                    convocatoria = i.get("numeroConvocatoria")
                     importe = i.get("importe") or 0
                     doc = documento(
                         f"BDNS {i.get('fechaConcesion')} · {eur(importe)} · {recorta(i.get('convocatoria'), 70)} "
@@ -72,7 +79,8 @@ class OrgToSubvencionesBdns(OrgEsEnricher):
                         source="BDNS",
                         created_date=i.get("fechaConcesion"),
                         source_url=i.get("urlBR")
-                        or f"https://www.infosubvenciones.es/bdnstrans/GE/es/convocatorias/{i.get('numeroConvocatoria')}",
+                        or convocatoria
+                        and f"https://www.infosubvenciones.es/bdnstrans/GE/es/convocatorias/{convocatoria}",
                         author=" / ".join(
                             x for x in (i.get("nivel2"), i.get("nivel3")) if x
                         ),
@@ -92,7 +100,16 @@ class OrgToSubvencionesBdns(OrgEsEnricher):
                             nivel_administracion=i.get("nivel1"),
                         )
                         extra.append((doc, organo, "CONCEDIDA_POR"))
-                    out.append(Hallazgo(doc, "RECIBE_SUBVENCION", extra))
+                    out.append(
+                        Hallazgo(
+                            doc,
+                            "RECIBE_SUBVENCION",
+                            extra,
+                            certainty="confirmada"
+                            if nif and nif == ids["nif"]
+                            else "posible",
+                        )
+                    )
                     if len(out) >= self.max_resultados:
                         return out
         return out

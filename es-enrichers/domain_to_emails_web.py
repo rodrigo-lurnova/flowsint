@@ -3,11 +3,13 @@
 from typing import Any, Dict, List, Optional
 
 from flowsint_core.core.enricher_base import Enricher
-from flowsint_core.core.logger import Logger
+from flowsint_enrichers.es import _evidencias as ev
 from flowsint_enrichers.es._scripts import load
 from flowsint_enrichers.registry import flowsint_enricher
 from flowsint_types.domain import Domain
 from flowsint_types.email import Email
+
+FUENTE = "Web"
 
 
 @flowsint_enricher
@@ -72,17 +74,32 @@ class EsDomainToWebEmailsEnricher(Enricher):
         correos = load("correos")
         self.mapping, out = [], []
         for dom in data:
+            errores: List[str] = []
             try:
                 encontrados = correos.correos_web(
-                    dom.domain, max_paginas=int(self.params.get("max_paginas") or 12)
+                    dom.domain,
+                    max_paginas=int(self.params.get("max_paginas") or 12),
+                    errores=errores,
                 )
             except Exception as exc:
-                Logger.error(self.sketch_id, {"message": f"[WEB] {dom.domain}: {exc}"})
+                ev.fallo(self, FUENTE, dom.domain, exc)
                 continue
+            for error in errores:
+                ev.fallo(self, FUENTE, dom.domain, error.removeprefix("Web: "))
             for c in encontrados:
                 email = Email(email=c["email"])
                 out.append(email)
                 self.mapping.append((dom, email, c))
+                ev.anotar(
+                    self,
+                    FUENTE,
+                    dom.domain,
+                    "PUBLISHES_EMAIL",
+                    email.email,
+                    "confirmada",
+                    evidence=[c.get("contexto")],
+                    url=c["url"],
+                )
         return out
 
     def postprocess(

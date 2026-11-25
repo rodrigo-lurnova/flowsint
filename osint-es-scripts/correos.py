@@ -250,6 +250,8 @@ def correos_web(
     out: dict[str, dict] = {}
     raiz = host_raiz(dominio)
     paginas = crawl_web(dominio, max_paginas=max_paginas, client=client)
+    if errores is not None and not paginas:
+        errores.append(f"Web: sin páginas HTML en {dominio}")
     if errores is not None and paginas and paginas[0]["status"] >= 400:
         errores.append(f"Web: HTTP {paginas[0]['status']} en {paginas[0]['url']}")
     for pag in paginas:

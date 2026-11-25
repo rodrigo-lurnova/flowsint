@@ -98,15 +98,10 @@ class EsOrgToIndividualsBormeEnricher(Enricher):
     async def scan(self, data: List[InputType]) -> List[OutputType]:
         self.mapping, out = [], []
         solo_vig = bc.p_bool(self.params.get("SOLO_VIGENTES"))
-        api_key = bc.api_key_de(self)
-        mod = bc.borme()
         for org in data:
-            try:
-                res = await bc.buscar_empresa(str(org.name), self.params, api_key)
-            except Exception as exc:
-                ev.fallo(self, bc.FUENTE, str(org.name), exc, api_key)
+            res = await bc.consultar_empresa(self, str(org.name))
+            if res is None:
                 continue
-            q = mod.normalizar_denominacion(str(org.name))
             Logger.info(
                 self.sketch_id,
                 {
@@ -114,20 +109,9 @@ class EsOrgToIndividualsBormeEnricher(Enricher):
                     f"coste {res['coste']}"
                 },
             )
-            normas = [
-                mod.normalizar_denominacion(e["empresa"] or "") for e in res["empresas"]
-            ]
-            exactas = sum(n["base"] == q["base"] for n in normas)
-            for emp, norma in zip(res["empresas"], normas):
-                exacta = norma["base"] == q["base"]
-                confirmada = exacta and exactas == 1 and bc.misma_forma(norma, q)
-                duda = None
-                if not exacta:
-                    duda = f"coincidencia parcial con «{org.name}»"
-                elif exactas > 1:
-                    duda = f"{exactas} sociedades con la misma denominación"
-                elif not confirmada:
-                    duda = f"distinta forma jurídica que «{org.name}»"
+            estados = bc.dudas(str(org.name), res["empresas"])
+            for emp, (exacta, duda) in zip(res["empresas"], estados):
+                confirmada = duda is None
                 destino = (
                     org if exacta else Organization(name=emp["empresa"], source="BORME")
                 )

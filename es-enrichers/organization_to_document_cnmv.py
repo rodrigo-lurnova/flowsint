@@ -43,7 +43,11 @@ class OrgToRegistrosCnmv(OrgEsEnricher):
                     if res.coincidencia(ids["nombre"], e["nombre"]) != "parcial"
                 ][:3]
             for nif in nifs:
-                f = cnmv.ficha(c, nif)
+                try:
+                    f = cnmv.ficha(c, nif)
+                except Exception as e:  # una entidad no invalida las demás
+                    self.fallo(nif, e)
+                    continue
                 for s in f["secciones"]:
                     doc = documento(
                         f"CNMV {nif} · {s['seccion']}",
@@ -54,7 +58,13 @@ class OrgToRegistrosCnmv(OrgEsEnricher):
                         description=f"{f['nombre']} — {s['seccion']}",
                         ficha_url=f["url"],
                     )
-                    out.append(Hallazgo(doc, "REGISTRO_CNMV"))
+                    out.append(
+                        Hallazgo(
+                            doc,
+                            "REGISTRO_CNMV",
+                            certainty="confirmada" if ids["nif"] else "posible",
+                        )
+                    )
         return out
 
 

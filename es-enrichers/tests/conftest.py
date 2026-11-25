@@ -65,7 +65,13 @@ class GrafoFalso:
 @pytest.fixture(autouse=True)
 def entorno(monkeypatch):
     """Sin red, sin claves del entorno y sin registro en Postgres/Redis. Devuelve los mensajes del Logger."""
-    for clave in ("APIFY_TOKEN", "HUNTER_API_KEY", "GITHUB_TOKEN", "APISPAIN_API_KEY"):
+    for clave in (
+        "APIFY_TOKEN",
+        "HUNTER_API_KEY",
+        "GITHUB_TOKEN",
+        "APISPAIN_API_KEY",
+        "PDCP_API_KEY",
+    ):
         monkeypatch.delenv(clave, raising=False)
 
     def sin_red(*args, **kwargs):

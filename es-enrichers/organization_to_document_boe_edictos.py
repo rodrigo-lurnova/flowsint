@@ -69,9 +69,13 @@ class OrgToEdictosBoe(OrgEsEnricher):
         out: List[Hallazgo] = []
         with httpx.Client(headers=boe.HEADERS, timeout=40, follow_redirects=True) as c:
             for judicial in tablones:
-                r = boe.buscar(
-                    c, texto, judicial, str(self.params.get("desde") or ""), "", 50
-                )
+                try:
+                    r = boe.buscar(
+                        c, texto, judicial, str(self.params.get("desde") or ""), "", 50
+                    )
+                except Exception as e:  # un tablón no invalida el otro
+                    self.fallo(f"{texto} ({'TEJU' if judicial else 'TEU'})", e)
+                    continue
                 for i in r["resultados"]:
                     doc = documento(
                         f"{r['fuente']} {i['referencia']} · {recorta(i['asunto'], 90)}",
@@ -91,7 +95,14 @@ class OrgToEdictosBoe(OrgEsEnricher):
                         extra.append(
                             (doc, Organization(name=i["organismo"]), "PUBLICADO_POR")
                         )
-                    out.append(Hallazgo(doc, "MENCIONADA_EN_EDICTO", extra))
+                    out.append(
+                        Hallazgo(
+                            doc,
+                            "MENCIONADA_EN_EDICTO",
+                            extra,
+                            certainty="confirmada" if ids["nif"] else "posible",
+                        )
+                    )
         return out
 
 

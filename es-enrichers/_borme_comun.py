@@ -14,6 +14,7 @@ from flowsint_types.individual import Individual
 from flowsint_types.organization import Organization
 
 FUENTE = "BORME"
+APISPAIN = "BORME apispain"
 PARTICULAS = {
     "DE",
     "DEL",
@@ -106,7 +107,7 @@ PARAMS_COMUNES: List[Dict[str, Any]] = [
         "type": "string",
         "default": "auto",
         "required": False,
-        "description": "auto | boe | apispain (auto usa apispain si hay APISPAIN_API_KEY).",
+        "description": "auto | boe | apispain (auto usa apispain si hay APISPAIN_API_KEY y, si falla, el BOE).",
     },
     {
         "name": "APISPAIN_API_KEY",
@@ -130,16 +131,43 @@ def borme():
     return load("borme")
 
 
+class FalloBorme(RuntimeError):
+    """Ningún backend ha respondido. `fallos`: [(fuente, excepción)]."""
+
+    def __init__(self, fallos: List[tuple]):
+        super().__init__("; ".join(f"{f}: {e}" for f, e in fallos))
+        self.fallos = fallos
+
+
 async def buscar_empresa(
     nombre: str, params: Dict[str, Any], api_key: Optional[str]
 ) -> dict:
+    """Busca con apispain o el BOE. En modo auto, si apispain falla se usa el BOE y el fallo va en
+    res["fallos"]; si no responde ninguno, FalloBorme."""
     mod = borme()
-    backend = (params.get("BACKEND") or "auto").lower()
+    backend = (params.get("BACKEND") or "auto").strip().lower()
     exacta = p_bool(params.get("EXACTA"))
+    fallos: List[tuple] = []
     if backend == "apispain" or (backend == "auto" and api_key):
-        return await asyncio.to_thread(
-            mod.buscar_empresa_apispain, nombre, exacta, api_key
-        )
+        try:
+            return await asyncio.to_thread(
+                mod.buscar_empresa_apispain, nombre, exacta, api_key
+            )
+        except Exception as exc:
+            fallos.append((APISPAIN, exc))
+            if backend == "apispain":
+                raise FalloBorme(fallos) from exc
+    try:
+        res = await _buscar_empresa_boe(nombre, params, exacta)
+    except Exception as exc:
+        raise FalloBorme([*fallos, (FUENTE, exc)]) from exc
+    return {**res, "fallos": fallos}
+
+
+async def _buscar_empresa_boe(
+    nombre: str, params: Dict[str, Any], exacta: bool
+) -> dict:
+    mod = borme()
     return await asyncio.to_thread(
         mod.buscar_empresa,
         nombre,
@@ -168,6 +196,58 @@ async def buscar_persona(nombre: str, params: Dict[str, Any]) -> dict:
         0.5,
         int(params.get("MAX_PETICIONES") or 1500),
     )
+
+
+async def consultar_empresa(enricher, nombre: str) -> Optional[dict]:
+    """buscar_empresa anotando fallos y cobertura en el enricher. None si no hay respuesta."""
+    api_key = api_key_de(enricher)
+    try:
+        res = await buscar_empresa(nombre, enricher.params, api_key)
+        fallos = res.get("fallos") or []
+    except FalloBorme as exc:
+        res, fallos = None, exc.fallos
+    except Exception as exc:
+        res, fallos = None, [(FUENTE, exc)]
+    for fuente, exc in fallos:
+        ev.fallo(enricher, fuente, nombre, exc, api_key)
+    if res is not None:
+        anotar_cobertura(enricher, res)
+    return res
+
+
+def cobertura(res: dict) -> Optional[str]:
+    """Texto de cobertura según el backend y las fechas con las que se ha consultado."""
+    if res.get("backend") == "apispain":
+        return f"{APISPAIN} desde 2024-01-01"
+    if res.get("desde") and res.get("hasta"):
+        return f"BORME BOE {res['desde']} a {res['hasta']}"
+    return None
+
+
+def anotar_cobertura(enricher, res: dict) -> None:
+    textos = enricher.coverage.split("; ") if enricher.coverage else []
+    texto = cobertura(res)
+    if texto and texto not in textos:
+        enricher.coverage = "; ".join([*textos, texto])
+
+
+def dudas(nombre: str, empresas: List[dict]) -> List[tuple]:
+    """Por empresa: (denominación exacta, motivo de duda o None si es la consultada sin ambigüedad)."""
+    norm = borme().normalizar_denominacion
+    q = norm(nombre)
+    normas = [norm(e["empresa"] or "") for e in empresas]
+    exactas = sum(n["base"] == q["base"] for n in normas)
+    out = []
+    for n in normas:
+        exacta, duda = n["base"] == q["base"], None
+        if not exacta:
+            duda = f"coincidencia parcial con «{nombre}»"
+        elif exactas > 1:
+            duda = f"{exactas} sociedades con la misma denominación"
+        elif not misma_forma(n, q):
+            duda = f"distinta forma jurídica que «{nombre}»"
+        out.append((exacta, duda))
+    return out
 
 
 def misma_forma(a: dict, b: dict) -> bool:

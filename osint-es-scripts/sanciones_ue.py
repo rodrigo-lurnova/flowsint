@@ -142,8 +142,9 @@ def buscar(
     )
     q = normalizar(texto)["base"]
     q_toks = set(q.split())
-    out = []
+    out, leidas = [], 0
     for e in _entidades(path):
+        leidas += 1
         if tipo and e["tipo"] != tipo:
             continue
         nivel = None
@@ -159,6 +160,9 @@ def buscar(
         if nivel:
             e["coincidencia"] = nivel
             out.append(e)
+    if not leidas:  # otro XML (p. ej. una página de error) no significa «sin sanciones»
+        os.remove(path)
+        raise RuntimeError("la lista de sanciones de la UE está sin entidades")
     out.sort(
         key=lambda e: ("identificador", "exacta", "contiene").index(e["coincidencia"])
     )

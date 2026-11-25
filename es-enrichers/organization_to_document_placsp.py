@@ -7,7 +7,6 @@ from flowsint_enrichers.es._org import (
     OrgEsEnricher,
     documento,
     eur,
-    nombre_por_nif,
     recorta,
 )
 from flowsint_enrichers.es._scripts import load
@@ -50,21 +49,17 @@ class OrgToContratosPlacsp(OrgEsEnricher):
         """
 
     def consultar(self, ids: Dict[str, Optional[str]]) -> List[Hallazgo]:
-        if (
-            not ids["base"] and ids["nif"]
-        ):  # el buscador no admite NIF: obtener la denominación
-            ids = {**ids, "base": nombre_por_nif(ids["nif"])}
-        if not ids["base"]:
-            self.log(
-                "PLACSP no busca por NIF y no se encontró la denominación", error=True
-            )
+        base = self.base_o_fallo(ids)  # el buscador no admite NIF
+        if not base:
             return []
         placsp = load("placsp")
         with httpx.Client(
             headers=placsp.HEADERS, timeout=60, follow_redirects=True
         ) as c:
-            r = placsp.buscar(c, ids["base"], self.max_resultados)
-        self.log(f"«{ids['base']}»: {r['total']} licitaciones en total")
+            r = placsp.buscar(c, base, self.max_resultados)
+        for error in r.get("errores") or []:
+            self.fallo(base, error)
+        self.log(f"«{base}»: {r['total']} licitaciones en total")
         out = []
         for i in r["resultados"]:
             imp = eur(i["importe"])
@@ -80,7 +75,7 @@ class OrgToContratosPlacsp(OrgEsEnricher):
                 importe=i["importe"],
                 estado=i["estado"],
                 expediente=i["expediente"],
-                consulta_adjudicatario=ids["base"],
+                consulta_adjudicatario=base,
             )
             extra = []
             if self.p_bool("incluir_organos", True) and i.get("organo"):
@@ -93,7 +88,7 @@ class OrgToContratosPlacsp(OrgEsEnricher):
                         "LICITADO_POR",
                     )
                 )
-            out.append(Hallazgo(doc, "ADJUDICATARIA", extra))
+            out.append(Hallazgo(doc, "ADJUDICATARIA", extra, certainty="posible"))
         return out
 
 

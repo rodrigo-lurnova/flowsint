@@ -12,7 +12,6 @@ devuelve resultados. Este enricher reproduce el comportamiento documentado
 - Team Cymru (DNS ``AS<n>.asn.cymru.com``)   - país, RIR y nombre registrado.
 """
 
-import os
 import re
 import unicodedata
 from typing import Any, Dict, List, Optional
@@ -23,6 +22,7 @@ import requests
 
 from flowsint_core.core.enricher_base import Enricher
 from flowsint_core.core.logger import Logger
+from flowsint_enrichers.es import _evidencias as ev
 from flowsint_enrichers.registry import flowsint_enricher
 from flowsint_types.asn import ASN
 from flowsint_types.organization import Organization
@@ -53,6 +53,7 @@ class EsOrgToAsnEnricher(Enricher):
         scan_id: Optional[str] = None,
         vault=None,
         params: Optional[Dict[str, Any]] = None,
+        graph_service=None,
     ):
         super().__init__(
             sketch_id=sketch_id,
@@ -60,6 +61,7 @@ class EsOrgToAsnEnricher(Enricher):
             params_schema=self.get_params_schema(),
             vault=vault,
             params=params,
+            graph_service=graph_service,
         )
 
     @classmethod
@@ -76,7 +78,7 @@ class EsOrgToAsnEnricher(Enricher):
                 "type": "number",
                 "description": "Máximo de ASNs por organización. Default: 50",
                 "required": False,
-                "default": 50,
+                "default": "50",
             },
         ]
 
@@ -115,11 +117,12 @@ class EsOrgToAsnEnricher(Enricher):
             limit = int(self.params.get("max_results") or 50)
         except (TypeError, ValueError):
             limit = 50
-        pdcp_key = self.get_secret("PDCP_API_KEY", os.getenv("PDCP_API_KEY"))
+        pdcp_key = ev.clave(self, "PDCP_API_KEY")
 
         for org in data:
             tokens = _norm(org.name).split()
             if not tokens:
+                ev.fallo(self, "ASN", str(org.name), "sin denominación utilizable")
                 continue
             found: Dict[int, Dict[str, Any]] = {}
             for source, fn in (
@@ -131,18 +134,14 @@ class EsOrgToAsnEnricher(Enricher):
                         found.setdefault(number, {"label": label, "sources": set()})
                         found[number]["sources"].add(source)
                 except Exception as exc:
-                    Logger.warn(
-                        self.sketch_id, {"message": f"[{source}] {org.name}: {exc}"}
-                    )
+                    ev.fallo(self, source, str(org.name), exc)
             if pdcp_key:
                 try:
                     for number, label in self._asnmap(org.name, pdcp_key):
                         found.setdefault(number, {"label": label, "sources": set()})
                         found[number]["sources"].add("asnmap")
                 except Exception as exc:
-                    Logger.warn(
-                        self.sketch_id, {"message": f"[asnmap] {org.name}: {exc}"}
-                    )
+                    ev.fallo(self, "asnmap", str(org.name), exc, pdcp_key)
 
             matched = [
                 (n, info)
@@ -167,6 +166,15 @@ class EsOrgToAsnEnricher(Enricher):
                         ),
                     )
                 self.org_asn_mapping.append((org, asns[number]))
+                ev.anotar(
+                    self,
+                    ", ".join(sorted(info["sources"])),
+                    org.nodeLabel,
+                    "BELONGS_TO",
+                    asns[number].asn_str,
+                    "posible",
+                    evidence=[info["label"]],
+                )
             Logger.info(
                 self.sketch_id,
                 {"message": f"[ES_ORG_TO_ASN] {org.name}: {len(matched)} ASN(s)"},
@@ -211,6 +219,8 @@ class EsOrgToAsnEnricher(Enricher):
         data = self._get(
             RIPESTAT_URL, {"resource": name, "limit": 100, "sourceapp": "flowsint"}
         )
+        if data.get("status") == "error":
+            raise RuntimeError(f"RIPEstat: {data.get('messages')}")
         for cat in data.get("data", {}).get("categories", []):
             if cat.get("category") != "ASNs":
                 continue
@@ -251,7 +261,10 @@ class EsOrgToAsnEnricher(Enricher):
                 "registry": parts[2] if len(parts) > 2 else None,
                 "name": parts[4] if len(parts) > 4 else None,
             }
-        except (dns.exception.DNSException, IndexError, ValueError):
+        except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, IndexError, ValueError):
+            return {}
+        except dns.exception.DNSException as exc:
+            ev.fallo(self, "Team Cymru", f"AS{number}", exc)
             return {}
 
 

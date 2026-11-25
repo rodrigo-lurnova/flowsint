@@ -123,6 +123,11 @@ def _filas(page: str) -> list[dict]:
     return out
 
 
+def _texto(r: httpx.Response) -> str:
+    r.raise_for_status()
+    return r.text
+
+
 def buscar(
     client: httpx.Client, adjudicatario: str, max_items: int = 25, pausa: float = 1.5
 ) -> dict:
@@ -130,35 +135,45 @@ def buscar(
         raise ValueError(
             "El adjudicatario debe tener al menos una palabra de 3 caracteres"
         )
-    page = client.get(BASE + "/wps/portal/licitaciones").text
+    page = _texto(client.get(BASE + "/wps/portal/licitaciones"))
     fid, action, data = _formulario(page)
     data[f"{fid}:_idcl"] = f"{fid}:linkFormularioBusqueda"
-    page = client.post(BASE + action, data=data).text
+    page = _texto(client.post(BASE + action, data=data))
 
     fid, action, data = _formulario(page)
     data[f"{fid}:texAdjudicatarioMAQ"] = adjudicatario
     data[f"{fid}:button1"] = "Buscar"
-    r = client.post(BASE + action, data=data)
-    r.raise_for_status()
-    page = r.text
+    page = _texto(client.post(BASE + action, data=data))
     m = re.search(r"Total:\s*([\d.]+)", clean(page))
     total = int(m.group(1).replace(".", "")) if m else 0
     items = _filas(page)
+    errores = []  # páginas perdidas: los resultados quedan incompletos
     while len(items) < min(max_items, total):
         sig = re.search(
             r'<input[^>]*name="([^"]+)"[^>]*value="Siguiente &gt;&gt;"', page
         )
         if not sig:
+            errores.append(f"sin página siguiente tras {len(items)} de {total}")
             break
         time.sleep(pausa)
-        fid, action, data = _formulario(page)
-        data[sig.group(1)] = "Siguiente >>"
-        page = client.post(BASE + action, data=data).text
+        try:
+            fid, action, data = _formulario(page)
+            data[sig.group(1)] = "Siguiente >>"
+            page = _texto(client.post(BASE + action, data=data))
+        except (httpx.HTTPError, RuntimeError) as e:
+            errores.append(f"{type(e).__name__}: {e} (tras {len(items)} de {total})")
+            break
         nuevos = _filas(page)
         if not nuevos:
+            errores.append(f"página sin filas tras {len(items)} de {total}")
             break
         items.extend(nuevos)
-    return {"consulta": adjudicatario, "total": total, "resultados": items[:max_items]}
+    return {
+        "consulta": adjudicatario,
+        "total": total,
+        "resultados": items[:max_items],
+        "errores": errores,
+    }
 
 
 def main() -> int:

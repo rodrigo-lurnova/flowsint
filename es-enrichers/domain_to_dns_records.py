@@ -6,11 +6,10 @@ guardan un único registro como Phrase. Este enricher crea un DNSRecord por valo
 
 from typing import Any, Dict, List, Optional
 
-import dns.exception
 import dns.resolver
 
 from flowsint_core.core.enricher_base import Enricher
-from flowsint_core.core.logger import Logger
+from flowsint_enrichers.es import _evidencias as ev
 from flowsint_enrichers.registry import flowsint_enricher
 from flowsint_types.dns_record import DNSRecord
 from flowsint_types.domain import Domain
@@ -88,12 +87,7 @@ class EsDomainToDnsRecordsEnricher(Enricher):
     def _consulta(self, nombre: str, tipo: str) -> List[tuple]:
         try:
             ans = self.resolver.resolve(nombre, tipo)
-        except (
-            dns.resolver.NXDOMAIN,
-            dns.resolver.NoAnswer,
-            dns.resolver.NoNameservers,
-            dns.exception.Timeout,
-        ):
+        except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
             return []
         out = []
         for r in ans:
@@ -117,9 +111,7 @@ class EsDomainToDnsRecordsEnricher(Enricher):
                 try:
                     filas = self._consulta(nombre, tipo)
                 except Exception as exc:
-                    Logger.error(
-                        self.sketch_id, {"message": f"[DNS] {nombre} {tipo}: {exc}"}
-                    )
+                    ev.fallo(self, "DNS", f"{nombre} {tipo}", exc)
                     continue
                 for valor, prioridad, ttl in filas:
                     rec = DNSRecord(
@@ -133,6 +125,15 @@ class EsDomainToDnsRecordsEnricher(Enricher):
                     )
                     out.append(rec)
                     self.mapping.append((dom, rec))
+                    ev.anotar(
+                        self,
+                        "DNS",
+                        dom.domain,
+                        f"HAS_{etiqueta}_RECORD",
+                        valor,
+                        "confirmada",
+                        evidence=[rec.description],
+                    )
         return out
 
     def postprocess(

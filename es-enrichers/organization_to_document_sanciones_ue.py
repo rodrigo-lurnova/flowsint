@@ -11,7 +11,7 @@ from flowsint_enrichers.registry import flowsint_enricher
 class OrgToSancionesUe(OrgEsEnricher):
     """[SANCIONES UE] Coincidencias en la lista consolidada de sanciones financieras de la UE."""
 
-    FUENTE = "[SANCIONES UE]"
+    FUENTE = "[Sanciones UE]"
     MAX_DEFECTO = 10
     PARAMS = [
         {
@@ -51,7 +51,12 @@ class OrgToSancionesUe(OrgEsEnricher):
             consultas = [x for x in (ids["nif"], ids["nombre"]) if x]
             vistos = set()
             for q in consultas:
-                for e in san.buscar(c, q, self.max_resultados)["resultados"]:
+                try:
+                    resultados = san.buscar(c, q, self.max_resultados)["resultados"]
+                except Exception as exc:
+                    self.fallo(q, exc)
+                    continue
+                for e in resultados:
                     if e["referencia_ue"] in vistos or (
                         e["coincidencia"] == "contiene" and not parciales
                     ):
@@ -82,7 +87,14 @@ class OrgToSancionesUe(OrgEsEnricher):
                         if e["coincidencia"] == "contiene"
                         else "SANCIONADA"
                     )
-                    out.append(Hallazgo(doc, rel))
+                    por_nif = q == ids["nif"] and e["coincidencia"] == "identificador"
+                    out.append(
+                        Hallazgo(
+                            doc,
+                            rel,
+                            certainty="confirmada" if por_nif else "posible",
+                        )
+                    )
         return out
 
 

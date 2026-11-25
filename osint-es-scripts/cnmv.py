@@ -41,7 +41,9 @@ NIF_RE = re.compile(r"^[A-Z]-?\d{7,8}[A-Z0-9]?$", re.I)
 
 
 def buscar(client: httpx.Client, texto: str) -> list[dict]:
-    page = client.get(BASE + "busquedaporentidad").text
+    inicio = client.get(BASE + "busquedaporentidad")
+    inicio.raise_for_status()
+    page = inicio.text
     form = {
         k: re.search(rf'id="{k}" value="([^"]*)"', page).group(1)
         for k in ("__VIEWSTATE", "__VIEWSTATEGENERATOR", "__EVENTVALIDATION")
