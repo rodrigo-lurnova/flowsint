@@ -10,7 +10,9 @@ en las redes: busca en motores de búsqueda las URLs de perfil ya indexadas y la
 puntúa por coincidencia de nombre y de empresa en título/snippet.
 
 Mecanismo (2026-10):
-  - SearXNG (SEARXNG_URL, por defecto http://localhost:9000):
+  - Brave Search API si hay BRAVE_API_KEY:
+      GET api.search.brave.com/res/v1/web/search?q=site:<red> <nombre>
+  - Sin BRAVE_API_KEY, SearXNG (SEARXNG_URL, por defecto http://localhost:9000):
       GET /search?q=site:<red> "<nombre>"&format=json&engines=yandex,seznam
     En la instancia local solo yandex y seznam respetan `site:` sin CAPTCHA
     (bing ignora `site:`; google, duckduckgo, startpage, brave... bloqueados).
@@ -58,6 +60,19 @@ def searxng(consulta: str, client: httpx.Client) -> list[dict]:
     r.raise_for_status()
     return [{"url": x.get("url"), "titulo": x.get("title") or "", "snippet": x.get("content") or "",
              "motor": x.get("engine")} for x in r.json().get("results", [])]
+
+
+def brave(consulta: str, client: httpx.Client, clave: str) -> list[dict]:
+    for intento in range(2):
+        r = client.get("https://api.search.brave.com/res/v1/web/search",
+                       params={"q": consulta, "count": 20, "text_decorations": "false"},
+                       headers={"Accept": "application/json", "X-Subscription-Token": clave})
+        if r.status_code != 429 or intento:
+            break
+        time.sleep(2)  # límite por segundo del plan
+    r.raise_for_status()
+    return [{"url": x.get("url"), "titulo": x.get("title") or "", "snippet": x.get("description") or "",
+             "motor": "brave"} for x in (r.json().get("web") or {}).get("results", [])]
 
 
 def google_apify(consultas: list[str]) -> list[dict]:
@@ -123,10 +138,11 @@ def github_usuarios(nombre: str, empresa: str, dominio: str | None, client: http
 
 
 def buscar_perfiles(nombre: str, empresa: str, dominio: str | None = None, redes: list[str] | None = None,
-                    apify: bool = False, min_confianza: float = 0.5) -> dict:
+                    apify: bool = False, min_confianza: float = 0.5, brave_key: str | None = None) -> dict:
     if not empresa:
         raise ValueError("Se requiere la empresa vinculada (minimización RGPD).")
     redes = redes or list(REDES)
+    brave_key = brave_key or os.getenv("BRAVE_API_KEY")
     # Sin comillas: el BORME escribe sin tildes («Saenz») y yandex es literal con comillas;
     # la precisión la da el filtro de nombre sobre el título.
     consultas = [(red, f"site:{REDES[red][0]} {nombre}") for red in redes]
@@ -135,11 +151,11 @@ def buscar_perfiles(nombre: str, empresa: str, dominio: str | None = None, redes
     with httpx.Client(headers=HEADERS, timeout=30, follow_redirects=True) as c:
         for i, (red, q) in enumerate(consultas):
             if i:
-                time.sleep(1)
+                time.sleep(1.1)
             try:
-                hits += [{**h, "consulta": q} for h in searxng(q, c)]
+                hits += [{**h, "consulta": q} for h in (brave(q, c, brave_key) if brave_key else searxng(q, c))]
             except Exception as e:
-                avisos.append(f"SearXNG «{q}»: {type(e).__name__}: {e}")
+                avisos.append(f"{'Brave' if brave_key else 'SearXNG'} «{q}»: {type(e).__name__}: {e}")
         if apify:
             try:
                 hits += google_apify([q for _, q in consultas])

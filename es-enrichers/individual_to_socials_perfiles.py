@@ -41,6 +41,8 @@ class EsIndividualToSocialsEnricher(Enricher):
              "description": "Confianza mínima (0-1)."},
             {"name": "usar_apify", "type": "string", "default": "false", "required": False,
              "description": "Añadir Google vía Apify (de pago, ~0,005 $ por consulta)."},
+            {"name": "BRAVE_API_KEY", "type": "vaultSecret", "required": False,
+             "description": "Brave Search (si no está en la vault ni en el entorno se usa SearXNG)."},
             {"name": "APIFY_TOKEN", "type": "vaultSecret", "required": False,
              "description": "Solo si usar_apify=true (si no está en la vault se usa la variable de entorno)."},
         ]
@@ -62,7 +64,7 @@ class EsIndividualToSocialsEnricher(Enricher):
         return """
         OPCIONAL. Busca perfiles públicos (LinkedIn, X, Instagram, Facebook, TikTok,
         YouTube, GitHub, Medium) de una persona vinculada a la empresa investigada,
-        con búsquedas `site:` en el SearXNG local (yandex/seznam; SEARXNG_URL) y la
+        con búsquedas `site:` en Brave (BRAVE_API_KEY; sin clave, SearXNG local) y la
         API de GitHub; Google vía Apify si usar_apify=true. No entra en las redes.
         El nombre debe aparecer en el título del resultado; la empresa o el dominio
         suben la confianza. Sin empresa vinculada no hace nada.
@@ -84,7 +86,8 @@ class EsIndividualToSocialsEnricher(Enricher):
                 Logger.info(self.sketch_id, {"message": f"[PERFILES] {nombre or '?'}: sin empresa vinculada, se omite"})
                 continue
             try:
-                res = perfiles.buscar_perfiles(nombre, empresa, (ctx["dominios"] or [None])[0], redes, apify, minc)
+                res = perfiles.buscar_perfiles(nombre, empresa, (ctx["dominios"] or [None])[0], redes, apify, minc,
+                                               brave_key=self.params.get("BRAVE_API_KEY"))
             except Exception as exc:
                 Logger.error(self.sketch_id, {"message": f"[PERFILES] {nombre}: {exc}"})
                 continue
