@@ -20,6 +20,8 @@ dependencies = [
     "reconcrawl",
     "reconspread",
     "dnspython>=2.4,<3.0",
+    "holehe",
+    "theHarvester",
 ]
 
 [dependency-groups]
@@ -44,6 +46,12 @@ maigret = { git = "https://github.com/soxoj/maigret" }
 recontrack = { git = "https://github.com/reconurge/recontrack.git" }
 reconcrawl = { git = "https://github.com/reconurge/reconcrawl.git" }
 reconspread = { git = "https://github.com/reconurge/reconspread.git" }
+# holehe ships a usable wheel on PyPI (entry point holehe.core:main); its
+# modules are driven as a library here, not via the CLI.
+# theHarvester's PyPI entry is a 0.0.1 stub and `master` requires Python 3.14,
+# so we pin the 4.11.1 release tag (requires-python >=3.12), which still ships
+# the stable CLI that writes JSON/XML via -f.
+theHarvester = { git = "https://github.com/laramies/theHarvester.git", tag = "4.11.1" }
 
 [tool.mypy]
 python_version = "3.11"

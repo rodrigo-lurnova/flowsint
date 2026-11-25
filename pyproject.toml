@@ -14,6 +14,13 @@ dependencies = [
     "docker>=7.1.0,<8.0.0",
 ]
 
+[tool.uv]
+# theHarvester (an application, not a library) pins uvicorn==0.48.0 for its own
+# optional REST server, which conflicts with flowsint-api's uvicorn>=0.32,<0.33.
+# flowsint only uses theHarvester's CLI (never its REST mode), so force the
+# workspace's uvicorn and ignore theHarvester's hard pin.
+override-dependencies = ["uvicorn>=0.32.0,<0.33.0"]
+
 [tool.uv.workspace]
 members = [
     "flowsint-api",
