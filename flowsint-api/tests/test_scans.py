@@ -136,3 +136,34 @@ def test_sketch_list_is_light_and_ordered(client, world):
     nones = sorted([str(none_a.id), str(none_b.id)], key=lambda s: uuid.UUID(s).bytes)
     assert ids == [str(early.id), *tied, str(late.id), *nones]
     assert rows[0]["started_at"].endswith(("+00:00", "Z"))
+
+
+@pytest.mark.parametrize("headers", ["h", "other_h"])
+def test_scan_without_sketch_is_404_on_get_and_delete(client, world, headers):
+    orphan = Scan(sketch_id=None, details={"secret": 1}, error="private")
+    world["db"].add(orphan)
+    world["db"].commit()
+    res = client.get(f"/api/scans/{orphan.id}", headers=world[headers])
+    assert res.status_code == 404
+    assert "secret" not in res.text and "private" not in res.text
+    res = client.delete(f"/api/scans/{orphan.id}", headers=world[headers])
+    assert res.status_code == 404
+    assert world["db"].get(Scan, orphan.id) is not None
+
+
+def test_scan_with_dangling_sketch_is_404(client, world):
+    ghost = Scan(sketch_id=uuid.uuid4(), details={"secret": 1})
+    world["db"].add(ghost)
+    world["db"].commit()
+    assert client.get(f"/api/scans/{ghost.id}", headers=world["h"]).status_code == 404
+
+
+@pytest.mark.parametrize("value", ["COMPLETED", "FAILED", "RUNNING"])
+def test_status_serialised_for_non_default_values(client, world, value):
+    from flowsint_core.core.enums import EventLevel
+
+    scan = _scan(world, status=EventLevel(value))
+    one = client.get(f"/api/scans/{scan.id}", headers=world["h"]).json()
+    assert one["status"] == value
+    rows = client.get(f"/api/scans/sketch/{world['sketch'].id}", headers=world["h"])
+    assert [r["status"] for r in rows.json()] == [value]
