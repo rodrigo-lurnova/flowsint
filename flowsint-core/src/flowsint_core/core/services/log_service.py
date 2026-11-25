@@ -8,7 +8,6 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from ..models import Scan
 from ..repositories import (
     InvestigationRepository,
     LogRepository,
@@ -96,17 +95,6 @@ class LogService(BaseService):
         except Exception as e:
             self._rollback()
             raise DatabaseError(f"Failed to delete logs: {str(e)}")
-
-    def get_scan_with_permission(self, scan_id: str, user_id: UUID) -> Scan:
-        scan = self._scan_repo.get_by_id(scan_id)
-        if not scan:
-            raise NotFoundError(f"Scan with id {scan_id} not found")
-
-        sketch = self._sketch_repo.get_by_id(scan.sketch_id)
-        if sketch:
-            self._check_permission(user_id, sketch.investigation_id, ["read"])
-
-        return scan
 
 
 def create_log_service(db: Session) -> LogService:

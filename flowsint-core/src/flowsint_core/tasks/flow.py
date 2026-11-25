@@ -3,6 +3,8 @@ from datetime import datetime, timezone
 from typing import List, Optional
 
 from celery import states
+from celery.exceptions import Ignore
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from flowsint_core.utils import to_json_serializable
@@ -53,7 +55,17 @@ def run_flow(
             sketch_id=uuid.UUID(sketch_id) if sketch_id else None,
         )
         session.add(scan)
-        session.commit()
+        try:
+            session.commit()
+        except IntegrityError:
+            session.rollback()
+            if session.get(Scan, scan_id) is None:
+                raise
+            # The id is taken: a second launch with the same client-chosen id,
+            # or a Celery redelivery. Run nothing and leave the existing scan
+            # (and the task state) alone.
+            print(f"Scan {scan_id} already exists, duplicate run ignored")
+            raise Ignore()
 
         # Create vault instance if owner_id is provided
         vault = None
@@ -87,6 +99,9 @@ def run_flow(
         session.commit()
 
         return {"result": scan.details}
+
+    except Ignore:
+        raise
 
     except Exception as ex:
         session.rollback()

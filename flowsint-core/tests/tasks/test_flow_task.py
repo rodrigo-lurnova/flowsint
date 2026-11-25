@@ -121,3 +121,58 @@ def test_run_flow_exception_sets_completed_at_and_reraises(monkeypatch):
 
 def test_flow_tasks_are_not_acked_late():
     assert flow_task.celery.conf.task_acks_late is False
+
+
+def test_run_flow_duplicate_scan_id_stops_and_keeps_existing_scan(monkeypatch):
+    """Same task id twice (two launches, or a Celery redelivery): the second
+    one must not run the flow nor touch the first one's scan."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.exc import IntegrityError
+    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy.pool import StaticPool
+
+    from flowsint_core.core.models import Base
+
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine)
+    monkeypatch.setattr(flow_task, "SessionLocal", Session)
+
+    ran = []
+
+    class FakeOrchestrator:
+        def __init__(self, **kwargs):
+            pass
+
+        def scan(self, values):
+            ran.append(1)
+            return _results("success", [])
+
+    monkeypatch.setattr(flow_task, "FlowOrchestrator", FakeOrchestrator)
+
+    task_id = str(uuid.uuid4())
+    flow_task.run_flow.apply(args=[[BRANCH], [], None], task_id=task_id, throw=True)
+    assert ran == [1]
+
+    check = Session()
+    first = check.get(Scan, uuid.UUID(task_id))
+    assert first.status == EventLevel.COMPLETED
+    done_at = first.completed_at
+    check.close()
+
+    result = flow_task.run_flow.apply(
+        args=[[BRANCH], [], None], task_id=task_id, throw=True
+    )
+    assert ran == [1]  # the duplicate ran nothing
+    assert not isinstance(result.result, IntegrityError)
+
+    check = Session()
+    again = check.get(Scan, uuid.UUID(task_id))
+    assert again.status == EventLevel.COMPLETED
+    assert again.error is None
+    assert again.completed_at == done_at
+    check.close()
