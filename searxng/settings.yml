@@ -1,0 +1,10 @@
+# SearXNG propio de Flowsint: solo accesible en la red Docker interna.
+use_default_settings: true
+search:
+  formats:
+    - html
+    - json # lo necesita osint-es-scripts/perfiles.py
+server:
+  # La clave la aporta SEARXNG_SECRET (docker-compose.prod.yml)
+  limiter: false
+  image_proxy: false
