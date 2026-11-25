@@ -79,6 +79,7 @@ class Script:
     def __init__(self, behaviours: Dict[str, List[Any]]):
         self.behaviours = behaviours
         self.calls: Dict[str, int] = {}
+        self.inputs: Dict[str, List[Any]] = {}
 
     def next(self, name: str) -> Any:
         self.calls[name] = self.calls.get(name, 0) + 1
@@ -110,10 +111,13 @@ class FakeRegistry:
                 return "value"
 
             async def scan(self, values):
+                script.inputs.setdefault(name, []).append(values)
                 behaviour = script.next(name)
                 if isinstance(behaviour, Exception):
                     raise behaviour
                 if isinstance(behaviour, dict):
+                    for message in behaviour.get("failures", []):
+                        self.add_failure(message)
                     for f in behaviour.get("findings", []):
                         self.add_finding(f)
                     return behaviour["results"]
@@ -315,3 +319,33 @@ def test_success_log_is_emitted_when_complete(run_flow_with):
     logger = orch_module.Logger
     run_flow_with({"a": [[NODE]]}, [branch("one", "a-1")])
     assert logger.completed_calls
+
+
+PARTIAL = {"results": [{"label": "partial"}], "failures": ["una fuente cayó"]}
+
+
+def test_failed_run_with_outputs_does_not_kill_its_branch(run_flow_with):
+    r = run_flow_with({"a": [PARTIAL], "c": [[NODE]]}, [branch("one", "a-1", "c-1")])
+    assert statuses(r) == ["failed", "ok"]
+    assert r["outcome"] == "partial"
+    assert run_flow_with.script.inputs["c"] == [[{"label": "partial"}]]
+
+
+def test_failed_run_with_outputs_continues_through_a_cache_hit(run_flow_with):
+    r = run_flow_with(
+        {"a": [PARTIAL], "c": [[NODE]]},
+        [branch("one", "a-1"), branch("two", "a-1", "c-1")],
+    )
+    assert run_flow_with.script.calls["a"] == 1
+    assert statuses(r) == ["failed", "ok"]
+    assert r["outcome"] == "partial"
+    assert run_flow_with.script.inputs["c"] == [[{"label": "partial"}]]
+
+
+def test_failed_run_without_outputs_still_skips_the_rest(run_flow_with):
+    r = run_flow_with(
+        {"a": [{"results": [], "failures": ["caída"]}], "c": [[NODE]]},
+        [branch("one", "a-1", "c-1")],
+    )
+    assert statuses(r) == ["failed", "skipped"]
+    assert r["outcome"] == "failed"

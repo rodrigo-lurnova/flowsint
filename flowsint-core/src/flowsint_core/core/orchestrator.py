@@ -414,7 +414,7 @@ class FlowOrchestrator(Enricher):
                 "name": branch_name,
                 "steps": [],
             }
-            # Set once a step of this branch failed: the rest of it is skipped.
+            # Set once a step failed with no outputs: the rest of the branch is skipped.
             branch_failed = False
 
             # Process each step in the branch
@@ -537,7 +537,7 @@ class FlowOrchestrator(Enricher):
                         enricher_results_cache[cache_key] = (outputs, run)
                         add_real_run(node_id, run)
                         all_findings.extend(enricher.findings)
-                    if run.status == "failed":
+                    if run.status == "failed" and not outputs:
                         branch_failed = True
 
                 except Exception as e:
