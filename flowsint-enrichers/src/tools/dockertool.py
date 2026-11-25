@@ -6,6 +6,11 @@ from docker.errors import APIError, DockerException, ImageNotFound
 from .base import Tool
 
 
+# docker-py only returns a container's output with the json-file/journald log
+# drivers; with any other daemon default (e.g. "local") run() returns None.
+LOG_CONFIG = {"Type": "json-file"}
+
+
 class DockerTool(Tool):
     # Subclasses (SubfinderTool, NaabuTool, ...) set this as a class
     # attribute with the bare image name — get_image() below reads that,
@@ -38,6 +43,7 @@ class DockerTool(Tool):
             output = self.client.containers.run(
                 self.image,
                 command="--version",
+                log_config=LOG_CONFIG,
                 remove=True,
                 stdout=True,
                 stderr=True,
@@ -72,6 +78,7 @@ class DockerTool(Tool):
         try:
             run_kwargs = dict(
                 command=command,
+                log_config=LOG_CONFIG,
                 remove=True,
                 stdout=True,
                 stderr=True,
@@ -107,6 +114,7 @@ class DockerTool(Tool):
                     test_result = self.client.containers.run(
                         self.image,
                         command=command,
+                        log_config=LOG_CONFIG,
                         remove=True,
                         stdout=True,
                         stderr=True,
